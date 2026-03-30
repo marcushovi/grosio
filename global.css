@@ -1,4 +1,54 @@
 @import 'tailwindcss';
-@import 'uniwind';
 @import 'heroui-native/styles';
+@import 'uniwind';
 @source './node_modules/heroui-native/lib';
+
+/*
+ * Override color-mix() computed variables with static hex values.
+ * React Native / Uniwind cannot resolve CSS color-mix() at runtime.
+ * Must use @theme inline static to match HeroUI's declaration
+ * so useCSSVariable / useThemeColor can resolve them.
+ */
+@theme inline static {
+  /* Hover states (used by Button via useThemeColor) */
+  --color-accent-hover: #197def;
+  --color-default-hover: #47474d;
+  --color-danger-hover: #f42970;
+  --color-success-hover: #17b85f;
+  --color-warning-hover: #df9725;
+  --color-surface-hover: #38383b;
+
+  /* Form field hover/focus */
+  --color-field-hover: #2b2b2e;
+  --color-field-focus: #27272a;
+  --color-field-border-hover: #56565c;
+  --color-field-border-focus: #6f6f71;
+
+  /* Background shades */
+  --color-background-secondary: #212124;
+  --color-background-tertiary: #2a2a2d;
+  --color-background-inverse: #fcfcfc;
+
+  /* Soft colors */
+  --color-accent-soft: #002d62;
+  --color-accent-soft-foreground: #006fee;
+  --color-accent-soft-hover: #003a7e;
+
+  --color-danger-soft: #4d0620;
+  --color-danger-soft-foreground: #f31260;
+  --color-danger-soft-hover: #66082a;
+
+  --color-success-soft: #073f20;
+  --color-success-soft-foreground: #17c964;
+  --color-success-soft-hover: #095429;
+
+  --color-warning-soft: #4e340b;
+  --color-warning-soft-foreground: #f5a524;
+  --color-warning-soft-hover: #66440f;
+
+  /* Separator/border levels */
+  --color-separator-secondary: #47474a;
+  --color-separator-tertiary: #4f4f52;
+  --color-border-secondary: #565658;
+  --color-border-tertiary: #6f6f71;
+}

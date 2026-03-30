@@ -1,30 +1,38 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, Text } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { supabase } from '../../lib/supabase'
+import { Button } from 'heroui-native/button'
+import { Card } from 'heroui-native/card'
+import { useState, useEffect } from 'react'
+
 export default function ProfileScreen() {
+  const [email, setEmail] = useState('')
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setEmail(user.email || '')
+    })
+  }, [])
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Profil</Text>
-      <TouchableOpacity style={styles.button} onPress={() => supabase.auth.signOut()}>
-        <Text style={styles.buttonText}>Odhlasit sa</Text>
-      </TouchableOpacity>
-    </View>
+    <SafeAreaView className="flex-1 bg-background">
+      <View className="px-5 pt-4 pb-2">
+        <Text className="text-foreground text-3xl font-bold">Profil</Text>
+      </View>
+      <View className="px-5 mt-4">
+        <Card className="bg-content1 p-5 mb-4">
+          <Text className="text-default-400 text-sm mb-1">Email</Text>
+          <Text className="text-foreground text-base">{email}</Text>
+        </Card>
+        <Button
+          variant="danger"
+          size="lg"
+          onPress={() => supabase.auth.signOut()}
+          className="w-full"
+        >
+          <Button.Label>Odhlásiť sa</Button.Label>
+        </Button>
+      </View>
+    </SafeAreaView>
   )
 }
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0a0a0a',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  title: { color: '#fff', fontSize: 24, fontWeight: 'bold', marginBottom: 40 },
-  button: {
-    backgroundColor: '#FF6B6B',
-    borderRadius: 12,
-    padding: 16,
-    width: '100%',
-    alignItems: 'center',
-  },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-})
