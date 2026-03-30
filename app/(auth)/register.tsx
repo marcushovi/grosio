@@ -23,8 +23,8 @@ export default function RegisterScreen() {
       className="flex-1 bg-background justify-center px-6"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Text className="text-primary text-5xl font-bold text-center mb-2">Grosio</Text>
-      <Text className="text-default-400 text-base text-center mb-10">Vytvor si účet</Text>
+      <Text className="text-accent text-5xl font-bold text-center mb-2">Grosio</Text>
+      <Text className="text-muted text-base text-center mb-10">Vytvor si účet</Text>
       <Input
         className="mb-3"
         placeholder="Email"
@@ -49,7 +49,7 @@ export default function RegisterScreen() {
       >
         <Button.Label>{loading ? 'Vytvárám účet...' : 'Vytvoriť účet'}</Button.Label>
       </Button>
-      <Link href="/(auth)/login" className="text-primary text-center text-sm">
+      <Link href="/(auth)/login" className="text-accent text-center text-sm">
         Máš účet? Prihlás sa
       </Link>
     </KeyboardAvoidingView>

@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, Pressable } from 'react-native'
 
 const COLORS = [
   '#4ECDC4',
@@ -18,20 +18,15 @@ interface ColorPickerProps {
 
 export function ColorPicker({ selected, onChange }: ColorPickerProps) {
   return (
-    <View style={styles.container}>
+    <View className="flex-row flex-wrap gap-3 mt-2">
       {COLORS.map(color => (
-        <TouchableOpacity
+        <Pressable
           key={color}
-          style={[styles.dot, { backgroundColor: color }, selected === color && styles.selected]}
+          className={`w-8 h-8 rounded-full ${selected === color ? 'border-3 border-foreground' : ''}`}
+          style={{ backgroundColor: color }}
           onPress={() => onChange(color)}
         />
       ))}
     </View>
   )
 }
-
-const styles = StyleSheet.create({
-  container: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 8 },
-  dot: { width: 32, height: 32, borderRadius: 16 },
-  selected: { borderWidth: 3, borderColor: '#fff' },
-})

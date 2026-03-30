@@ -20,8 +20,8 @@ export default function ProfileScreen() {
         <Text className="text-foreground text-3xl font-bold">Profil</Text>
       </View>
       <View className="px-5 mt-4">
-        <Card className="bg-content1 p-5 mb-4">
-          <Text className="text-default-400 text-sm mb-1">Email</Text>
+        <Card className="bg-surface p-5 mb-4">
+          <Text className="text-muted text-sm mb-1">Email</Text>
           <Text className="text-foreground text-base">{email}</Text>
         </Card>
         <Button

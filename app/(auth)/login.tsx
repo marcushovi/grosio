@@ -23,8 +23,8 @@ export default function LoginScreen() {
       className="flex-1 bg-background justify-center px-6"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Text className="text-primary text-5xl font-bold text-center mb-2">Grosio</Text>
-      <Text className="text-default-400 text-base text-center mb-10">
+      <Text className="text-accent text-5xl font-bold text-center mb-2">Grosio</Text>
+      <Text className="text-muted text-base text-center mb-10">
         Tvoje investície na jednom mieste
       </Text>
       <Input
@@ -51,7 +51,7 @@ export default function LoginScreen() {
       >
         <Button.Label>{loading ? 'Prihlasovanie...' : 'Prihlásiť sa'}</Button.Label>
       </Button>
-      <Link href="/(auth)/register" className="text-primary text-center text-sm">
+      <Link href="/(auth)/register" className="text-accent text-center text-sm">
         Nemáš účet? Zaregistruj sa
       </Link>
     </KeyboardAvoidingView>

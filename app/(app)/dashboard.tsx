@@ -9,10 +9,10 @@ export default function DashboardScreen() {
         <Text className="text-foreground text-3xl font-bold">Prehľad</Text>
       </View>
       <View className="px-5 mt-4">
-        <Card className="bg-content1 p-5 mb-3">
-          <Text className="text-default-400 text-sm mb-1">Celkový majetok</Text>
+        <Card className="bg-surface p-5 mb-3">
+          <Text className="text-muted text-sm mb-1">Celkový majetok</Text>
           <Text className="text-foreground text-4xl font-bold">€0.00</Text>
-          <Text className="text-default-400 text-sm mt-1">Pridaj brokera a pozície</Text>
+          <Text className="text-muted text-sm mt-1">Pridaj brokera a pozície</Text>
         </Card>
       </View>
     </SafeAreaView>
