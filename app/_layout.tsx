@@ -2,6 +2,9 @@ import { Slot, useRouter, useSegments } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { Session } from '@supabase/supabase-js'
+import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { HeroUINativeProvider } from 'heroui-native'
+import '../global.css'
 
 export default function RootLayout() {
   const [session, setSession] = useState<Session | null>(null)
@@ -29,5 +32,11 @@ export default function RootLayout() {
     else if (session && inAuth) router.replace('/(app)/dashboard')
   }, [session, initialized, segments])
 
-  return <Slot />
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <HeroUINativeProvider>
+        <Slot />
+      </HeroUINativeProvider>
+    </GestureHandlerRootView>
+  )
 }
