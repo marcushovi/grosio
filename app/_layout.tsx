@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { Session } from '@supabase/supabase-js'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
-import { HeroUINativeProvider } from 'heroui-native'
+import { HeroUINativeProvider } from 'heroui-native/provider'
 import '../global.css'
 
 export default function RootLayout() {
