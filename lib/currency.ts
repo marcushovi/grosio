@@ -26,14 +26,9 @@ export async function getExchangeRates(): Promise<ExchangeRates> {
     memCache = rates
     return rates
   } catch {
-    return memCache ?? { eurUsd: 1.08, eurCzk: 25.3, timestamp: now }
+    // timestamp: 0 so next call retries immediately
+    return memCache ?? { eurUsd: 1.08, eurCzk: 25.3, timestamp: 0 }
   }
-}
-
-/** Backward compat — returns how many EUR per 1 USD */
-export async function getEurUsdRate(): Promise<number> {
-  const rates = await getExchangeRates()
-  return 1 / rates.eurUsd
 }
 
 /** Convert a position value from its original currency to EUR (base) */
@@ -59,7 +54,7 @@ export function convertToDisplay(
   }
 }
 
-export function currencySymbol(currency: DisplayCurrency): string {
+export function currencySymbol(currency: DisplayCurrency | string): string {
   switch (currency) {
     case 'EUR':
       return '€'
@@ -67,11 +62,22 @@ export function currencySymbol(currency: DisplayCurrency): string {
       return '$'
     case 'CZK':
       return 'Kč'
+    default:
+      return currency
   }
 }
 
+/** Format amount with the correct currency symbol */
 export function formatAmount(amount: number, displayCurrency: DisplayCurrency): string {
   const symbol = currencySymbol(displayCurrency)
   const formatted = amount.toFixed(2)
   return displayCurrency === 'CZK' ? `${formatted} ${symbol}` : `${symbol}${formatted}`
+}
+
+/** Format a raw price in its original currency (not converted) */
+export function formatRaw(amount: number, originalCurrency: string): string {
+  const symbol = currencySymbol(originalCurrency)
+  return originalCurrency === 'CZK'
+    ? `${amount.toFixed(2)} ${symbol}`
+    : `${symbol}${amount.toFixed(2)}`
 }

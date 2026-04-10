@@ -20,7 +20,13 @@ import { useBrokers } from '../../../hooks/useBrokers'
 import { usePositions } from '../../../hooks/usePositions'
 import { usePrices } from '../../../hooks/usePrices'
 import { getQuote, searchSymbols } from '../../../lib/yahooFinance'
-import { getExchangeRates, toEur, convertToDisplay, formatAmount } from '../../../lib/currency'
+import {
+  getExchangeRates,
+  toEur,
+  convertToDisplay,
+  formatAmount,
+  formatRaw,
+} from '../../../lib/currency'
 import { useSettings } from '../../../lib/settingsContext'
 import { useT } from '../../../lib/t'
 import type { PositionWithPrice } from '../../../types'
@@ -247,7 +253,7 @@ export default function BrokerDetailScreen() {
                     <Text className="text-foreground font-semibold text-base">{item.symbol}</Text>
                     <Text className="text-muted text-xs">{item.name}</Text>
                     <Text className="text-muted text-xs mt-1">
-                      {item.shares} ks × {formatAmount(item.avg_buy_price, displayCurrency)}
+                      {item.shares}× {formatRaw(item.avg_buy_price, item.currency)}
                     </Text>
                   </View>
                   <View className="items-end mr-3">
@@ -264,7 +270,7 @@ export default function BrokerDetailScreen() {
                       {item.gainLossPct.toFixed(2)}%)
                     </Text>
                     <Text className="text-muted text-xs">
-                      {formatAmount(item.currentPrice, displayCurrency)}
+                      {formatRaw(item.currentPrice, item.currency)}
                     </Text>
                   </View>
                   <Button

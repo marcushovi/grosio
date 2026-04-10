@@ -17,7 +17,8 @@ const CURRENCIES: { value: DisplayCurrency; label: string }[] = [
 
 export default function DashboardScreen() {
   const { _ } = useT()
-  const { currency: displayCurrency, setCurrency } = useSettings()
+  const { currency: displayCurrency, setCurrency, resolvedTheme } = useSettings()
+  const isDark = resolvedTheme === 'dark'
   const { brokers } = useBrokers()
   const { brokerValues, totalValue, totalGainLoss, totalGainLossPct, error, refetch } =
     useDashboardData(brokers)
@@ -47,6 +48,10 @@ export default function DashboardScreen() {
   const isPositive = totalGainLoss >= 0
   const fmt = (n: number) => formatAmount(n, displayCurrency)
 
+  const menuBg = isDark ? '#27272a' : '#ffffff'
+  const menuText = isDark ? '#fafafa' : '#18181b'
+  const menuShadowOpacity = isDark ? 0.4 : 0.15
+
   return (
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView
@@ -64,7 +69,6 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {/* Currency dropdown */}
         <Modal
           visible={menuOpen}
           transparent
@@ -77,13 +81,13 @@ export default function DashboardScreen() {
                 position: 'absolute',
                 top: menuPos.top,
                 right: menuPos.right,
-                backgroundColor: '#27272a',
+                backgroundColor: menuBg,
                 borderRadius: 12,
                 paddingVertical: 4,
                 minWidth: 160,
                 shadowColor: '#000',
                 shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.3,
+                shadowOpacity: menuShadowOpacity,
                 shadowRadius: 8,
                 elevation: 8,
               }}
@@ -102,7 +106,7 @@ export default function DashboardScreen() {
                 >
                   <Text
                     style={{
-                      color: c.value === displayCurrency ? '#006fee' : '#fafafa',
+                      color: c.value === displayCurrency ? '#006fee' : menuText,
                       fontSize: 15,
                       fontWeight: c.value === displayCurrency ? '600' : '400',
                     }}

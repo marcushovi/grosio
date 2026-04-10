@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { usePrices } from './usePrices'
 import { getExchangeRates, toEur, convertToDisplay } from '../lib/currency'
@@ -7,6 +7,15 @@ import type { Broker, Position, BrokerValue } from '../types'
 import type { ExchangeRates, DisplayCurrency } from '../lib/currency'
 
 export type { BrokerValue }
+
+interface BrokerValueEur {
+  brokerId: string
+  name: string
+  color: string
+  valueEur: number
+  investedEur: number
+  positionCount: number
+}
 
 export interface DashboardData {
   brokerValues: BrokerValue[]
@@ -23,24 +32,17 @@ export interface DashboardData {
 
 export function useDashboardData(brokers: Broker[]): DashboardData {
   const { currency: displayCurrency } = useSettings()
-  const [brokerValues, setBrokerValues] = useState<BrokerValue[]>([])
-  const [totalValue, setTotalValue] = useState(0)
-  const [totalInvested, setTotalInvested] = useState(0)
-  const [totalGainLoss, setTotalGainLoss] = useState(0)
-  const [totalGainLossPct, setTotalGainLossPct] = useState(0)
+  const [brokerValuesEur, setBrokerValuesEur] = useState<BrokerValueEur[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [rates, setRates] = useState<ExchangeRates | null>(null)
 
   const { fetchPrices } = usePrices()
 
+  // Fetch data from network — only depends on brokers, NOT displayCurrency
   const fetchAllData = useCallback(async () => {
     if (brokers.length === 0) {
-      setBrokerValues([])
-      setTotalValue(0)
-      setTotalInvested(0)
-      setTotalGainLoss(0)
-      setTotalGainLossPct(0)
+      setBrokerValuesEur([])
       setLoading(false)
       return
     }
@@ -69,61 +71,86 @@ export function useDashboardData(brokers: Broker[]): DashboardData {
         positionsByBroker.set(pos.broker_id, arr)
       }
 
-      let sumValue = 0
-      let sumInvested = 0
-
-      const values: BrokerValue[] = brokers.map(broker => {
+      // Store values in EUR (base currency) — no display conversion here
+      const values: BrokerValueEur[] = brokers.map(broker => {
         const bPositions = positionsByBroker.get(broker.id) ?? []
-        let bValue = 0
-        let bInvested = 0
+        let valueEur = 0
+        let investedEur = 0
 
         for (const pos of bPositions) {
           const quote = priceMap[pos.symbol]
           const price = quote?.price ?? pos.avg_buy_price
           const currency = quote?.currency ?? pos.currency
-          // Convert to EUR first (base), then to display currency
-          const posValueEur = toEur(pos.shares * price, currency, exchangeRates)
-          const posCostEur = toEur(pos.shares * pos.avg_buy_price, pos.currency, exchangeRates)
-          bValue += convertToDisplay(posValueEur, displayCurrency, exchangeRates)
-          bInvested += convertToDisplay(posCostEur, displayCurrency, exchangeRates)
+          valueEur += toEur(pos.shares * price, currency, exchangeRates)
+          investedEur += toEur(pos.shares * pos.avg_buy_price, pos.currency, exchangeRates)
         }
-
-        const bGainLoss = bValue - bInvested
-        const bGainLossPct = bInvested > 0 ? (bGainLoss / bInvested) * 100 : 0
-
-        sumValue += bValue
-        sumInvested += bInvested
 
         return {
           brokerId: broker.id,
           name: broker.name,
           color: broker.color,
-          value: bValue,
-          invested: bInvested,
-          gainLoss: bGainLoss,
-          gainLossPct: bGainLossPct,
+          valueEur,
+          investedEur,
           positionCount: bPositions.length,
         }
       })
 
-      const totalGL = sumValue - sumInvested
-      const totalGLPct = sumInvested > 0 ? (totalGL / sumInvested) * 100 : 0
-
-      setBrokerValues(values)
-      setTotalValue(sumValue)
-      setTotalInvested(sumInvested)
-      setTotalGainLoss(totalGL)
-      setTotalGainLossPct(totalGLPct)
+      setBrokerValuesEur(values)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Chyba pri načítaní dát')
     } finally {
       setLoading(false)
     }
-  }, [brokers, fetchPrices, displayCurrency])
+  }, [brokers, fetchPrices])
 
   useEffect(() => {
     fetchAllData()
   }, [fetchAllData])
+
+  // Convert EUR base values to display currency — recalculates instantly on currency switch
+  const { brokerValues, totalValue, totalInvested, totalGainLoss, totalGainLossPct } =
+    useMemo(() => {
+      if (!rates || brokerValuesEur.length === 0) {
+        return {
+          brokerValues: [] as BrokerValue[],
+          totalValue: 0,
+          totalInvested: 0,
+          totalGainLoss: 0,
+          totalGainLossPct: 0,
+        }
+      }
+
+      let sumValue = 0
+      let sumInvested = 0
+
+      const bvs: BrokerValue[] = brokerValuesEur.map(b => {
+        const value = convertToDisplay(b.valueEur, displayCurrency, rates)
+        const invested = convertToDisplay(b.investedEur, displayCurrency, rates)
+        const gainLoss = value - invested
+        const gainLossPct = invested > 0 ? (gainLoss / invested) * 100 : 0
+        sumValue += value
+        sumInvested += invested
+        return {
+          brokerId: b.brokerId,
+          name: b.name,
+          color: b.color,
+          value,
+          invested,
+          gainLoss,
+          gainLossPct,
+          positionCount: b.positionCount,
+        }
+      })
+
+      const gl = sumValue - sumInvested
+      return {
+        brokerValues: bvs,
+        totalValue: sumValue,
+        totalInvested: sumInvested,
+        totalGainLoss: gl,
+        totalGainLossPct: sumInvested > 0 ? (gl / sumInvested) * 100 : 0,
+      }
+    }, [brokerValuesEur, displayCurrency, rates])
 
   return {
     brokerValues,
