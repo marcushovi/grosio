@@ -14,6 +14,7 @@ import { useRouter, useFocusEffect } from 'expo-router'
 import { Button } from 'heroui-native/button'
 import { Input } from 'heroui-native/input'
 import { Dialog } from 'heroui-native/dialog'
+import { useThemeColor } from 'heroui-native'
 import { Plus } from 'lucide-react-native'
 import { useBrokers } from '../../hooks/useBrokers'
 import { useDashboardData } from '../../hooks/useDashboardData'
@@ -23,6 +24,7 @@ import { useT } from '../../lib/t'
 
 export default function BrokersScreen() {
   const { _ } = useT()
+  const accentFg = useThemeColor('accent-foreground')
   const router = useRouter()
   const { brokers, loading, error: brokersError, addBroker, deleteBroker, refetch } = useBrokers()
   const { brokerValues } = useDashboardData(brokers)
@@ -86,7 +88,7 @@ export default function BrokersScreen() {
       <View className="px-5 pt-4 pb-2 flex-row justify-between items-center mb-4">
         <Text className="text-foreground text-3xl font-bold">{_('brokers')}</Text>
         <Button variant="primary" size="sm" onPress={() => setDialogOpen(true)}>
-          <Plus color="#fafafa" size={16} />
+          <Plus color={accentFg as string} size={16} />
           <Button.Label>{_('addBroker')}</Button.Label>
         </Button>
       </View>

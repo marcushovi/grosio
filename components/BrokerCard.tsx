@@ -29,7 +29,7 @@ export function BrokerCard({
   return (
     <Pressable onPress={onPress} onLongPress={onLongPress}>
       <Card className="bg-surface mb-3">
-        <Card.Body className="p-5">
+        <Card.Body>
           <View className="flex-row items-center mb-3">
             <View className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: broker.color }} />
             <Text className="flex-1 text-foreground text-lg font-semibold">{broker.name}</Text>

@@ -15,6 +15,7 @@ import { Card } from 'heroui-native/card'
 import { Button } from 'heroui-native/button'
 import { Input } from 'heroui-native/input'
 import { Dialog } from 'heroui-native/dialog'
+import { useThemeColor } from 'heroui-native'
 import { ArrowLeft, Plus, TrendingUp, TrendingDown, Trash2 } from 'lucide-react-native'
 import { useBrokers } from '../../../hooks/useBrokers'
 import { usePositions } from '../../../hooks/usePositions'
@@ -34,6 +35,12 @@ import type { PositionWithPrice } from '../../../types'
 export default function BrokerDetailScreen() {
   const { _ } = useT()
   const { currency: displayCurrency } = useSettings()
+  const [success, danger, accent, accentFg] = useThemeColor([
+    'success',
+    'danger',
+    'accent',
+    'accent-foreground',
+  ])
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
   const { brokers } = useBrokers()
@@ -191,12 +198,12 @@ export default function BrokerDetailScreen() {
     <SafeAreaView className="flex-1 bg-background">
       <View className="px-5 pt-2 pb-4 flex-row items-center gap-3">
         <Button variant="ghost" size="sm" isIconOnly onPress={() => router.back()}>
-          <ArrowLeft color="#fafafa" size={20} />
+          <ArrowLeft color={accentFg} size={20} />
         </Button>
         <View className="w-3 h-3 rounded-full" style={{ backgroundColor: broker.color }} />
         <Text className="text-foreground text-2xl font-bold flex-1">{broker.name}</Text>
         <Button variant="primary" size="sm" onPress={() => setDialogOpen(true)}>
-          <Plus color="#fafafa" size={16} />
+          <Plus color={accentFg} size={16} />
           <Button.Label>{_('position')}</Button.Label>
         </Button>
       </View>
@@ -209,9 +216,9 @@ export default function BrokerDetailScreen() {
           </Text>
           <View className="flex-row items-center gap-2">
             {isPositive ? (
-              <TrendingUp size={14} color="#17c964" />
+              <TrendingUp size={14} color={success} />
             ) : (
-              <TrendingDown size={14} color="#f31260" />
+              <TrendingDown size={14} color={danger} />
             )}
             <Text
               className={
@@ -230,7 +237,7 @@ export default function BrokerDetailScreen() {
 
       {loading || pricesLoading ? (
         <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#006fee" />
+          <ActivityIndicator size="large" color={accent} />
         </View>
       ) : positionsWithPrices.length === 0 ? (
         <View className="flex-1 justify-center items-center">
@@ -279,7 +286,7 @@ export default function BrokerDetailScreen() {
                     isIconOnly
                     onPress={() => handleDeletePosition(item.id, item.symbol)}
                   >
-                    <Trash2 color="#f31260" size={16} />
+                    <Trash2 color={danger} size={16} />
                   </Button>
                 </View>
               </Card>
@@ -317,7 +324,7 @@ export default function BrokerDetailScreen() {
                       autoCapitalize="characters"
                     />
                   </View>
-                  {searching && <ActivityIndicator size="small" color="#006fee" />}
+                  {searching && <ActivityIndicator size="small" color={accent} />}
                 </View>
               </View>
 

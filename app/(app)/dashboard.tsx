@@ -1,6 +1,7 @@
 import { useCallback, useState, useRef } from 'react'
 import { View, Text, ScrollView, RefreshControl, Pressable, Modal } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useThemeColor } from 'heroui-native'
 import { TrendingUp, TrendingDown } from 'lucide-react-native'
 import { useBrokers } from '../../hooks/useBrokers'
 import { useDashboardData } from '../../hooks/useDashboardData'
@@ -17,8 +18,14 @@ const CURRENCIES: { value: DisplayCurrency; label: string }[] = [
 
 export default function DashboardScreen() {
   const { _ } = useT()
-  const { currency: displayCurrency, setCurrency, resolvedTheme } = useSettings()
-  const isDark = resolvedTheme === 'dark'
+  const { currency: displayCurrency, setCurrency } = useSettings()
+  const [success, danger, accent, surface, foreground] = useThemeColor([
+    'success',
+    'danger',
+    'accent',
+    'surface',
+    'foreground',
+  ])
   const { brokers } = useBrokers()
   const { brokerValues, totalValue, totalGainLoss, totalGainLossPct, error, refetch } =
     useDashboardData(brokers)
@@ -47,10 +54,6 @@ export default function DashboardScreen() {
 
   const isPositive = totalGainLoss >= 0
   const fmt = (n: number) => formatAmount(n, displayCurrency)
-
-  const menuBg = isDark ? '#27272a' : '#ffffff'
-  const menuText = isDark ? '#fafafa' : '#18181b'
-  const menuShadowOpacity = isDark ? 0.4 : 0.15
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -81,13 +84,13 @@ export default function DashboardScreen() {
                 position: 'absolute',
                 top: menuPos.top,
                 right: menuPos.right,
-                backgroundColor: menuBg,
+                backgroundColor: surface,
                 borderRadius: 12,
                 paddingVertical: 4,
                 minWidth: 160,
                 shadowColor: '#000',
                 shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: menuShadowOpacity,
+                shadowOpacity: 0.25,
                 shadowRadius: 8,
                 elevation: 8,
               }}
@@ -106,7 +109,7 @@ export default function DashboardScreen() {
                 >
                   <Text
                     style={{
-                      color: c.value === displayCurrency ? '#006fee' : menuText,
+                      color: c.value === displayCurrency ? accent : foreground,
                       fontSize: 15,
                       fontWeight: c.value === displayCurrency ? '600' : '400',
                     }}
@@ -114,7 +117,7 @@ export default function DashboardScreen() {
                     {c.label}
                   </Text>
                   {c.value === displayCurrency && (
-                    <Text style={{ color: '#006fee', fontSize: 14 }}>✓</Text>
+                    <Text style={{ color: accent, fontSize: 14 }}>✓</Text>
                   )}
                 </Pressable>
               ))}
@@ -136,9 +139,9 @@ export default function DashboardScreen() {
           <Text className="text-foreground text-4xl font-bold">{fmt(totalValue)}</Text>
           <View className="flex-row items-center mt-2 gap-2">
             {isPositive ? (
-              <TrendingUp size={16} color="#17c964" />
+              <TrendingUp size={16} color={success} />
             ) : (
-              <TrendingDown size={16} color="#f31260" />
+              <TrendingDown size={16} color={danger} />
             )}
             <Text className={isPositive ? 'text-success text-sm' : 'text-danger text-sm'}>
               {isPositive ? '+' : ''}

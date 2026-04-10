@@ -1,26 +1,25 @@
 import { Tabs } from 'expo-router'
 import { LayoutDashboard, Briefcase, User, Settings } from 'lucide-react-native'
+import { useThemeColor } from 'heroui-native'
 import { useT } from '../../lib/t'
-import { useSettings } from '../../lib/settingsContext'
 
 export default function AppLayout() {
   const { _ } = useT()
-  const { resolvedTheme } = useSettings()
-  const isDark = resolvedTheme === 'dark'
+  const [bg, border, accent, muted] = useThemeColor(['background', 'border', 'accent', 'muted'])
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: isDark ? '#18181b' : '#ffffff',
-          borderTopColor: isDark ? '#27272a' : '#e4e4e7',
+          backgroundColor: bg,
+          borderTopColor: border,
           borderTopWidth: 1,
         },
-        tabBarActiveTintColor: '#006fee',
-        tabBarInactiveTintColor: isDark ? '#a1a1aa' : '#71717a',
+        tabBarActiveTintColor: accent,
+        tabBarInactiveTintColor: muted,
         tabBarLabelStyle: { fontSize: 12, fontWeight: '500' },
-        sceneStyle: { backgroundColor: isDark ? '#0a0a0a' : '#f5f5f5' },
+        sceneStyle: { backgroundColor: bg },
       }}
     >
       <Tabs.Screen
