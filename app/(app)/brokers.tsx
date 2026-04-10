@@ -22,7 +22,7 @@ import { ColorPicker, COLORS } from '../../components/ColorPicker'
 
 export default function BrokersScreen() {
   const router = useRouter()
-  const { brokers, loading, addBroker, deleteBroker, refetch } = useBrokers()
+  const { brokers, loading, error: brokersError, addBroker, deleteBroker, refetch } = useBrokers()
   const { brokerValues } = useDashboardData(brokers)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [name, setName] = useState('')
@@ -62,9 +62,20 @@ export default function BrokersScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 bg-background justify-center items-center">
-        <ActivityIndicator size="large" color="#006fee" />
-      </View>
+      <SafeAreaView className="flex-1 bg-background justify-center items-center">
+        <ActivityIndicator size="large" />
+      </SafeAreaView>
+    )
+  }
+
+  if (brokersError) {
+    return (
+      <SafeAreaView className="flex-1 bg-background justify-center items-center px-6">
+        <Text className="text-danger text-center mb-4">{brokersError}</Text>
+        <Text className="text-primary" onPress={refetch}>
+          Skúsiť znova
+        </Text>
+      </SafeAreaView>
     )
   }
 

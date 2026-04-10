@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { Broker } from '../types'
 
@@ -7,7 +7,7 @@ export function useBrokers() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchBrokers = async () => {
+  const fetchBrokers = useCallback(async () => {
     setLoading(true)
     const { data, error } = await supabase
       .from('brokers')
@@ -16,36 +16,42 @@ export function useBrokers() {
     if (error) setError(error.message)
     else setBrokers(data || [])
     setLoading(false)
-  }
+  }, [])
 
-  const addBroker = async (name: string, color: string) => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
-    const user = session?.user
-    if (!user) return { error: { message: 'Not authenticated' } }
-    const { error } = await supabase.from('brokers').insert({ name, color, user_id: user.id })
-    if (!error) await fetchBrokers()
-    return { error }
-  }
+  const addBroker = useCallback(
+    async (name: string, color: string) => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      const user = session?.user
+      if (!user) return { error: { message: 'Not authenticated' } }
+      const { error } = await supabase.from('brokers').insert({ name, color, user_id: user.id })
+      if (!error) await fetchBrokers()
+      return { error }
+    },
+    [fetchBrokers]
+  )
 
-  const deleteBroker = async (id: string) => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
-    const userId = session?.user?.id
-    const { error } = await supabase
-      .from('brokers')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', userId ?? '')
-    if (!error) await fetchBrokers()
-    return { error }
-  }
+  const deleteBroker = useCallback(
+    async (id: string) => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      const userId = session?.user?.id
+      const { error } = await supabase
+        .from('brokers')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', userId ?? '')
+      if (!error) await fetchBrokers()
+      return { error }
+    },
+    [fetchBrokers]
+  )
 
   useEffect(() => {
     fetchBrokers()
-  }, [])
+  }, [fetchBrokers])
 
   return { brokers, loading, error, addBroker, deleteBroker, refetch: fetchBrokers }
 }
