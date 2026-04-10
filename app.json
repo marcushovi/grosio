@@ -5,7 +5,6 @@
     "scheme": "grosio",
     "version": "1.0.0",
     "orientation": "portrait",
-    "newArchEnabled": true,
     "ios": { "supportsTablet": false, "bundleIdentifier": "com.grosio.app" },
     "android": { "adaptiveIcon": { "backgroundColor": "#0a0a0a" }, "package": "com.grosio.app" },
     "plugins": ["expo-router", "expo-secure-store"]

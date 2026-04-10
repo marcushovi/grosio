@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import {
   View,
   Text,
@@ -7,22 +7,33 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  RefreshControl,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useRouter, useFocusEffect } from 'expo-router'
 import { Button } from 'heroui-native/button'
 import { Input } from 'heroui-native/input'
 import { Dialog } from 'heroui-native/dialog'
 import { Plus } from 'lucide-react-native'
 import { useBrokers } from '../../hooks/useBrokers'
+import { useDashboardData } from '../../hooks/useDashboardData'
 import { BrokerCard } from '../../components/BrokerCard'
-import { ColorPicker } from '../../components/ColorPicker'
+import { ColorPicker, COLORS } from '../../components/ColorPicker'
 
 export default function BrokersScreen() {
-  const { brokers, loading, addBroker, deleteBroker } = useBrokers()
+  const router = useRouter()
+  const { brokers, loading, addBroker, deleteBroker, refetch } = useBrokers()
+  const { brokerValues } = useDashboardData(brokers)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [name, setName] = useState('')
-  const [color, setColor] = useState('#006fee')
+  const [color, setColor] = useState(COLORS[0])
   const [saving, setSaving] = useState(false)
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch()
+    }, [refetch])
+  )
 
   const handleAdd = async () => {
     if (!name.trim()) return Alert.alert('Chyba', 'Zadaj názov brokera')
@@ -31,7 +42,7 @@ export default function BrokersScreen() {
     setSaving(false)
     if (error) return Alert.alert('Chyba', error.message)
     setName('')
-    setColor('#006fee')
+    setColor(COLORS[0])
     setDialogOpen(false)
   }
 
@@ -76,18 +87,22 @@ export default function BrokersScreen() {
         <FlatList
           data={brokers}
           keyExtractor={item => item.id}
-          renderItem={({ item }) => (
-            <BrokerCard
-              broker={item}
-              totalValue={0}
-              gainLoss={0}
-              positionCount={0}
-              onPress={() => {}}
-              onLongPress={() => handleDelete(item.id, item.name)}
-            />
-          )}
+          renderItem={({ item }) => {
+            const bv = brokerValues.find(v => v.brokerId === item.id)
+            return (
+              <BrokerCard
+                broker={item}
+                totalValue={bv?.value ?? 0}
+                gainLoss={bv?.gainLoss ?? 0}
+                positionCount={bv?.positionCount ?? 0}
+                onPress={() => router.push(`/(app)/broker/${item.id}`)}
+                onLongPress={() => handleDelete(item.id, item.name)}
+              />
+            )
+          }}
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
           showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={loading} onRefresh={refetch} />}
         />
       )}
 

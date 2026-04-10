@@ -16,9 +16,31 @@ export interface Position {
   avg_buy_price: number
   currency: string
   created_at: string
-  // computed fields (not in DB)
-  current_price?: number
-  current_value?: number
-  gain_loss?: number
-  gain_loss_pct?: number
+}
+
+export interface BrokerValue {
+  brokerId: string
+  name: string
+  color: string
+  value: number
+  invested: number
+  gainLoss: number
+  gainLossPct: number
+  positionCount: number
+}
+
+export interface PositionWithPrice {
+  id: string
+  broker_id: string
+  user_id: string
+  symbol: string
+  name: string
+  shares: number
+  avg_buy_price: number
+  currency: string
+  currentPrice: number
+  currentValue: number
+  invested: number
+  gainLoss: number
+  gainLossPct: number
 }

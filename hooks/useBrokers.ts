@@ -20,16 +20,25 @@ export function useBrokers() {
 
   const addBroker = async (name: string, color: string) => {
     const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) return { error: 'Not authenticated' }
+      data: { session },
+    } = await supabase.auth.getSession()
+    const user = session?.user
+    if (!user) return { error: { message: 'Not authenticated' } }
     const { error } = await supabase.from('brokers').insert({ name, color, user_id: user.id })
     if (!error) await fetchBrokers()
     return { error }
   }
 
   const deleteBroker = async (id: string) => {
-    const { error } = await supabase.from('brokers').delete().eq('id', id)
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+    const userId = session?.user?.id
+    const { error } = await supabase
+      .from('brokers')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', userId ?? '')
     if (!error) await fetchBrokers()
     return { error }
   }

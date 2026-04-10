@@ -1,14 +1,14 @@
 import { View, Pressable } from 'react-native'
 
-const COLORS = [
-  '#4ECDC4',
-  '#FF6B6B',
-  '#45B7D1',
-  '#96CEB4',
-  '#FFEAA7',
-  '#DDA0DD',
-  '#98D8C8',
-  '#F7DC6F',
+export const COLORS = [
+  '#006fee',
+  '#17c964',
+  '#f31260',
+  '#f5a524',
+  '#7828c8',
+  '#00b8d9',
+  '#ff6900',
+  '#9e9e9e',
 ]
 
 interface ColorPickerProps {

@@ -37,6 +37,7 @@ export default function AppLayout() {
           tabBarIcon: ({ color }) => <User color={color} size={22} />,
         }}
       />
+      <Tabs.Screen name="broker/[id]" options={{ href: null }} />
     </Tabs>
   )
 }

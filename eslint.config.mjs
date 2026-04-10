@@ -9,7 +9,7 @@ import prettierConfig from 'eslint-config-prettier';
 
 export default [
   {
-    ignores: ['node_modules/**', '.expo/**', 'dist/**', 'build/**'],
+    ignores: ['node_modules/**', '.expo/**', 'dist/**', 'build/**', 'uniwind-types.d.ts'],
   },
   {
     files: ['**/*.ts', '**/*.tsx'],

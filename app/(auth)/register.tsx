@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Text, Alert, KeyboardAvoidingView, Platform } from 'react-native'
 import { supabase } from '../../lib/supabase'
-import { Link } from 'expo-router'
+import { Link, useRouter } from 'expo-router'
 import { Button } from 'heroui-native/button'
 import { Input } from 'heroui-native/input'
 
 export default function RegisterScreen() {
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -14,8 +15,16 @@ export default function RegisterScreen() {
     if (!email || !password) return Alert.alert('Chyba', 'Vyplňte email a heslo')
     setLoading(true)
     const { error } = await supabase.auth.signUp({ email, password })
-    if (error) Alert.alert('Chyba', error.message)
     setLoading(false)
+    if (error) {
+      Alert.alert('Chyba', error.message)
+    } else {
+      Alert.alert(
+        'Registrácia úspešná',
+        'Skontroluj svoju e-mailovú schránku a potvrď registráciu.',
+        [{ text: 'OK', onPress: () => router.replace('/(auth)/login') }]
+      )
+    }
   }
 
   return (

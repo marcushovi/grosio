@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { Session } from '@supabase/supabase-js'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { HeroUINativeProvider } from 'heroui-native/provider'
 import '../global.css'
 
@@ -30,13 +31,19 @@ export default function RootLayout() {
     const inAuth = segments[0] === '(auth)'
     if (!session && !inAuth) router.replace('/(auth)/login')
     else if (session && inAuth) router.replace('/(app)/dashboard')
-  }, [session, initialized, segments])
+  }, [session, initialized, segments, router])
+
+  if (!initialized) {
+    return null
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <HeroUINativeProvider>
-        <Slot />
-      </HeroUINativeProvider>
+      <SafeAreaProvider>
+        <HeroUINativeProvider>
+          <Slot />
+        </HeroUINativeProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   )
 }
