@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { usePrices } from './usePrices'
-import { getEurUsdRate, toEur } from '../lib/currency'
+import { getExchangeRates, toEur, convertToDisplay } from '../lib/currency'
+import { useSettings } from '../lib/settingsContext'
 import type { Broker, Position, BrokerValue } from '../types'
+import type { ExchangeRates, DisplayCurrency } from '../lib/currency'
 
 export type { BrokerValue }
 
@@ -15,9 +17,12 @@ export interface DashboardData {
   loading: boolean
   error: string | null
   refetch: () => void
+  rates: ExchangeRates | null
+  displayCurrency: DisplayCurrency
 }
 
 export function useDashboardData(brokers: Broker[]): DashboardData {
+  const { currency: displayCurrency } = useSettings()
   const [brokerValues, setBrokerValues] = useState<BrokerValue[]>([])
   const [totalValue, setTotalValue] = useState(0)
   const [totalInvested, setTotalInvested] = useState(0)
@@ -25,6 +30,7 @@ export function useDashboardData(brokers: Broker[]): DashboardData {
   const [totalGainLossPct, setTotalGainLossPct] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [rates, setRates] = useState<ExchangeRates | null>(null)
 
   const { fetchPrices } = usePrices()
 
@@ -43,21 +49,16 @@ export function useDashboardData(brokers: Broker[]): DashboardData {
     setError(null)
 
     try {
-      // Single query for ALL positions (not N queries)
       const { data: allPositions, error: posErr } = await supabase.from('positions').select('*')
-
       if (posErr) throw posErr
 
       const positions: Position[] = allPositions ?? []
+      const exchangeRates = await getExchangeRates()
+      setRates(exchangeRates)
 
-      // Get EUR/USD rate once
-      const eurUsdRate = await getEurUsdRate()
-
-      // Batch-fetch all unique symbols at once
       const allSymbols = [...new Set(positions.map(p => p.symbol))]
       const priceMap = await fetchPrices(allSymbols)
 
-      // Group positions by broker_id
       const positionsByBroker = new Map<string, Position[]>()
       for (const broker of brokers) {
         positionsByBroker.set(broker.id, [])
@@ -80,10 +81,11 @@ export function useDashboardData(brokers: Broker[]): DashboardData {
           const quote = priceMap[pos.symbol]
           const price = quote?.price ?? pos.avg_buy_price
           const currency = quote?.currency ?? pos.currency
-          const posValue = toEur(pos.shares * price, currency, eurUsdRate)
-          const posCost = toEur(pos.shares * pos.avg_buy_price, pos.currency, eurUsdRate)
-          bValue += posValue
-          bInvested += posCost
+          // Convert to EUR first (base), then to display currency
+          const posValueEur = toEur(pos.shares * price, currency, exchangeRates)
+          const posCostEur = toEur(pos.shares * pos.avg_buy_price, pos.currency, exchangeRates)
+          bValue += convertToDisplay(posValueEur, displayCurrency, exchangeRates)
+          bInvested += convertToDisplay(posCostEur, displayCurrency, exchangeRates)
         }
 
         const bGainLoss = bValue - bInvested
@@ -117,7 +119,7 @@ export function useDashboardData(brokers: Broker[]): DashboardData {
     } finally {
       setLoading(false)
     }
-  }, [brokers, fetchPrices])
+  }, [brokers, fetchPrices, displayCurrency])
 
   useEffect(() => {
     fetchAllData()
@@ -132,5 +134,7 @@ export function useDashboardData(brokers: Broker[]): DashboardData {
     loading,
     error,
     refetch: fetchAllData,
+    rates,
+    displayCurrency,
   }
 }

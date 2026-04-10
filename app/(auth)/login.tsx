@@ -4,17 +4,19 @@ import { supabase } from '../../lib/supabase'
 import { Link } from 'expo-router'
 import { Button } from 'heroui-native/button'
 import { Input } from 'heroui-native/input'
+import { useT } from '../../lib/t'
 
 export default function LoginScreen() {
+  const { _ } = useT()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleLogin = async () => {
-    if (!email || !password) return Alert.alert('Chyba', 'Vyplňte email a heslo')
+    if (!email || !password) return Alert.alert(_('error'), _('fillEmailPassword'))
     setLoading(true)
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) Alert.alert('Chyba', error.message)
+    if (error) Alert.alert(_('error'), error.message)
     setLoading(false)
   }
 
@@ -24,12 +26,10 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <Text className="text-accent text-5xl font-bold text-center mb-2">Grosio</Text>
-      <Text className="text-muted text-base text-center mb-10">
-        Tvoje investície na jednom mieste
-      </Text>
+      <Text className="text-muted text-base text-center mb-10">{_('appTagline')}</Text>
       <Input
         className="mb-3"
-        placeholder="Email"
+        placeholder={_('email')}
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
@@ -37,7 +37,7 @@ export default function LoginScreen() {
       />
       <Input
         className="mb-6"
-        placeholder="Heslo"
+        placeholder={_('password')}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
@@ -49,10 +49,10 @@ export default function LoginScreen() {
         isDisabled={loading}
         className="mb-4"
       >
-        <Button.Label>{loading ? 'Prihlasovanie...' : 'Prihlásiť sa'}</Button.Label>
+        <Button.Label>{loading ? _('loggingIn') : _('login')}</Button.Label>
       </Button>
       <Link href="/(auth)/register" className="text-accent text-center text-sm">
-        Nemáš účet? Zaregistruj sa
+        {_('noAccount')}
       </Link>
     </KeyboardAvoidingView>
   )

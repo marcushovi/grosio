@@ -5,6 +5,8 @@ import { Session } from '@supabase/supabase-js'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { HeroUINativeProvider } from 'heroui-native/provider'
+import { SettingsProvider } from '../lib/settingsContext'
+import '../lib/i18n'
 import '../global.css'
 
 export default function RootLayout() {
@@ -40,9 +42,11 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <HeroUINativeProvider>
-          <Slot />
-        </HeroUINativeProvider>
+        <SettingsProvider>
+          <HeroUINativeProvider>
+            <Slot />
+          </HeroUINativeProvider>
+        </SettingsProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   )

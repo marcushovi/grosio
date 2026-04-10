@@ -19,8 +19,10 @@ import { useBrokers } from '../../hooks/useBrokers'
 import { useDashboardData } from '../../hooks/useDashboardData'
 import { BrokerCard } from '../../components/BrokerCard'
 import { ColorPicker, COLORS } from '../../components/ColorPicker'
+import { useT } from '../../lib/t'
 
 export default function BrokersScreen() {
+  const { _ } = useT()
   const router = useRouter()
   const { brokers, loading, error: brokersError, addBroker, deleteBroker, refetch } = useBrokers()
   const { brokerValues } = useDashboardData(brokers)
@@ -36,25 +38,25 @@ export default function BrokersScreen() {
   )
 
   const handleAdd = async () => {
-    if (!name.trim()) return Alert.alert('Chyba', 'Zadaj názov brokera')
+    if (!name.trim()) return Alert.alert(_('error'), _('enterBrokerName'))
     setSaving(true)
     const { error } = await addBroker(name.trim(), color)
     setSaving(false)
-    if (error) return Alert.alert('Chyba', error.message)
+    if (error) return Alert.alert(_('error'), error.message)
     setName('')
     setColor(COLORS[0])
     setDialogOpen(false)
   }
 
   const handleDelete = (id: string, brokerName: string) => {
-    Alert.alert('Zmazať brokera', `Naozaj chceš zmazať ${brokerName}?`, [
-      { text: 'Zrušiť', style: 'cancel' },
+    Alert.alert(_('deleteBroker'), _('deleteBrokerMsg', { name: brokerName }), [
+      { text: _('cancel'), style: 'cancel' },
       {
-        text: 'Zmazať',
+        text: _('delete'),
         style: 'destructive',
         onPress: async () => {
           const { error } = await deleteBroker(id)
-          if (error) Alert.alert('Chyba', error.message)
+          if (error) Alert.alert(_('error'), error.message)
         },
       },
     ])
@@ -72,8 +74,8 @@ export default function BrokersScreen() {
     return (
       <SafeAreaView className="flex-1 bg-background justify-center items-center px-6">
         <Text className="text-danger text-center mb-4">{brokersError}</Text>
-        <Text className="text-primary" onPress={refetch}>
-          Skúsiť znova
+        <Text className="text-accent" onPress={refetch}>
+          {_('tryAgain')}
         </Text>
       </SafeAreaView>
     )
@@ -82,17 +84,17 @@ export default function BrokersScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <View className="px-5 pt-4 pb-2 flex-row justify-between items-center mb-4">
-        <Text className="text-foreground text-3xl font-bold">Brokeri</Text>
+        <Text className="text-foreground text-3xl font-bold">{_('brokers')}</Text>
         <Button variant="primary" size="sm" onPress={() => setDialogOpen(true)}>
           <Plus color="#fafafa" size={16} />
-          <Button.Label>Pridať</Button.Label>
+          <Button.Label>{_('addBroker')}</Button.Label>
         </Button>
       </View>
 
       {brokers.length === 0 ? (
         <View className="flex-1 justify-center items-center">
-          <Text className="text-foreground text-lg mb-2">Zatiaľ nemáš žiadnych brokerov</Text>
-          <Text className="text-muted text-sm">Pridaj svojho prvého brokera</Text>
+          <Text className="text-foreground text-lg mb-2">{_('noBrokersYet')}</Text>
+          <Text className="text-muted text-sm">{_('addFirstBroker')}</Text>
         </View>
       ) : (
         <FlatList
@@ -126,32 +128,32 @@ export default function BrokersScreen() {
           >
             <Dialog.Content>
               <Dialog.Close className="self-end" />
-              <Dialog.Title>Nový broker</Dialog.Title>
-              <Dialog.Description>Pridaj názov a farbu pre svojho brokera.</Dialog.Description>
+              <Dialog.Title>{_('newBroker')}</Dialog.Title>
+              <Dialog.Description>{_('newBrokerDesc')}</Dialog.Description>
 
               <View className="mt-4">
-                <Text className="text-muted text-sm mb-2">Názov</Text>
+                <Text className="text-muted text-sm mb-2">{_('brokerName')}</Text>
                 <Input
-                  placeholder="napr. IBKR, XTB, Trading212..."
+                  placeholder={_('brokerNamePlaceholder')}
                   value={name}
                   onChangeText={setName}
                 />
               </View>
 
               <View className="mt-4">
-                <Text className="text-muted text-sm mb-2">Farba</Text>
+                <Text className="text-muted text-sm mb-2">{_('color')}</Text>
                 <ColorPicker selected={color} onChange={setColor} />
               </View>
 
               <View className="flex-row gap-3 mt-6">
                 <View className="flex-1">
                   <Button variant="outline" size="lg" onPress={() => setDialogOpen(false)}>
-                    <Button.Label>Zrušiť</Button.Label>
+                    <Button.Label>{_('cancel')}</Button.Label>
                   </Button>
                 </View>
                 <View className="flex-1">
                   <Button variant="primary" size="lg" onPress={handleAdd} isDisabled={saving}>
-                    <Button.Label>{saving ? 'Ukladám...' : 'Uložiť'}</Button.Label>
+                    <Button.Label>{saving ? _('saving') : _('save')}</Button.Label>
                   </Button>
                 </View>
               </View>

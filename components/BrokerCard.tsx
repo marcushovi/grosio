@@ -1,6 +1,9 @@
 import { Pressable, View, Text } from 'react-native'
 import { Card } from 'heroui-native/card'
 import { Broker } from '../types'
+import { formatAmount } from '../lib/currency'
+import { useSettings } from '../lib/settingsContext'
+import { useT } from '../lib/t'
 
 interface BrokerCardProps {
   broker: Broker
@@ -19,6 +22,8 @@ export function BrokerCard({
   onPress,
   onLongPress,
 }: BrokerCardProps) {
+  const { currency } = useSettings()
+  const { _ } = useT()
   const isPositive = gainLoss >= 0
 
   return (
@@ -28,9 +33,13 @@ export function BrokerCard({
           <View className="flex-row items-center mb-3">
             <View className="w-3 h-3 rounded-full mr-2" style={{ backgroundColor: broker.color }} />
             <Text className="flex-1 text-foreground text-lg font-semibold">{broker.name}</Text>
-            <Text className="text-muted text-sm">{positionCount} pozícií</Text>
+            <Text className="text-muted text-sm">
+              {positionCount} {_('positions')}
+            </Text>
           </View>
-          <Text className="text-foreground text-3xl font-bold mb-1">€{totalValue.toFixed(2)}</Text>
+          <Text className="text-foreground text-3xl font-bold mb-1">
+            {formatAmount(totalValue, currency)}
+          </Text>
           <Text
             className={
               isPositive
@@ -39,7 +48,7 @@ export function BrokerCard({
             }
           >
             {isPositive ? '+' : ''}
-            {gainLoss.toFixed(2)} €
+            {formatAmount(gainLoss, currency)}
           </Text>
         </Card.Body>
       </Card>

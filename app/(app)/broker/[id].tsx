@@ -20,10 +20,14 @@ import { useBrokers } from '../../../hooks/useBrokers'
 import { usePositions } from '../../../hooks/usePositions'
 import { usePrices } from '../../../hooks/usePrices'
 import { getQuote, searchSymbols } from '../../../lib/yahooFinance'
-import { getEurUsdRate, toEur } from '../../../lib/currency'
+import { getExchangeRates, toEur, convertToDisplay, formatAmount } from '../../../lib/currency'
+import { useSettings } from '../../../lib/settingsContext'
+import { useT } from '../../../lib/t'
 import type { PositionWithPrice } from '../../../types'
 
 export default function BrokerDetailScreen() {
+  const { _ } = useT()
+  const { currency: displayCurrency } = useSettings()
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
   const { brokers } = useBrokers()
@@ -34,7 +38,6 @@ export default function BrokerDetailScreen() {
   const [positionsWithPrices, setPositionsWithPrices] = useState<PositionWithPrice[]>([])
   const [pricesLoading, setPricesLoading] = useState(false)
 
-  // Add position dialog state
   const [dialogOpen, setDialogOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<
@@ -55,7 +58,7 @@ export default function BrokerDetailScreen() {
     }
     setPricesLoading(true)
     try {
-      const eurUsdRate = await getEurUsdRate()
+      const rates = await getExchangeRates()
       const symbols = [...new Set(positions.map(p => p.symbol))]
       const prices = await fetchPricesFromHook(symbols)
 
@@ -63,8 +66,10 @@ export default function BrokerDetailScreen() {
         const quote = prices[pos.symbol]
         const rawPrice = quote?.price ?? pos.avg_buy_price
         const currency = quote?.currency ?? pos.currency
-        const currentValue = toEur(pos.shares * rawPrice, currency, eurUsdRate)
-        const invested = toEur(pos.shares * pos.avg_buy_price, pos.currency, eurUsdRate)
+        const valueEur = toEur(pos.shares * rawPrice, currency, rates)
+        const costEur = toEur(pos.shares * pos.avg_buy_price, pos.currency, rates)
+        const currentValue = convertToDisplay(valueEur, displayCurrency, rates)
+        const invested = convertToDisplay(costEur, displayCurrency, rates)
         const gainLoss = currentValue - invested
         const gainLossPct = invested > 0 ? (gainLoss / invested) * 100 : 0
         return {
@@ -89,7 +94,7 @@ export default function BrokerDetailScreen() {
     } finally {
       setPricesLoading(false)
     }
-  }, [positions, fetchPricesFromHook])
+  }, [positions, fetchPricesFromHook, displayCurrency])
 
   useEffect(() => {
     fetchPrices()
@@ -120,9 +125,9 @@ export default function BrokerDetailScreen() {
   }
 
   const handleAddPosition = async () => {
-    if (!selectedSymbol) return Alert.alert('Chyba', 'Vyber symbol')
-    if (!shares || parseFloat(shares) <= 0) return Alert.alert('Chyba', 'Zadaj počet kusov')
-    if (!price || parseFloat(price) <= 0) return Alert.alert('Chyba', 'Zadaj cenu')
+    if (!selectedSymbol) return Alert.alert(_('error'), _('selectSymbol'))
+    if (!shares || parseFloat(shares) <= 0) return Alert.alert(_('error'), _('enterShares'))
+    if (!price || parseFloat(price) <= 0) return Alert.alert(_('error'), _('enterPrice'))
     setSaving(true)
     const { error } = await addPosition({
       broker_id: id!,
@@ -133,20 +138,20 @@ export default function BrokerDetailScreen() {
       currency: selectedCurrency,
     })
     setSaving(false)
-    if (error) return Alert.alert('Chyba', typeof error === 'string' ? error : error.message)
+    if (error) return Alert.alert(_('error'), typeof error === 'string' ? error : error.message)
     resetDialog()
     setDialogOpen(false)
   }
 
   const handleDeletePosition = (posId: string, symbol: string) => {
-    Alert.alert('Zmazať pozíciu', `Naozaj chceš zmazať ${symbol}?`, [
-      { text: 'Zrušiť', style: 'cancel' },
+    Alert.alert(_('deletePosition'), _('deletePositionMsg', { symbol }), [
+      { text: _('cancel'), style: 'cancel' },
       {
-        text: 'Zmazať',
+        text: _('delete'),
         style: 'destructive',
         onPress: async () => {
           const { error } = await deletePosition(posId)
-          if (error) Alert.alert('Chyba', typeof error === 'string' ? error : error.message)
+          if (error) Alert.alert(_('error'), typeof error === 'string' ? error : error.message)
         },
       },
     ])
@@ -168,25 +173,16 @@ export default function BrokerDetailScreen() {
   const totalGLPct = totalInvested > 0 ? (totalGL / totalInvested) * 100 : 0
   const isPositive = totalGL >= 0
 
-  if (!id) {
+  if (!id || !broker) {
     return (
       <SafeAreaView className="flex-1 bg-background justify-center items-center">
-        <Text className="text-danger">Broker nebol nájdený.</Text>
-      </SafeAreaView>
-    )
-  }
-
-  if (!broker) {
-    return (
-      <SafeAreaView className="flex-1 bg-background justify-center items-center">
-        <Text className="text-muted">Broker nenájdený</Text>
+        <Text className="text-muted">{_('brokerNotFound')}</Text>
       </SafeAreaView>
     )
   }
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      {/* Header */}
       <View className="px-5 pt-2 pb-4 flex-row items-center gap-3">
         <Button variant="ghost" size="sm" isIconOnly onPress={() => router.back()}>
           <ArrowLeft color="#fafafa" size={20} />
@@ -195,15 +191,16 @@ export default function BrokerDetailScreen() {
         <Text className="text-foreground text-2xl font-bold flex-1">{broker.name}</Text>
         <Button variant="primary" size="sm" onPress={() => setDialogOpen(true)}>
           <Plus color="#fafafa" size={16} />
-          <Button.Label>Pozícia</Button.Label>
+          <Button.Label>{_('position')}</Button.Label>
         </Button>
       </View>
 
-      {/* Summary */}
       <View className="px-5 mb-4">
         <Card className="bg-surface p-5">
-          <Text className="text-muted text-sm mb-1">Celková hodnota</Text>
-          <Text className="text-foreground text-3xl font-bold mb-1">€{totalValue.toFixed(2)}</Text>
+          <Text className="text-muted text-sm mb-1">{_('totalValueLabel')}</Text>
+          <Text className="text-foreground text-3xl font-bold mb-1">
+            {formatAmount(totalValue, displayCurrency)}
+          </Text>
           <View className="flex-row items-center gap-2">
             {isPositive ? (
               <TrendingUp size={14} color="#17c964" />
@@ -218,22 +215,21 @@ export default function BrokerDetailScreen() {
               }
             >
               {isPositive ? '+' : ''}
-              {totalGL.toFixed(2)} ({isPositive ? '+' : ''}
+              {formatAmount(totalGL, displayCurrency)} ({isPositive ? '+' : ''}
               {totalGLPct.toFixed(2)}%)
             </Text>
           </View>
         </Card>
       </View>
 
-      {/* Positions */}
       {loading || pricesLoading ? (
         <View className="flex-1 justify-center items-center">
           <ActivityIndicator size="large" color="#006fee" />
         </View>
       ) : positionsWithPrices.length === 0 ? (
         <View className="flex-1 justify-center items-center">
-          <Text className="text-foreground text-lg mb-2">Žiadne pozície</Text>
-          <Text className="text-muted text-sm">Pridaj svoju prvú pozíciu</Text>
+          <Text className="text-foreground text-lg mb-2">{_('noPositions')}</Text>
+          <Text className="text-muted text-sm">{_('addFirstPosition')}</Text>
         </View>
       ) : (
         <FlatList
@@ -251,12 +247,12 @@ export default function BrokerDetailScreen() {
                     <Text className="text-foreground font-semibold text-base">{item.symbol}</Text>
                     <Text className="text-muted text-xs">{item.name}</Text>
                     <Text className="text-muted text-xs mt-1">
-                      {item.shares} ks × €{item.avg_buy_price.toFixed(2)}
+                      {item.shares} ks × {formatAmount(item.avg_buy_price, displayCurrency)}
                     </Text>
                   </View>
                   <View className="items-end mr-3">
                     <Text className="text-foreground font-semibold">
-                      €{item.currentValue.toFixed(2)}
+                      {formatAmount(item.currentValue, displayCurrency)}
                     </Text>
                     <Text
                       className={
@@ -264,10 +260,12 @@ export default function BrokerDetailScreen() {
                       }
                     >
                       {pos ? '+' : ''}
-                      {item.gainLoss.toFixed(2)} ({pos ? '+' : ''}
+                      {formatAmount(item.gainLoss, displayCurrency)} ({pos ? '+' : ''}
                       {item.gainLossPct.toFixed(2)}%)
                     </Text>
-                    <Text className="text-muted text-xs">€{item.currentPrice.toFixed(2)}</Text>
+                    <Text className="text-muted text-xs">
+                      {formatAmount(item.currentPrice, displayCurrency)}
+                    </Text>
                   </View>
                   <Button
                     variant="ghost"
@@ -284,7 +282,6 @@ export default function BrokerDetailScreen() {
         />
       )}
 
-      {/* Add Position Dialog */}
       <Dialog
         isOpen={dialogOpen}
         onOpenChange={open => {
@@ -300,16 +297,15 @@ export default function BrokerDetailScreen() {
           >
             <Dialog.Content>
               <Dialog.Close className="self-end" />
-              <Dialog.Title>Pridať pozíciu</Dialog.Title>
-              <Dialog.Description>Vyhľadaj akciu alebo ETF a zadaj detaily.</Dialog.Description>
+              <Dialog.Title>{_('addPosition')}</Dialog.Title>
+              <Dialog.Description>{_('addPositionDesc')}</Dialog.Description>
 
-              {/* Search */}
               <View className="mt-4">
-                <Text className="text-muted text-sm mb-2">Symbol</Text>
+                <Text className="text-muted text-sm mb-2">{_('symbol')}</Text>
                 <View className="flex-row items-center gap-2">
                   <View className="flex-1">
                     <Input
-                      placeholder="Hľadaj AAPL, VWCE..."
+                      placeholder={_('searchPlaceholder')}
                       value={searchQuery}
                       onChangeText={handleSearch}
                       autoCapitalize="characters"
@@ -319,7 +315,6 @@ export default function BrokerDetailScreen() {
                 </View>
               </View>
 
-              {/* Search Results */}
               {searchResults.length > 0 && (
                 <View className="mt-2 max-h-40">
                   {searchResults.slice(0, 5).map(r => (
@@ -338,7 +333,6 @@ export default function BrokerDetailScreen() {
                 </View>
               )}
 
-              {/* Selected symbol info */}
               {selectedSymbol ? (
                 <View className="mt-3 bg-background rounded-xl p-3">
                   <Text className="text-accent font-semibold">{selectedSymbol}</Text>
@@ -346,10 +340,9 @@ export default function BrokerDetailScreen() {
                 </View>
               ) : null}
 
-              {/* Shares & Price */}
               <View className="flex-row gap-3 mt-4">
                 <View className="flex-1">
-                  <Text className="text-muted text-sm mb-2">Počet kusov</Text>
+                  <Text className="text-muted text-sm mb-2">{_('shares')}</Text>
                   <Input
                     placeholder="10"
                     value={shares}
@@ -358,7 +351,7 @@ export default function BrokerDetailScreen() {
                   />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-muted text-sm mb-2">Nákupná cena</Text>
+                  <Text className="text-muted text-sm mb-2">{_('buyPrice')}</Text>
                   <Input
                     placeholder="0.00"
                     value={price}
@@ -368,7 +361,6 @@ export default function BrokerDetailScreen() {
                 </View>
               </View>
 
-              {/* Actions */}
               <View className="flex-row gap-3 mt-6">
                 <View className="flex-1">
                   <Button
@@ -379,7 +371,7 @@ export default function BrokerDetailScreen() {
                       setDialogOpen(false)
                     }}
                   >
-                    <Button.Label>Zrušiť</Button.Label>
+                    <Button.Label>{_('cancel')}</Button.Label>
                   </Button>
                 </View>
                 <View className="flex-1">
@@ -389,7 +381,7 @@ export default function BrokerDetailScreen() {
                     onPress={handleAddPosition}
                     isDisabled={saving || !selectedSymbol}
                   >
-                    <Button.Label>{saving ? 'Ukladám...' : 'Pridať'}</Button.Label>
+                    <Button.Label>{saving ? _('adding') : _('add')}</Button.Label>
                   </Button>
                 </View>
               </View>

@@ -4,26 +4,26 @@ import { supabase } from '../../lib/supabase'
 import { Link, useRouter } from 'expo-router'
 import { Button } from 'heroui-native/button'
 import { Input } from 'heroui-native/input'
+import { useT } from '../../lib/t'
 
 export default function RegisterScreen() {
+  const { _ } = useT()
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleRegister = async () => {
-    if (!email || !password) return Alert.alert('Chyba', 'Vyplňte email a heslo')
+    if (!email || !password) return Alert.alert(_('error'), _('fillEmailPassword'))
     setLoading(true)
     const { error } = await supabase.auth.signUp({ email, password })
     setLoading(false)
     if (error) {
-      Alert.alert('Chyba', error.message)
+      Alert.alert(_('error'), error.message)
     } else {
-      Alert.alert(
-        'Registrácia úspešná',
-        'Skontroluj svoju e-mailovú schránku a potvrď registráciu.',
-        [{ text: 'OK', onPress: () => router.replace('/(auth)/login') }]
-      )
+      Alert.alert(_('registerSuccess'), _('registerSuccessMsg'), [
+        { text: _('ok'), onPress: () => router.replace('/(auth)/login') },
+      ])
     }
   }
 
@@ -33,10 +33,10 @@ export default function RegisterScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <Text className="text-accent text-5xl font-bold text-center mb-2">Grosio</Text>
-      <Text className="text-muted text-base text-center mb-10">Vytvor si účet</Text>
+      <Text className="text-muted text-base text-center mb-10">{_('createAccount')}</Text>
       <Input
         className="mb-3"
-        placeholder="Email"
+        placeholder={_('email')}
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
@@ -44,7 +44,7 @@ export default function RegisterScreen() {
       />
       <Input
         className="mb-6"
-        placeholder="Heslo"
+        placeholder={_('password')}
         value={password}
         onChangeText={setPassword}
         secureTextEntry
@@ -56,10 +56,10 @@ export default function RegisterScreen() {
         isDisabled={loading}
         className="mb-4"
       >
-        <Button.Label>{loading ? 'Vytvárám účet...' : 'Vytvoriť účet'}</Button.Label>
+        <Button.Label>{loading ? _('registering') : _('register')}</Button.Label>
       </Button>
       <Link href="/(auth)/login" className="text-accent text-center text-sm">
-        Máš účet? Prihlás sa
+        {_('haveAccount')}
       </Link>
     </KeyboardAvoidingView>
   )
