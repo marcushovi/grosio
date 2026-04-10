@@ -1,3 +1,5 @@
+import i18n from './i18n'
+
 export type DisplayCurrency = 'EUR' | 'USD' | 'CZK'
 
 export interface ExchangeRates {
@@ -8,6 +10,17 @@ export interface ExchangeRates {
 
 let memCache: ExchangeRates | null = null
 const CACHE_TTL_MS = 60 * 60 * 1000
+
+const LOCALE_MAP: Record<string, string> = {
+  en: 'en-US',
+  sk: 'sk-SK',
+  cs: 'cs-CZ',
+  de: 'de-DE',
+}
+
+function getLocale(): string {
+  return LOCALE_MAP[i18n.language] ?? 'en-US'
+}
 
 export async function getExchangeRates(): Promise<ExchangeRates> {
   const now = Date.now()
@@ -26,7 +39,6 @@ export async function getExchangeRates(): Promise<ExchangeRates> {
     memCache = rates
     return rates
   } catch {
-    // timestamp: 0 so next call retries immediately
     return memCache ?? { eurUsd: 1.08, eurCzk: 25.3, timestamp: 0 }
   }
 }
@@ -67,17 +79,23 @@ export function currencySymbol(currency: DisplayCurrency | string): string {
   }
 }
 
-/** Format amount with the correct currency symbol */
+/** Format amount with locale-aware number formatting and currency symbol */
 export function formatAmount(amount: number, displayCurrency: DisplayCurrency): string {
-  const symbol = currencySymbol(displayCurrency)
-  const formatted = amount.toFixed(2)
-  return displayCurrency === 'CZK' ? `${formatted} ${symbol}` : `${symbol}${formatted}`
+  return new Intl.NumberFormat(getLocale(), {
+    style: 'currency',
+    currency: displayCurrency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount)
 }
 
 /** Format a raw price in its original currency (not converted) */
 export function formatRaw(amount: number, originalCurrency: string): string {
-  const symbol = currencySymbol(originalCurrency)
-  return originalCurrency === 'CZK'
-    ? `${amount.toFixed(2)} ${symbol}`
-    : `${symbol}${amount.toFixed(2)}`
+  const cur = ['EUR', 'USD', 'CZK'].includes(originalCurrency) ? originalCurrency : 'USD'
+  return new Intl.NumberFormat(getLocale(), {
+    style: 'currency',
+    currency: cur,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount)
 }
