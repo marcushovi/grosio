@@ -1,6 +1,5 @@
-import { View, Text } from 'react-native'
+import { View, Text, Pressable } from 'react-native'
 import { Card } from 'heroui-native/card'
-import { PressableFeedback } from 'heroui-native'
 import * as Haptics from 'expo-haptics'
 import type { Broker } from '../types'
 import { formatAmount } from '../lib/currency'
@@ -29,7 +28,7 @@ export function BrokerCard({
   const isPositive = gainLoss >= 0
 
   return (
-    <PressableFeedback
+    <Pressable
       onPress={() => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
         onPress()
@@ -40,7 +39,6 @@ export function BrokerCard({
       }}
       className="mb-3"
     >
-      <PressableFeedback.Highlight />
       <Card className="bg-surface">
         <Card.Body>
           <View className="flex-row items-center mb-3">
@@ -65,6 +63,6 @@ export function BrokerCard({
           </Text>
         </Card.Body>
       </Card>
-    </PressableFeedback>
+    </Pressable>
   )
 }

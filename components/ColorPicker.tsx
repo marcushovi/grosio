@@ -1,5 +1,4 @@
-import { View } from 'react-native'
-import { PressableFeedback } from 'heroui-native'
+import { View, Pressable } from 'react-native'
 import * as Haptics from 'expo-haptics'
 
 export const COLORS = [
@@ -22,7 +21,7 @@ export function ColorPicker({ selected, onChange }: ColorPickerProps) {
   return (
     <View className="flex-row flex-wrap gap-3 mt-2">
       {COLORS.map(color => (
-        <PressableFeedback
+        <Pressable
           key={color}
           onPress={() => {
             Haptics.selectionAsync()

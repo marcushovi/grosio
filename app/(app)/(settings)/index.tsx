@@ -1,6 +1,6 @@
-import { Text, ScrollView, Alert } from 'react-native'
+import { Text, ScrollView, Alert, Pressable } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { ListGroup, PressableFeedback, Separator, useThemeColor } from 'heroui-native'
+import { ListGroup, Separator, useThemeColor } from 'heroui-native'
 import { Button } from 'heroui-native/button'
 import { useRouter } from 'expo-router'
 import { useCallback } from 'react'
@@ -53,11 +53,7 @@ export default function SettingsScreen() {
         {/* Account */}
         <Text className="text-muted text-xs mb-2 px-1">{_('profile')}</Text>
         <ListGroup className="mb-6">
-          <PressableFeedback
-            animation={false}
-            onPress={() => navigate('/(app)/(settings)/profile')}
-          >
-            <PressableFeedback.Highlight />
+          <Pressable onPress={() => navigate('/(app)/(settings)/profile')}>
             <ListGroup.Item disabled>
               <ListGroup.ItemPrefix>
                 <User size={20} color={foreground} />
@@ -67,17 +63,13 @@ export default function SettingsScreen() {
               </ListGroup.ItemContent>
               <ListGroup.ItemSuffix />
             </ListGroup.Item>
-          </PressableFeedback>
+          </Pressable>
         </ListGroup>
 
         {/* Preferences */}
         <Text className="text-muted text-xs mb-2 px-1">{_('settings')}</Text>
         <ListGroup className="mb-6">
-          <PressableFeedback
-            animation={false}
-            onPress={() => navigate('/(app)/(settings)/language')}
-          >
-            <PressableFeedback.Highlight />
+          <Pressable onPress={() => navigate('/(app)/(settings)/language')}>
             <ListGroup.Item disabled>
               <ListGroup.ItemPrefix>
                 <Globe size={20} color={foreground} />
@@ -88,12 +80,11 @@ export default function SettingsScreen() {
               </ListGroup.ItemContent>
               <ListGroup.ItemSuffix />
             </ListGroup.Item>
-          </PressableFeedback>
+          </Pressable>
 
           <Separator className="mx-4" />
 
-          <PressableFeedback animation={false} onPress={() => navigate('/(app)/(settings)/theme')}>
-            <PressableFeedback.Highlight />
+          <Pressable onPress={() => navigate('/(app)/(settings)/theme')}>
             <ListGroup.Item disabled>
               <ListGroup.ItemPrefix>
                 <Palette size={20} color={foreground} />
@@ -104,15 +95,11 @@ export default function SettingsScreen() {
               </ListGroup.ItemContent>
               <ListGroup.ItemSuffix />
             </ListGroup.Item>
-          </PressableFeedback>
+          </Pressable>
 
           <Separator className="mx-4" />
 
-          <PressableFeedback
-            animation={false}
-            onPress={() => navigate('/(app)/(settings)/display-currency')}
-          >
-            <PressableFeedback.Highlight />
+          <Pressable onPress={() => navigate('/(app)/(settings)/display-currency')}>
             <ListGroup.Item disabled>
               <ListGroup.ItemPrefix>
                 <Coins size={20} color={foreground} />
@@ -125,7 +112,7 @@ export default function SettingsScreen() {
               </ListGroup.ItemContent>
               <ListGroup.ItemSuffix />
             </ListGroup.Item>
-          </PressableFeedback>
+          </Pressable>
         </ListGroup>
 
         <Button variant="danger" size="lg" onPress={handleLogout} className="w-full">

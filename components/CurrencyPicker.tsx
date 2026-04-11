@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
 import { View, Text, Pressable, Modal } from 'react-native'
-import { useThemeColor, PressableFeedback } from 'heroui-native'
+import { useThemeColor } from 'heroui-native'
 import * as Haptics from 'expo-haptics'
 import { currencySymbol } from '../lib/currency'
 import { useSettings } from '../lib/settingsContext'
@@ -34,9 +34,9 @@ export function CurrencyPicker() {
   return (
     <>
       <View ref={btnRef} collapsable={false}>
-        <PressableFeedback onPress={openMenu} className="bg-surface rounded-xl px-3 py-2">
+        <Pressable onPress={openMenu} className="bg-surface rounded-xl px-3 py-2">
           <Text className="text-accent text-base font-semibold">{currencySymbol(currency)}</Text>
-        </PressableFeedback>
+        </Pressable>
       </View>
 
       <Modal
@@ -56,13 +56,11 @@ export function CurrencyPicker() {
             }}
           >
             {CURRENCIES.map(c => (
-              <PressableFeedback
+              <Pressable
                 key={c.value}
                 onPress={() => select(c.value)}
-                animation={false}
                 className="flex-row items-center justify-between px-4 py-3"
               >
-                <PressableFeedback.Highlight />
                 <Text
                   className="text-base"
                   style={{
@@ -77,7 +75,7 @@ export function CurrencyPicker() {
                     ✓
                   </Text>
                 )}
-              </PressableFeedback>
+              </Pressable>
             ))}
           </View>
         </Pressable>
