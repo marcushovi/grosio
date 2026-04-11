@@ -6,13 +6,13 @@ import { Button } from 'heroui-native/button'
 import { useThemeColor } from 'heroui-native'
 import { ArrowLeft } from 'lucide-react-native'
 import { useState, useEffect } from 'react'
-import { supabase } from '../../lib/supabase'
-import { useT } from '../../lib/t'
+import { supabase } from '../../../lib/supabase'
+import { useT } from '../../../lib/t'
 
 export default function ProfileScreen() {
   const { _ } = useT()
   const router = useRouter()
-  const accentFg = useThemeColor('accent-foreground') as string
+  const foreground = useThemeColor('foreground') as string
   const [email, setEmail] = useState('')
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export default function ProfileScreen() {
     <SafeAreaView className="flex-1 bg-background">
       <View className="px-5 pt-2 pb-4 flex-row items-center gap-3">
         <Button variant="ghost" size="sm" isIconOnly onPress={() => router.back()}>
-          <ArrowLeft color={accentFg} size={20} />
+          <ArrowLeft color={foreground} size={20} />
         </Button>
         <Text className="text-foreground text-2xl font-bold">{_('profile')}</Text>
       </View>

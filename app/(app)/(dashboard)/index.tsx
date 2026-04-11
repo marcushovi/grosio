@@ -4,11 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { useThemeColor } from 'heroui-native'
 import { Card } from 'heroui-native/card'
 import { TrendingUp, TrendingDown } from 'lucide-react-native'
-import { useBrokers } from '../../hooks/useBrokers'
-import { useDashboardData } from '../../hooks/useDashboardData'
-import { useT } from '../../lib/t'
-import { formatAmount, formatGainLoss } from '../../lib/currency'
-import { CurrencyPicker } from '../../components/CurrencyPicker'
+import { useBrokers } from '../../../hooks/useBrokers'
+import { useDashboardData } from '../../../hooks/useDashboardData'
+import { useT } from '../../../lib/t'
+import { formatAmount, formatGainLoss } from '../../../lib/currency'
+import { CurrencyPicker } from '../../../components/CurrencyPicker'
 
 export default function DashboardScreen() {
   const { _ } = useT()

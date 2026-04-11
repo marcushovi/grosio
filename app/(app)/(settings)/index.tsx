@@ -6,10 +6,10 @@ import { useRouter } from 'expo-router'
 import { useCallback } from 'react'
 import { User, Globe, Palette, Coins } from 'lucide-react-native'
 import * as Haptics from 'expo-haptics'
-import { supabase } from '../../lib/supabase'
-import { useT } from '../../lib/t'
-import { useSettings } from '../../lib/settingsContext'
-import { currencySymbol } from '../../lib/currency'
+import { supabase } from '../../../lib/supabase'
+import { useT } from '../../../lib/t'
+import { useSettings } from '../../../lib/settingsContext'
+import { currencySymbol } from '../../../lib/currency'
 
 const LANGUAGE_LABELS: Record<string, string> = {
   en: 'English',
@@ -53,7 +53,10 @@ export default function SettingsScreen() {
         {/* Account */}
         <Text className="text-muted text-xs mb-2 px-1">{_('profile')}</Text>
         <ListGroup className="mb-6">
-          <PressableFeedback animation={false} onPress={() => navigate('/(app)/profile')}>
+          <PressableFeedback
+            animation={false}
+            onPress={() => navigate('/(app)/(settings)/profile')}
+          >
             <PressableFeedback.Highlight />
             <ListGroup.Item disabled>
               <ListGroup.ItemPrefix>
@@ -70,7 +73,10 @@ export default function SettingsScreen() {
         {/* Preferences */}
         <Text className="text-muted text-xs mb-2 px-1">{_('settings')}</Text>
         <ListGroup className="mb-6">
-          <PressableFeedback animation={false} onPress={() => navigate('/(app)/language')}>
+          <PressableFeedback
+            animation={false}
+            onPress={() => navigate('/(app)/(settings)/language')}
+          >
             <PressableFeedback.Highlight />
             <ListGroup.Item disabled>
               <ListGroup.ItemPrefix>
@@ -86,7 +92,7 @@ export default function SettingsScreen() {
 
           <Separator className="mx-4" />
 
-          <PressableFeedback animation={false} onPress={() => navigate('/(app)/theme')}>
+          <PressableFeedback animation={false} onPress={() => navigate('/(app)/(settings)/theme')}>
             <PressableFeedback.Highlight />
             <ListGroup.Item disabled>
               <ListGroup.ItemPrefix>
@@ -102,7 +108,10 @@ export default function SettingsScreen() {
 
           <Separator className="mx-4" />
 
-          <PressableFeedback animation={false} onPress={() => navigate('/(app)/display-currency')}>
+          <PressableFeedback
+            animation={false}
+            onPress={() => navigate('/(app)/(settings)/display-currency')}
+          >
             <PressableFeedback.Highlight />
             <ListGroup.Item disabled>
               <ListGroup.ItemPrefix>

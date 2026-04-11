@@ -3,10 +3,15 @@ import { LayoutDashboard, Briefcase, Settings } from 'lucide-react-native'
 import { useThemeColor } from 'heroui-native'
 import * as Haptics from 'expo-haptics'
 import { useT } from '../../lib/t'
+import { useSettings } from '../../lib/settingsContext'
 
 export default function AppLayout() {
   const { _ } = useT()
+  const { resolvedTheme } = useSettings()
   const [bg, border, accent, muted] = useThemeColor(['background', 'border', 'accent', 'muted'])
+
+  // Native scene bg must use a static value keyed on theme, not a CSS variable
+  const sceneBg = resolvedTheme === 'dark' ? '#0a0a0a' : '#f5f5f5'
 
   return (
     <Tabs
@@ -20,7 +25,7 @@ export default function AppLayout() {
         tabBarActiveTintColor: accent,
         tabBarInactiveTintColor: muted,
         tabBarLabelStyle: { fontSize: 12, fontWeight: '500' },
-        sceneStyle: { backgroundColor: bg },
+        sceneStyle: { backgroundColor: sceneBg },
       }}
       screenListeners={{
         tabPress: () => {
@@ -29,31 +34,26 @@ export default function AppLayout() {
       }}
     >
       <Tabs.Screen
-        name="dashboard"
+        name="(dashboard)"
         options={{
           title: _('dashboard'),
           tabBarIcon: ({ color }) => <LayoutDashboard color={color} size={22} />,
         }}
       />
       <Tabs.Screen
-        name="brokers"
+        name="(brokers)"
         options={{
           title: _('brokers'),
           tabBarIcon: ({ color }) => <Briefcase color={color} size={22} />,
         }}
       />
       <Tabs.Screen
-        name="settings"
+        name="(settings)"
         options={{
           title: _('settings'),
           tabBarIcon: ({ color }) => <Settings color={color} size={22} />,
         }}
       />
-      <Tabs.Screen name="broker/[id]" options={{ href: null }} />
-      <Tabs.Screen name="profile" options={{ href: null }} />
-      <Tabs.Screen name="language" options={{ href: null }} />
-      <Tabs.Screen name="theme" options={{ href: null }} />
-      <Tabs.Screen name="display-currency" options={{ href: null }} />
     </Tabs>
   )
 }

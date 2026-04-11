@@ -25,10 +25,15 @@ import type { PositionWithPrice } from '../../../types'
 export default function BrokerDetailScreen() {
   const { _ } = useT()
   const { currency: displayCurrency } = useSettings()
-  const [success, danger, accentFg] = useThemeColor(['success', 'danger', 'accent-foreground'])
+  const [success, danger, foreground, accentFg] = useThemeColor([
+    'success',
+    'danger',
+    'foreground',
+    'accent-foreground',
+  ])
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
-  const { brokers } = useBrokers()
+  const { brokers, loading: brokersLoading } = useBrokers()
   const { positions, loading, addPosition, deletePosition } = usePositions(id)
   const { fetchPrices: fetchPricesFromHook } = usePrices()
   const broker = brokers.find(b => b.id === id)
@@ -123,7 +128,7 @@ export default function BrokerDetailScreen() {
   const totalGLPct = totalInvested > 0 ? (totalGL / totalInvested) * 100 : 0
   const isGain = totalGL >= 0
 
-  if (!id || !broker) {
+  if (!id || (!broker && !brokersLoading)) {
     return (
       <SafeAreaView className="flex-1 bg-background justify-center items-center">
         <Text className="text-muted">{_('brokerNotFound')}</Text>
@@ -131,12 +136,16 @@ export default function BrokerDetailScreen() {
     )
   }
 
+  if (!broker) {
+    return <SafeAreaView className="flex-1 bg-background" />
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-background">
       {/* Header */}
       <View className="px-5 pt-2 pb-4 flex-row items-center gap-3">
         <Button variant="ghost" size="sm" isIconOnly onPress={() => router.back()}>
-          <ArrowLeft color={accentFg} size={20} />
+          <ArrowLeft color={foreground} size={20} />
         </Button>
         <View className="w-3 h-3 rounded-full" style={{ backgroundColor: broker.color }} />
         <Text className="text-foreground text-2xl font-bold flex-1">{broker.name}</Text>

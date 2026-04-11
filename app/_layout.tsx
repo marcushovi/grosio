@@ -36,7 +36,7 @@ export default function RootLayout() {
     if (!initialized) return
     const inAuth = segments[0] === '(auth)'
     if (!session && !inAuth) router.replace('/(auth)/login')
-    else if (session && inAuth) router.replace('/(app)/dashboard')
+    else if (session && inAuth) router.replace('/(app)/(dashboard)')
   }, [session, initialized, segments, router])
 
   if (!initialized) return null

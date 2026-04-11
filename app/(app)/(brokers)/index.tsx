@@ -5,11 +5,11 @@ import { useRouter, useFocusEffect } from 'expo-router'
 import { Button } from 'heroui-native/button'
 import { useThemeColor } from 'heroui-native'
 import { Plus } from 'lucide-react-native'
-import { useBrokers } from '../../hooks/useBrokers'
-import { useDashboardData } from '../../hooks/useDashboardData'
-import { BrokerCard } from '../../components/BrokerCard'
-import { AddBrokerDialog } from '../../components/AddBrokerDialog'
-import { useT } from '../../lib/t'
+import { useBrokers } from '../../../hooks/useBrokers'
+import { useDashboardData } from '../../../hooks/useDashboardData'
+import { BrokerCard } from '../../../components/BrokerCard'
+import { AddBrokerDialog } from '../../../components/AddBrokerDialog'
+import { useT } from '../../../lib/t'
 
 export default function BrokersScreen() {
   const { _ } = useT()
@@ -90,7 +90,7 @@ export default function BrokersScreen() {
                 totalValue={bv?.value ?? 0}
                 gainLoss={bv?.gainLoss ?? 0}
                 positionCount={bv?.positionCount ?? 0}
-                onPress={() => router.push(`/(app)/broker/${item.id}`)}
+                onPress={() => router.push(`/(app)/(brokers)/${item.id}`)}
                 onLongPress={() => handleDelete(item.id, item.name)}
               />
             )

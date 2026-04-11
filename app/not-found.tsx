@@ -12,7 +12,7 @@ export default function NotFoundScreen() {
         <Text className="text-foreground text-xl font-semibold text-center">
           {_('pageNotFound')}
         </Text>
-        <Link href="/(app)/dashboard" className="text-accent text-base">
+        <Link href="/(app)/(dashboard)" className="text-accent text-base">
           {_('backHome')}
         </Link>
       </View>
