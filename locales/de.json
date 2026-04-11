@@ -66,5 +66,6 @@
   "themeSystem": "System",
   "totalValue": "Gesamtportfoliowert",
   "totalValueLabel": "Gesamtwert",
-  "tryAgain": "Erneut versuchen"
+  "tryAgain": "Erneut versuchen",
+  "unexpectedError": "Ein unerwarteter Fehler ist aufgetreten"
 }

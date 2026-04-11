@@ -57,9 +57,14 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
       return
     }
     setSearching(true)
-    const results = await searchSymbols(query)
-    setSearchResults(results)
-    setSearching(false)
+    try {
+      const results = await searchSymbols(query)
+      setSearchResults(results)
+    } catch {
+      setSearchResults([])
+    } finally {
+      setSearching(false)
+    }
   }, [])
 
   const handleSelectSymbol = useCallback(async (symbol: string, name: string) => {
@@ -67,10 +72,14 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
     setSelectedName(name)
     setSearchResults([])
     setSearchQuery(name)
-    const quote = await getQuote(symbol)
-    if (quote) {
-      setPrice(quote.price.toFixed(2))
-      setSelectedCurrency(quote.currency)
+    try {
+      const quote = await getQuote(symbol)
+      if (quote) {
+        setPrice(quote.price.toFixed(2))
+        setSelectedCurrency(quote.currency)
+      }
+    } catch {
+      // keep defaults if quote fetch fails
     }
   }, [])
 

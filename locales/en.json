@@ -66,5 +66,6 @@
   "themeSystem": "System",
   "totalValue": "Total Portfolio Value",
   "totalValueLabel": "Total Value",
-  "tryAgain": "Try Again"
+  "tryAgain": "Try Again",
+  "unexpectedError": "An unexpected error occurred"
 }

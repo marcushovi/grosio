@@ -3,7 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { supabase } from '../../lib/supabase'
 import { Button } from 'heroui-native/button'
 import { Card } from 'heroui-native/card'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useT } from '../../lib/t'
 
 export default function ProfileScreen() {
@@ -11,15 +11,22 @@ export default function ProfileScreen() {
   const [email, setEmail] = useState('')
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) setEmail(session.user.email || '')
-    })
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        if (session?.user) setEmail(session.user.email || '')
+      })
+      .catch(() => {})
   }, [])
 
-  const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut()
-    if (error) Alert.alert(_('error'), _('logOutError'))
-  }
+  const handleLogout = useCallback(async () => {
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) Alert.alert(_('error'), _('logOutError'))
+    } catch {
+      Alert.alert(_('error'), _('logOutError'))
+    }
+  }, [_])
 
   return (
     <SafeAreaView className="flex-1 bg-background">

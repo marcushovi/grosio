@@ -1,6 +1,6 @@
 import { Pressable, View, Text } from 'react-native'
 import { Card } from 'heroui-native/card'
-import { Broker } from '../types'
+import type { Broker } from '../types'
 import { formatAmount } from '../lib/currency'
 import { useSettings } from '../lib/settingsContext'
 import { useT } from '../lib/t'

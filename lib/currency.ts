@@ -92,6 +92,16 @@ export function formatAmount(amount: number, displayCurrency: DisplayCurrency): 
   }).format(amount)
 }
 
+/** Format gain/loss with sign prefix and percentage */
+export function formatGainLoss(
+  value: number,
+  pct: number,
+  displayCurrency: DisplayCurrency
+): string {
+  const sign = value >= 0 ? '+' : ''
+  return `${sign}${formatAmount(value, displayCurrency)} (${sign}${pct.toFixed(2)}%)`
+}
+
 /** Format a raw price in its original currency (not converted) */
 export function formatRaw(amount: number, originalCurrency: string): string {
   const validCurrencies = ['EUR', 'USD', 'CZK', 'GBP', 'CHF', 'JPY', 'CAD', 'AUD']

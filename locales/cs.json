@@ -66,5 +66,6 @@
   "themeSystem": "Systémové",
   "totalValue": "Celková hodnota portfolia",
   "totalValueLabel": "Celková hodnota",
-  "tryAgain": "Zkusit znovu"
+  "tryAgain": "Zkusit znovu",
+  "unexpectedError": "Nastala neočekávaná chyba"
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase, getAuthUserId } from '../lib/supabase'
 import type { Position } from '../types'
 
 export function usePositions(brokerId?: string) {
@@ -10,16 +10,17 @@ export function usePositions(brokerId?: string) {
   const fetchPositions = useCallback(async () => {
     setLoading(true)
     setError(null)
-    let query = supabase.from('positions').select('*').order('created_at', { ascending: true })
-    if (brokerId) query = query.eq('broker_id', brokerId)
-    const { data, error: posErr } = await query
-    if (posErr) {
-      setError(posErr.message)
+    try {
+      let query = supabase.from('positions').select('*').order('created_at', { ascending: true })
+      if (brokerId) query = query.eq('broker_id', brokerId)
+      const { data, error: fetchErr } = await query
+      if (fetchErr) throw fetchErr
+      setPositions(data || [])
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load positions')
+    } finally {
       setLoading(false)
-      return
     }
-    setPositions(data || [])
-    setLoading(false)
   }, [brokerId])
 
   const addPosition = useCallback(
@@ -31,12 +32,9 @@ export function usePositions(brokerId?: string) {
       avg_buy_price: number
       currency: string
     }) => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      const user = session?.user
-      if (!user) return { error: { message: 'Not authenticated' } }
-      const { error } = await supabase.from('positions').insert({ ...position, user_id: user.id })
+      const userId = await getAuthUserId()
+      if (!userId) return { error: { message: 'Not authenticated' } }
+      const { error } = await supabase.from('positions').insert({ ...position, user_id: userId })
       if (!error) await fetchPositions()
       return { error }
     },
@@ -45,15 +43,9 @@ export function usePositions(brokerId?: string) {
 
   const deletePosition = useCallback(
     async (id: string) => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      const userId = session?.user?.id
-      const { error } = await supabase
-        .from('positions')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', userId ?? '')
+      const userId = await getAuthUserId()
+      if (!userId) return { error: { message: 'Not authenticated' } }
+      const { error } = await supabase.from('positions').delete().eq('id', id).eq('user_id', userId)
       if (!error) await fetchPositions()
       return { error }
     },

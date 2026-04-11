@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { Text, Alert, KeyboardAvoidingView, Platform } from 'react-native'
 import { supabase } from '../../lib/supabase'
 import { Link } from 'expo-router'
 import { Button } from 'heroui-native/button'
 import { Input } from 'heroui-native/input'
 import { useT } from '../../lib/t'
+import { APP_NAME } from '../../lib/constants'
 
 export default function LoginScreen() {
   const { _ } = useT()
@@ -12,20 +13,25 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleLogin = async () => {
+  const handleLogin = useCallback(async () => {
     if (!email || !password) return Alert.alert(_('error'), _('fillEmailPassword'))
     setLoading(true)
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) Alert.alert(_('error'), error.message)
-    setLoading(false)
-  }
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) Alert.alert(_('error'), error.message)
+    } catch (e) {
+      Alert.alert(_('error'), e instanceof Error ? e.message : _('unexpectedError'))
+    } finally {
+      setLoading(false)
+    }
+  }, [email, password, _])
 
   return (
     <KeyboardAvoidingView
       className="flex-1 bg-background justify-center px-6"
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Text className="text-accent text-5xl font-bold text-center mb-2">Grosio</Text>
+      <Text className="text-accent text-5xl font-bold text-center mb-2">{APP_NAME}</Text>
       <Text className="text-muted text-base text-center mb-10">{_('appTagline')}</Text>
       <Input
         className="mb-3"

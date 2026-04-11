@@ -15,6 +15,7 @@ import {
   convertToDisplay,
   formatAmount,
   formatRaw,
+  formatGainLoss,
 } from '../../../lib/currency'
 import { useSettings } from '../../../lib/settingsContext'
 import { useT } from '../../../lib/t'
@@ -111,7 +112,8 @@ export default function BrokerDetailScreen() {
       avg_buy_price: number
       currency: string
     }) => {
-      return addPosition({ broker_id: id!, ...pos })
+      if (typeof id !== 'string') return { error: { message: 'Invalid broker' } }
+      return addPosition({ broker_id: id, ...pos })
     },
     [addPosition, id]
   )
@@ -163,9 +165,7 @@ export default function BrokerDetailScreen() {
                 isGain ? 'text-success text-sm font-semibold' : 'text-danger text-sm font-semibold'
               }
             >
-              {isGain ? '+' : ''}
-              {formatAmount(totalGL, displayCurrency)} ({isGain ? '+' : ''}
-              {totalGLPct.toFixed(2)}%)
+              {formatGainLoss(totalGL, totalGLPct, displayCurrency)}
             </Text>
           </View>
         </Card>
@@ -209,9 +209,7 @@ export default function BrokerDetailScreen() {
                           : 'text-danger text-xs font-medium'
                       }
                     >
-                      {isItemGain ? '+' : ''}
-                      {formatAmount(item.gainLoss, displayCurrency)} ({isItemGain ? '+' : ''}
-                      {item.gainLossPct.toFixed(2)}%)
+                      {formatGainLoss(item.gainLoss, item.gainLossPct, displayCurrency)}
                     </Text>
                     <Text className="text-muted text-xs">
                       {formatRaw(item.currentPrice, item.currency)}

@@ -6,7 +6,7 @@ import { TrendingUp, TrendingDown } from 'lucide-react-native'
 import { useBrokers } from '../../hooks/useBrokers'
 import { useDashboardData } from '../../hooks/useDashboardData'
 import { useT } from '../../lib/t'
-import { formatAmount } from '../../lib/currency'
+import { formatAmount, formatGainLoss } from '../../lib/currency'
 import { CurrencyPicker } from '../../components/CurrencyPicker'
 import { DashboardSkeleton } from '../../components/DashboardSkeleton'
 
@@ -55,13 +55,11 @@ export default function DashboardScreen() {
         contentContainerStyle={{ padding: 20 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {/* Header */}
         <View className="flex-row items-center justify-between mb-4">
           <Text className="text-foreground text-3xl font-bold">{_('dashboard')}</Text>
           <CurrencyPicker />
         </View>
 
-        {/* Error */}
         {error ? (
           <View className="bg-surface rounded-2xl p-5 mb-4 items-center">
             <Text className="text-danger text-center mb-2">{error}</Text>
@@ -71,7 +69,6 @@ export default function DashboardScreen() {
           </View>
         ) : null}
 
-        {/* Total value */}
         <View className="bg-surface rounded-2xl p-5 mb-4">
           <Text className="text-muted text-sm mb-1">{_('totalValue')}</Text>
           <Text className="text-foreground text-4xl font-bold">{fmt(totalValue)}</Text>
@@ -82,14 +79,11 @@ export default function DashboardScreen() {
               <TrendingDown size={16} color={danger} />
             )}
             <Text className={isPositive ? 'text-success text-sm' : 'text-danger text-sm'}>
-              {isPositive ? '+' : ''}
-              {fmt(totalGainLoss)} ({isPositive ? '+' : ''}
-              {totalGainLossPct.toFixed(2)}%)
+              {formatGainLoss(totalGainLoss, totalGainLossPct, displayCurrency)}
             </Text>
           </View>
         </View>
 
-        {/* Allocation chart */}
         {brokersWithValue.length > 0 && (
           <View className="bg-surface rounded-2xl p-5 mb-4">
             <Text className="text-foreground font-semibold mb-4">{_('allocation')}</Text>
@@ -140,7 +134,6 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* Empty / Broker breakdown */}
         {brokerValues.length === 0 ? (
           <View className="bg-surface rounded-2xl p-8 items-center">
             <Text className="text-muted text-sm text-center">{_('addBrokersHint')}</Text>
@@ -164,9 +157,7 @@ export default function DashboardScreen() {
                 </View>
                 <Text className="text-foreground text-lg font-bold">{fmt(b.value)}</Text>
                 <Text className={b.gainLoss >= 0 ? 'text-success text-sm' : 'text-danger text-sm'}>
-                  {b.gainLoss >= 0 ? '+' : ''}
-                  {fmt(b.gainLoss)} ({b.gainLoss >= 0 ? '+' : ''}
-                  {b.gainLossPct.toFixed(2)}%)
+                  {formatGainLoss(b.gainLoss, b.gainLossPct, displayCurrency)}
                 </Text>
               </View>
             ))}

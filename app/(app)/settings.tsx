@@ -82,7 +82,7 @@ export default function SettingsScreen() {
           label={_('displayCurrency')}
           selected={currency}
           onSelect={v => setCurrency(v as DisplayCurrency)}
-          options={CURRENCIES.map(c => ({ value: c.value, label: c.label }))}
+          options={CURRENCIES}
         />
       </ScrollView>
     </SafeAreaView>
