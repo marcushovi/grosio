@@ -19,7 +19,6 @@ import {
 } from '../../../lib/currency'
 import { useSettings } from '../../../lib/settingsContext'
 import { useT } from '../../../lib/t'
-import { BrokerDetailSkeleton } from '../../../components/DashboardSkeleton'
 import { AddPositionDialog } from '../../../components/AddPositionDialog'
 import type { PositionWithPrice } from '../../../types'
 
@@ -173,7 +172,7 @@ export default function BrokerDetailScreen() {
 
       {/* Positions */}
       {(loading || pricesLoading) && positionsWithPrices.length === 0 ? (
-        <BrokerDetailSkeleton />
+        <View className="flex-1 justify-center items-center" />
       ) : positionsWithPrices.length === 0 && !loading ? (
         <View className="flex-1 justify-center items-center">
           <Text className="text-foreground text-lg mb-2">{_('noPositions')}</Text>

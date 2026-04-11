@@ -1,67 +1,28 @@
-import { View, Text, ScrollView, Pressable, Alert } from 'react-native'
+import { Text, ScrollView, Alert } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { useThemeColor } from 'heroui-native'
+import { ListGroup, PressableFeedback, Separator, useThemeColor } from 'heroui-native'
 import { Button } from 'heroui-native/button'
-import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'expo-router'
+import { useCallback } from 'react'
+import { User, Globe, Palette, Coins } from 'lucide-react-native'
+import * as Haptics from 'expo-haptics'
 import { supabase } from '../../lib/supabase'
 import { useT } from '../../lib/t'
 import { useSettings } from '../../lib/settingsContext'
-import { CURRENCIES } from '../../lib/constants'
-import type { Language, ThemePreference, DisplayCurrency } from '../../lib/settingsContext'
+import { currencySymbol } from '../../lib/currency'
 
-interface OptionRowProps {
-  label: string
-  options: { value: string; label: string }[]
-  selected: string
-  onSelect: (value: string) => void
-}
-
-function OptionRow({ label, options, selected, onSelect }: OptionRowProps) {
-  const accentFg = useThemeColor('accent-foreground') as string
-
-  return (
-    <View className="mb-6">
-      <Text className="text-muted text-xs mb-2 px-1">{label}</Text>
-      <View className="bg-surface rounded-2xl overflow-hidden">
-        {options.map((opt, i) => (
-          <Pressable
-            key={opt.value}
-            onPress={() => onSelect(opt.value)}
-            className={`flex-row items-center justify-between px-4 py-4 ${
-              i < options.length - 1 ? 'border-b border-default' : ''
-            }`}
-          >
-            <Text className="text-foreground text-base">{opt.label}</Text>
-            <View
-              className={`w-5 h-5 rounded-full border-2 items-center justify-center ${
-                selected === opt.value ? 'border-accent bg-accent' : 'border-muted'
-              }`}
-            >
-              {selected === opt.value && (
-                <View className="w-2 h-2 rounded-full" style={{ backgroundColor: accentFg }} />
-              )}
-            </View>
-          </Pressable>
-        ))}
-      </View>
-    </View>
-  )
+const LANGUAGE_LABELS: Record<string, string> = {
+  en: 'English',
+  sk: 'Slovenčina',
+  cs: 'Čeština',
+  de: 'Deutsch',
 }
 
 export default function SettingsScreen() {
   const { _ } = useT()
-  const { language, themePreference, currency, setLanguage, setThemePreference, setCurrency } =
-    useSettings()
-  const [email, setEmail] = useState('')
-
-  useEffect(() => {
-    supabase.auth
-      .getSession()
-      .then(({ data: { session } }) => {
-        if (session?.user) setEmail(session.user.email || '')
-      })
-      .catch(() => {})
-  }, [])
+  const router = useRouter()
+  const foreground = useThemeColor('foreground') as string
+  const { language, themePreference, currency } = useSettings()
 
   const handleLogout = useCallback(async () => {
     try {
@@ -72,49 +33,91 @@ export default function SettingsScreen() {
     }
   }, [_])
 
+  const navigate = (path: string) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+    router.push(path as never)
+  }
+
+  const themeLabel =
+    themePreference === 'light'
+      ? _('themeLight')
+      : themePreference === 'dark'
+        ? _('themeDark')
+        : _('themeSystem')
+
   return (
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView contentContainerStyle={{ padding: 20 }}>
         <Text className="text-foreground text-3xl font-bold mb-6">{_('settings')}</Text>
 
         {/* Account */}
-        <View className="mb-6">
-          <Text className="text-muted text-xs mb-2 px-1">{_('profile')}</Text>
-          <View className="bg-surface rounded-2xl px-4 py-4">
-            <Text className="text-muted text-xs">{_('email')}</Text>
-            <Text className="text-foreground text-base mt-1">{email}</Text>
-          </View>
-        </View>
+        <Text className="text-muted text-xs mb-2 px-1">{_('profile')}</Text>
+        <ListGroup className="mb-6">
+          <PressableFeedback animation={false} onPress={() => navigate('/(app)/profile')}>
+            <PressableFeedback.Highlight />
+            <ListGroup.Item disabled>
+              <ListGroup.ItemPrefix>
+                <User size={20} color={foreground} />
+              </ListGroup.ItemPrefix>
+              <ListGroup.ItemContent>
+                <ListGroup.ItemTitle>{_('profile')}</ListGroup.ItemTitle>
+              </ListGroup.ItemContent>
+              <ListGroup.ItemSuffix />
+            </ListGroup.Item>
+          </PressableFeedback>
+        </ListGroup>
 
-        <OptionRow
-          label={_('language')}
-          selected={language}
-          onSelect={v => setLanguage(v as Language)}
-          options={[
-            { value: 'en', label: 'English' },
-            { value: 'sk', label: 'Slovenčina' },
-            { value: 'cs', label: 'Čeština' },
-            { value: 'de', label: 'Deutsch' },
-          ]}
-        />
+        {/* Preferences */}
+        <Text className="text-muted text-xs mb-2 px-1">{_('settings')}</Text>
+        <ListGroup className="mb-6">
+          <PressableFeedback animation={false} onPress={() => navigate('/(app)/language')}>
+            <PressableFeedback.Highlight />
+            <ListGroup.Item disabled>
+              <ListGroup.ItemPrefix>
+                <Globe size={20} color={foreground} />
+              </ListGroup.ItemPrefix>
+              <ListGroup.ItemContent>
+                <ListGroup.ItemTitle>{_('language')}</ListGroup.ItemTitle>
+                <ListGroup.ItemDescription>{LANGUAGE_LABELS[language]}</ListGroup.ItemDescription>
+              </ListGroup.ItemContent>
+              <ListGroup.ItemSuffix />
+            </ListGroup.Item>
+          </PressableFeedback>
 
-        <OptionRow
-          label={_('theme')}
-          selected={themePreference}
-          onSelect={v => setThemePreference(v as ThemePreference)}
-          options={[
-            { value: 'light', label: _('themeLight') },
-            { value: 'dark', label: _('themeDark') },
-            { value: 'system', label: _('themeSystem') },
-          ]}
-        />
+          <Separator className="mx-4" />
 
-        <OptionRow
-          label={_('displayCurrency')}
-          selected={currency}
-          onSelect={v => setCurrency(v as DisplayCurrency)}
-          options={CURRENCIES}
-        />
+          <PressableFeedback animation={false} onPress={() => navigate('/(app)/theme')}>
+            <PressableFeedback.Highlight />
+            <ListGroup.Item disabled>
+              <ListGroup.ItemPrefix>
+                <Palette size={20} color={foreground} />
+              </ListGroup.ItemPrefix>
+              <ListGroup.ItemContent>
+                <ListGroup.ItemTitle>{_('theme')}</ListGroup.ItemTitle>
+                <ListGroup.ItemDescription>{themeLabel}</ListGroup.ItemDescription>
+              </ListGroup.ItemContent>
+              <ListGroup.ItemSuffix />
+            </ListGroup.Item>
+          </PressableFeedback>
+
+          <Separator className="mx-4" />
+
+          <PressableFeedback animation={false} onPress={() => navigate('/(app)/display-currency')}>
+            <PressableFeedback.Highlight />
+            <ListGroup.Item disabled>
+              <ListGroup.ItemPrefix>
+                <Coins size={20} color={foreground} />
+              </ListGroup.ItemPrefix>
+              <ListGroup.ItemContent>
+                <ListGroup.ItemTitle>{_('displayCurrency')}</ListGroup.ItemTitle>
+                <ListGroup.ItemDescription>
+                  {currencySymbol(currency)} {currency}
+                </ListGroup.ItemDescription>
+              </ListGroup.ItemContent>
+              <ListGroup.ItemSuffix />
+            </ListGroup.Item>
+          </PressableFeedback>
+        </ListGroup>
 
         <Button variant="danger" size="lg" onPress={handleLogout} className="w-full">
           <Button.Label>{_('logOut')}</Button.Label>

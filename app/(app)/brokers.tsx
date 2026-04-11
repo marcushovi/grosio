@@ -9,7 +9,6 @@ import { useBrokers } from '../../hooks/useBrokers'
 import { useDashboardData } from '../../hooks/useDashboardData'
 import { BrokerCard } from '../../components/BrokerCard'
 import { AddBrokerDialog } from '../../components/AddBrokerDialog'
-import { BrokerListSkeleton } from '../../components/DashboardSkeleton'
 import { useT } from '../../lib/t'
 
 export default function BrokersScreen() {
@@ -49,7 +48,6 @@ export default function BrokersScreen() {
         <View className="px-5 pt-4 pb-2 flex-row justify-between items-center mb-4">
           <Text className="text-foreground text-3xl font-bold">{_('brokers')}</Text>
         </View>
-        <BrokerListSkeleton />
       </SafeAreaView>
     )
   }
