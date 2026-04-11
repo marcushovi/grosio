@@ -8,6 +8,7 @@ import { useDashboardData } from '../../hooks/useDashboardData'
 import { useT } from '../../lib/t'
 import { formatAmount, currencySymbol } from '../../lib/currency'
 import { useSettings } from '../../lib/settingsContext'
+import { DashboardSkeleton } from '../../components/DashboardSkeleton'
 import type { DisplayCurrency } from '../../lib/settingsContext'
 
 const CURRENCIES: { value: DisplayCurrency; label: string }[] = [
@@ -19,15 +20,16 @@ const CURRENCIES: { value: DisplayCurrency; label: string }[] = [
 export default function DashboardScreen() {
   const { _ } = useT()
   const { currency: displayCurrency, setCurrency } = useSettings()
-  const [success, danger, accent, surface, foreground] = useThemeColor([
+  const [success, danger, accent, surface, foreground, muted] = useThemeColor([
     'success',
     'danger',
     'accent',
     'surface',
     'foreground',
+    'muted',
   ])
   const { brokers } = useBrokers()
-  const { brokerValues, totalValue, totalGainLoss, totalGainLossPct, error, refetch } =
+  const { brokerValues, totalValue, totalGainLoss, totalGainLossPct, loading, error, refetch } =
     useDashboardData(brokers)
   const [refreshing, setRefreshing] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -54,6 +56,16 @@ export default function DashboardScreen() {
 
   const isPositive = totalGainLoss >= 0
   const fmt = (n: number) => formatAmount(n, displayCurrency)
+
+  const brokersWithValue = brokerValues.filter(b => b.value > 0)
+
+  if (loading && brokerValues.length === 0) {
+    return (
+      <SafeAreaView className="flex-1 bg-background">
+        <DashboardSkeleton />
+      </SafeAreaView>
+    )
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -134,6 +146,7 @@ export default function DashboardScreen() {
           </View>
         ) : null}
 
+        {/* Total value card */}
         <View className="bg-surface rounded-2xl p-5 mb-4">
           <Text className="text-muted text-sm mb-1">{_('totalValue')}</Text>
           <Text className="text-foreground text-4xl font-bold">{fmt(totalValue)}</Text>
@@ -151,6 +164,77 @@ export default function DashboardScreen() {
           </View>
         </View>
 
+        {/* Allocation chart */}
+        {brokersWithValue.length > 0 && (
+          <View className="bg-surface rounded-2xl p-5 mb-4">
+            <Text className="text-foreground font-semibold mb-4">{_('allocation')}</Text>
+
+            {/* Stacked bar */}
+            <View
+              style={{
+                flexDirection: 'row',
+                height: 12,
+                borderRadius: 6,
+                overflow: 'hidden',
+              }}
+            >
+              {brokersWithValue.map(b => (
+                <View
+                  key={b.brokerId}
+                  style={{
+                    flex: b.value / totalValue,
+                    backgroundColor: b.color,
+                  }}
+                />
+              ))}
+            </View>
+
+            {/* Legend */}
+            <View style={{ marginTop: 16, gap: 10 }}>
+              {brokersWithValue.map(b => {
+                const pct = totalValue > 0 ? ((b.value / totalValue) * 100).toFixed(1) : '0'
+                return (
+                  <View
+                    key={b.brokerId}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                      <View
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: 5,
+                          backgroundColor: b.color,
+                        }}
+                      />
+                      <Text style={{ color: foreground, fontSize: 14 }}>{b.name}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <Text style={{ color: muted, fontSize: 13 }}>{fmt(b.value)}</Text>
+                      <Text
+                        style={{
+                          color: foreground,
+                          fontSize: 14,
+                          fontWeight: '600',
+                          minWidth: 48,
+                          textAlign: 'right',
+                        }}
+                      >
+                        {pct}%
+                      </Text>
+                    </View>
+                  </View>
+                )
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* Empty state */}
         {brokerValues.length === 0 ? (
           <View className="bg-surface rounded-2xl p-8 items-center">
             <Text className="text-muted text-sm text-center">{_('addBrokersHint')}</Text>

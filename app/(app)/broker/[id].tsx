@@ -30,6 +30,7 @@ import {
 } from '../../../lib/currency'
 import { useSettings } from '../../../lib/settingsContext'
 import { useT } from '../../../lib/t'
+import { BrokerDetailSkeleton } from '../../../components/DashboardSkeleton'
 import type { PositionWithPrice } from '../../../types'
 
 export default function BrokerDetailScreen() {
@@ -235,11 +236,9 @@ export default function BrokerDetailScreen() {
         </Card>
       </View>
 
-      {loading || pricesLoading ? (
-        <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color={accent} />
-        </View>
-      ) : positionsWithPrices.length === 0 ? (
+      {(loading || pricesLoading) && positionsWithPrices.length === 0 ? (
+        <BrokerDetailSkeleton />
+      ) : positionsWithPrices.length === 0 && !loading ? (
         <View className="flex-1 justify-center items-center">
           <Text className="text-foreground text-lg mb-2">{_('noPositions')}</Text>
           <Text className="text-muted text-sm">{_('addFirstPosition')}</Text>

@@ -4,7 +4,6 @@ import {
   Text,
   FlatList,
   Alert,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   RefreshControl,
@@ -21,6 +20,7 @@ import { useDashboardData } from '../../hooks/useDashboardData'
 import { BrokerCard } from '../../components/BrokerCard'
 import { ColorPicker, COLORS } from '../../components/ColorPicker'
 import { useT } from '../../lib/t'
+import { BrokerListSkeleton } from '../../components/DashboardSkeleton'
 
 export default function BrokersScreen() {
   const { _ } = useT()
@@ -64,10 +64,13 @@ export default function BrokersScreen() {
     ])
   }
 
-  if (loading) {
+  if (loading && brokers.length === 0) {
     return (
-      <SafeAreaView className="flex-1 bg-background justify-center items-center">
-        <ActivityIndicator size="large" />
+      <SafeAreaView className="flex-1 bg-background">
+        <View className="px-5 pt-4 pb-2 flex-row justify-between items-center mb-4">
+          <Text className="text-foreground text-3xl font-bold">{_('brokers')}</Text>
+        </View>
+        <BrokerListSkeleton />
       </SafeAreaView>
     )
   }
