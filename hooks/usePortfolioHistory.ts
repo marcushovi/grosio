@@ -37,9 +37,7 @@ export function usePortfolioHistory() {
         return
       }
 
-      const { data: positions, error: posErr } = await supabase
-        .from('positions')
-        .select('*')
+      const { data: positions, error: posErr } = await supabase.from('positions').select('*')
       if (posErr) throw posErr
       if (!positions || positions.length === 0) {
         setDataEur([])

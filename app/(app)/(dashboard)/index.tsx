@@ -83,12 +83,8 @@ export default function DashboardScreen() {
         {chartData.length > 1 && (
           <Card className="bg-surface mb-4">
             <Card.Body>
-              <Text className="text-foreground font-semibold mb-1">
-                {_('portfolioHistory')}
-              </Text>
-              <Text className="text-muted text-xs mb-3">
-                {_('portfolioHistorySubtitle')}
-              </Text>
+              <Text className="text-foreground font-semibold mb-1">{_('portfolioHistory')}</Text>
+              <Text className="text-muted text-xs mb-3">{_('portfolioHistorySubtitle')}</Text>
               <View style={{ height: 180 }}>
                 {historyLoading ? (
                   <View className="flex-1 justify-center items-center">
