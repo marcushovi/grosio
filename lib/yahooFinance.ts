@@ -34,7 +34,7 @@ export async function getQuotes(symbols: string[]): Promise<QuoteResult[]> {
     })
     if (!res.ok) return []
     const data = await res.json()
-    return Object.values(data?.quotes ?? {}) as QuoteResult[]
+    return (Array.isArray(data) ? data : []) as QuoteResult[]
   } catch {
     return []
   }
