@@ -1,12 +1,14 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useColorScheme } from 'react-native'
 import { Uniwind } from 'uniwind'
 import i18n from './i18n'
+import type { DisplayCurrency } from './currency'
+import type { Language } from './i18n'
 
-export type Language = 'en' | 'sk' | 'cs' | 'de'
+export type { DisplayCurrency, Language }
 export type ThemePreference = 'light' | 'dark' | 'system'
-export type DisplayCurrency = 'EUR' | 'USD' | 'CZK'
 
 interface Settings {
   language: Language
@@ -38,26 +40,27 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false)
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then(raw => {
-      if (raw) {
-        try {
-          const parsed = JSON.parse(raw) as Partial<Settings>
-          const merged = { ...defaults, ...parsed }
-          setSettings(merged)
-          if (merged.language) i18n.changeLanguage(merged.language)
-        } catch {
-          // corrupt storage — use defaults
+    AsyncStorage.getItem(STORAGE_KEY)
+      .then(raw => {
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw) as Partial<Settings>
+            const merged = { ...defaults, ...parsed }
+            setSettings(merged)
+            if (merged.language) i18n.changeLanguage(merged.language)
+          } catch {
+            // corrupt storage — use defaults
+          }
         }
-      }
-      setIsLoaded(true)
-    })
+        setIsLoaded(true)
+      })
+      .catch(() => setIsLoaded(true))
   }, [])
 
   const systemTheme = systemColorScheme === 'light' ? 'light' : 'dark'
   const resolvedTheme: 'light' | 'dark' =
     settings.themePreference === 'system' ? systemTheme : settings.themePreference
 
-  // Sync theme to Uniwind whenever it changes
   useEffect(() => {
     Uniwind.setTheme(resolvedTheme)
   }, [resolvedTheme])

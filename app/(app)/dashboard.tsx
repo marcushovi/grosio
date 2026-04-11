@@ -1,40 +1,35 @@
-import { useCallback, useState, useRef } from 'react'
-import { View, Text, ScrollView, RefreshControl, Pressable, Modal } from 'react-native'
+import { useCallback, useState } from 'react'
+import { View, Text, ScrollView, RefreshControl } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useThemeColor } from 'heroui-native'
 import { TrendingUp, TrendingDown } from 'lucide-react-native'
 import { useBrokers } from '../../hooks/useBrokers'
 import { useDashboardData } from '../../hooks/useDashboardData'
 import { useT } from '../../lib/t'
-import { formatAmount, currencySymbol } from '../../lib/currency'
-import { useSettings } from '../../lib/settingsContext'
+import { formatAmount } from '../../lib/currency'
+import { CurrencyPicker } from '../../components/CurrencyPicker'
 import { DashboardSkeleton } from '../../components/DashboardSkeleton'
-import type { DisplayCurrency } from '../../lib/settingsContext'
-
-const CURRENCIES: { value: DisplayCurrency; label: string }[] = [
-  { value: 'EUR', label: '€  Euro' },
-  { value: 'USD', label: '$  US Dollar' },
-  { value: 'CZK', label: 'Kč  Koruna' },
-]
 
 export default function DashboardScreen() {
   const { _ } = useT()
-  const { currency: displayCurrency, setCurrency } = useSettings()
-  const [success, danger, accent, surface, foreground, muted] = useThemeColor([
+  const [success, danger, foreground, muted] = useThemeColor([
     'success',
     'danger',
-    'accent',
-    'surface',
     'foreground',
     'muted',
   ])
   const { brokers } = useBrokers()
-  const { brokerValues, totalValue, totalGainLoss, totalGainLossPct, loading, error, refetch } =
-    useDashboardData(brokers)
+  const {
+    brokerValues,
+    totalValue,
+    totalGainLoss,
+    totalGainLossPct,
+    loading,
+    error,
+    refetch,
+    displayCurrency,
+  } = useDashboardData(brokers)
   const [refreshing, setRefreshing] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 })
-  const btnRef = useRef<View>(null)
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
@@ -42,21 +37,8 @@ export default function DashboardScreen() {
     setRefreshing(false)
   }, [refetch])
 
-  const openMenu = () => {
-    btnRef.current?.measureInWindow((x, y, width, height) => {
-      setMenuPos({ top: y + height + 4, right: 20 })
-      setMenuOpen(true)
-    })
-  }
-
-  const selectCurrency = (c: DisplayCurrency) => {
-    setCurrency(c)
-    setMenuOpen(false)
-  }
-
   const isPositive = totalGainLoss >= 0
-  const fmt = (n: number) => formatAmount(n, displayCurrency)
-
+  const fmt = useCallback((n: number) => formatAmount(n, displayCurrency), [displayCurrency])
   const brokersWithValue = brokerValues.filter(b => b.value > 0)
 
   if (loading && brokerValues.length === 0) {
@@ -73,70 +55,13 @@ export default function DashboardScreen() {
         contentContainerStyle={{ padding: 20 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
+        {/* Header */}
         <View className="flex-row items-center justify-between mb-4">
           <Text className="text-foreground text-3xl font-bold">{_('dashboard')}</Text>
-          <View ref={btnRef} collapsable={false}>
-            <Pressable onPress={openMenu} className="bg-surface rounded-xl px-3 py-2">
-              <Text className="text-accent text-base font-semibold">
-                {currencySymbol(displayCurrency)}
-              </Text>
-            </Pressable>
-          </View>
+          <CurrencyPicker />
         </View>
 
-        <Modal
-          visible={menuOpen}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setMenuOpen(false)}
-        >
-          <Pressable style={{ flex: 1 }} onPress={() => setMenuOpen(false)}>
-            <View
-              style={{
-                position: 'absolute',
-                top: menuPos.top,
-                right: menuPos.right,
-                backgroundColor: surface,
-                borderRadius: 12,
-                paddingVertical: 4,
-                minWidth: 160,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.25,
-                shadowRadius: 8,
-                elevation: 8,
-              }}
-            >
-              {CURRENCIES.map(c => (
-                <Pressable
-                  key={c.value}
-                  onPress={() => selectCurrency(c.value)}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    paddingHorizontal: 16,
-                    paddingVertical: 12,
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: c.value === displayCurrency ? accent : foreground,
-                      fontSize: 15,
-                      fontWeight: c.value === displayCurrency ? '600' : '400',
-                    }}
-                  >
-                    {c.label}
-                  </Text>
-                  {c.value === displayCurrency && (
-                    <Text style={{ color: accent, fontSize: 14 }}>✓</Text>
-                  )}
-                </Pressable>
-              ))}
-            </View>
-          </Pressable>
-        </Modal>
-
+        {/* Error */}
         {error ? (
           <View className="bg-surface rounded-2xl p-5 mb-4 items-center">
             <Text className="text-danger text-center mb-2">{error}</Text>
@@ -146,7 +71,7 @@ export default function DashboardScreen() {
           </View>
         ) : null}
 
-        {/* Total value card */}
+        {/* Total value */}
         <View className="bg-surface rounded-2xl p-5 mb-4">
           <Text className="text-muted text-sm mb-1">{_('totalValue')}</Text>
           <Text className="text-foreground text-4xl font-bold">{fmt(totalValue)}</Text>
@@ -168,28 +93,14 @@ export default function DashboardScreen() {
         {brokersWithValue.length > 0 && (
           <View className="bg-surface rounded-2xl p-5 mb-4">
             <Text className="text-foreground font-semibold mb-4">{_('allocation')}</Text>
-
-            {/* Stacked bar */}
-            <View
-              style={{
-                flexDirection: 'row',
-                height: 12,
-                borderRadius: 6,
-                overflow: 'hidden',
-              }}
-            >
+            <View style={{ flexDirection: 'row', height: 12, borderRadius: 6, overflow: 'hidden' }}>
               {brokersWithValue.map(b => (
                 <View
                   key={b.brokerId}
-                  style={{
-                    flex: b.value / totalValue,
-                    backgroundColor: b.color,
-                  }}
+                  style={{ flex: b.value / totalValue, backgroundColor: b.color }}
                 />
               ))}
             </View>
-
-            {/* Legend */}
             <View style={{ marginTop: 16, gap: 10 }}>
               {brokersWithValue.map(b => {
                 const pct = totalValue > 0 ? ((b.value / totalValue) * 100).toFixed(1) : '0'
@@ -204,12 +115,7 @@ export default function DashboardScreen() {
                   >
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
                       <View
-                        style={{
-                          width: 10,
-                          height: 10,
-                          borderRadius: 5,
-                          backgroundColor: b.color,
-                        }}
+                        style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: b.color }}
                       />
                       <Text style={{ color: foreground, fontSize: 14 }}>{b.name}</Text>
                     </View>
@@ -234,7 +140,7 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* Empty state */}
+        {/* Empty / Broker breakdown */}
         {brokerValues.length === 0 ? (
           <View className="bg-surface rounded-2xl p-8 items-center">
             <Text className="text-muted text-sm text-center">{_('addBrokersHint')}</Text>

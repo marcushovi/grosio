@@ -6,8 +6,6 @@ import { useSettings } from '../lib/settingsContext'
 import type { Broker, Position, BrokerValue } from '../types'
 import type { ExchangeRates, DisplayCurrency } from '../lib/currency'
 
-export type { BrokerValue }
-
 interface BrokerValueEur {
   brokerId: string
   name: string
@@ -97,7 +95,7 @@ export function useDashboardData(brokers: Broker[]): DashboardData {
 
       setBrokerValuesEur(values)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Chyba pri načítaní dát')
+      setError(e instanceof Error ? e.message : 'Failed to load data')
     } finally {
       setLoading(false)
     }

@@ -1,7 +1,9 @@
 import { View, Text, ScrollView, Pressable } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useThemeColor } from 'heroui-native'
 import { useT } from '../../lib/t'
 import { useSettings } from '../../lib/settingsContext'
+import { CURRENCIES } from '../../lib/constants'
 import type { Language, ThemePreference, DisplayCurrency } from '../../lib/settingsContext'
 
 interface OptionRowProps {
@@ -12,6 +14,8 @@ interface OptionRowProps {
 }
 
 function OptionRow({ label, options, selected, onSelect }: OptionRowProps) {
+  const accentFg = useThemeColor('accent-foreground') as string
+
   return (
     <View className="mb-6">
       <Text className="text-muted text-xs mb-2 px-1">{label}</Text>
@@ -30,7 +34,9 @@ function OptionRow({ label, options, selected, onSelect }: OptionRowProps) {
                 selected === opt.value ? 'border-accent bg-accent' : 'border-muted'
               }`}
             >
-              {selected === opt.value && <View className="w-2 h-2 rounded-full bg-white" />}
+              {selected === opt.value && (
+                <View className="w-2 h-2 rounded-full" style={{ backgroundColor: accentFg }} />
+              )}
             </View>
           </Pressable>
         ))}
@@ -76,11 +82,7 @@ export default function SettingsScreen() {
           label={_('displayCurrency')}
           selected={currency}
           onSelect={v => setCurrency(v as DisplayCurrency)}
-          options={[
-            { value: 'EUR', label: '€  Euro' },
-            { value: 'USD', label: '$  US Dollar' },
-            { value: 'CZK', label: 'Kč  Česká koruna' },
-          ]}
+          options={CURRENCIES.map(c => ({ value: c.value, label: c.label }))}
         />
       </ScrollView>
     </SafeAreaView>

@@ -1,7 +1,7 @@
 import { Slot, useRouter, useSegments } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { Session } from '@supabase/supabase-js'
+import type { Session } from '@supabase/supabase-js'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { HeroUINativeProvider } from 'heroui-native/provider'
@@ -16,10 +16,14 @@ export default function RootLayout() {
   const segments = useSegments()
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setInitialized(true)
-    })
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        setSession(session)
+        setInitialized(true)
+      })
+      .catch(() => setInitialized(true))
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -35,9 +39,7 @@ export default function RootLayout() {
     else if (session && inAuth) router.replace('/(app)/dashboard')
   }, [session, initialized, segments, router])
 
-  if (!initialized) {
-    return null
-  }
+  if (!initialized) return null
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

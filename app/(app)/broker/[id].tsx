@@ -1,26 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
-import {
-  View,
-  Text,
-  FlatList,
-  Alert,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  RefreshControl,
-} from 'react-native'
+import { View, Text, FlatList, Alert, RefreshControl } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Card } from 'heroui-native/card'
 import { Button } from 'heroui-native/button'
-import { Input } from 'heroui-native/input'
-import { Dialog } from 'heroui-native/dialog'
 import { useThemeColor } from 'heroui-native'
 import { ArrowLeft, Plus, TrendingUp, TrendingDown, Trash2 } from 'lucide-react-native'
 import { useBrokers } from '../../../hooks/useBrokers'
 import { usePositions } from '../../../hooks/usePositions'
 import { usePrices } from '../../../hooks/usePrices'
-import { getQuote, searchSymbols } from '../../../lib/yahooFinance'
 import {
   getExchangeRates,
   toEur,
@@ -31,17 +19,13 @@ import {
 import { useSettings } from '../../../lib/settingsContext'
 import { useT } from '../../../lib/t'
 import { BrokerDetailSkeleton } from '../../../components/DashboardSkeleton'
+import { AddPositionDialog } from '../../../components/AddPositionDialog'
 import type { PositionWithPrice } from '../../../types'
 
 export default function BrokerDetailScreen() {
   const { _ } = useT()
   const { currency: displayCurrency } = useSettings()
-  const [success, danger, accent, accentFg] = useThemeColor([
-    'success',
-    'danger',
-    'accent',
-    'accent-foreground',
-  ])
+  const [success, danger, accentFg] = useThemeColor(['success', 'danger', 'accent-foreground'])
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
   const { brokers } = useBrokers()
@@ -51,19 +35,7 @@ export default function BrokerDetailScreen() {
 
   const [positionsWithPrices, setPositionsWithPrices] = useState<PositionWithPrice[]>([])
   const [pricesLoading, setPricesLoading] = useState(false)
-
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<
-    Array<{ symbol: string; name: string; exchange: string; type: string }>
-  >([])
-  const [searching, setSearching] = useState(false)
-  const [selectedSymbol, setSelectedSymbol] = useState('')
-  const [selectedName, setSelectedName] = useState('')
-  const [selectedCurrency, setSelectedCurrency] = useState('USD')
-  const [shares, setShares] = useState('')
-  const [price, setPrice] = useState('')
-  const [saving, setSaving] = useState(false)
 
   const fetchPrices = useCallback(async () => {
     if (positions.length === 0) {
@@ -76,35 +48,35 @@ export default function BrokerDetailScreen() {
       const symbols = [...new Set(positions.map(p => p.symbol))]
       const prices = await fetchPricesFromHook(symbols)
 
-      const withPrices: PositionWithPrice[] = positions.map(pos => {
-        const quote = prices[pos.symbol]
-        const rawPrice = quote?.price ?? pos.avg_buy_price
-        const currency = quote?.currency ?? pos.currency
-        const valueEur = toEur(pos.shares * rawPrice, currency, rates)
-        const costEur = toEur(pos.shares * pos.avg_buy_price, pos.currency, rates)
-        const currentValue = convertToDisplay(valueEur, displayCurrency, rates)
-        const invested = convertToDisplay(costEur, displayCurrency, rates)
-        const gainLoss = currentValue - invested
-        const gainLossPct = invested > 0 ? (gainLoss / invested) * 100 : 0
-        return {
-          id: pos.id,
-          broker_id: pos.broker_id,
-          user_id: pos.user_id,
-          symbol: pos.symbol,
-          name: pos.name,
-          shares: pos.shares,
-          avg_buy_price: pos.avg_buy_price,
-          currency,
-          currentPrice: rawPrice,
-          currentValue,
-          invested,
-          gainLoss,
-          gainLossPct,
-        }
-      })
-      setPositionsWithPrices(withPrices)
+      setPositionsWithPrices(
+        positions.map(pos => {
+          const quote = prices[pos.symbol]
+          const rawPrice = quote?.price ?? pos.avg_buy_price
+          const currency = quote?.currency ?? pos.currency
+          const valueEur = toEur(pos.shares * rawPrice, currency, rates)
+          const costEur = toEur(pos.shares * pos.avg_buy_price, pos.currency, rates)
+          const currentValue = convertToDisplay(valueEur, displayCurrency, rates)
+          const invested = convertToDisplay(costEur, displayCurrency, rates)
+          const gainLoss = currentValue - invested
+          return {
+            id: pos.id,
+            broker_id: pos.broker_id,
+            user_id: pos.user_id,
+            symbol: pos.symbol,
+            name: pos.name,
+            shares: pos.shares,
+            avg_buy_price: pos.avg_buy_price,
+            currency,
+            currentPrice: rawPrice,
+            currentValue,
+            invested,
+            gainLoss,
+            gainLossPct: invested > 0 ? (gainLoss / invested) * 100 : 0,
+          }
+        })
+      )
     } catch {
-      // fall back to avg_buy_price display
+      // fall back to showing positions without live prices
     } finally {
       setPricesLoading(false)
     }
@@ -114,78 +86,41 @@ export default function BrokerDetailScreen() {
     fetchPrices()
   }, [fetchPrices])
 
-  const handleSearch = async (query: string) => {
-    setSearchQuery(query)
-    if (query.length < 2) {
-      setSearchResults([])
-      return
-    }
-    setSearching(true)
-    const results = await searchSymbols(query)
-    setSearchResults(results)
-    setSearching(false)
-  }
-
-  const handleSelectSymbol = async (symbol: string, name: string) => {
-    setSelectedSymbol(symbol)
-    setSelectedName(name)
-    setSearchResults([])
-    setSearchQuery(name)
-    const quote = await getQuote(symbol)
-    if (quote) {
-      setPrice(quote.price.toFixed(2))
-      setSelectedCurrency(quote.currency)
-    }
-  }
-
-  const handleAddPosition = async () => {
-    if (!selectedSymbol) return Alert.alert(_('error'), _('selectSymbol'))
-    if (!shares || parseFloat(shares) <= 0) return Alert.alert(_('error'), _('enterShares'))
-    if (!price || parseFloat(price) <= 0) return Alert.alert(_('error'), _('enterPrice'))
-    setSaving(true)
-    const { error } = await addPosition({
-      broker_id: id!,
-      symbol: selectedSymbol,
-      name: selectedName,
-      shares: parseFloat(shares),
-      avg_buy_price: parseFloat(price),
-      currency: selectedCurrency,
-    })
-    setSaving(false)
-    if (error) return Alert.alert(_('error'), typeof error === 'string' ? error : error.message)
-    resetDialog()
-    setDialogOpen(false)
-  }
-
-  const handleDeletePosition = (posId: string, symbol: string) => {
-    Alert.alert(_('deletePosition'), _('deletePositionMsg', { symbol }), [
-      { text: _('cancel'), style: 'cancel' },
-      {
-        text: _('delete'),
-        style: 'destructive',
-        onPress: async () => {
-          const { error } = await deletePosition(posId)
-          if (error) Alert.alert(_('error'), typeof error === 'string' ? error : error.message)
+  const handleDeletePosition = useCallback(
+    (posId: string, symbol: string) => {
+      Alert.alert(_('deletePosition'), _('deletePositionMsg', { symbol }), [
+        { text: _('cancel'), style: 'cancel' },
+        {
+          text: _('delete'),
+          style: 'destructive',
+          onPress: async () => {
+            const { error } = await deletePosition(posId)
+            if (error) Alert.alert(_('error'), typeof error === 'string' ? error : error.message)
+          },
         },
-      },
-    ])
-  }
+      ])
+    },
+    [_, deletePosition]
+  )
 
-  const resetDialog = () => {
-    setSearchQuery('')
-    setSearchResults([])
-    setSelectedSymbol('')
-    setSelectedName('')
-    setShares('')
-    setPrice('')
-    setSelectedCurrency('USD')
-  }
+  const handleAddPosition = useCallback(
+    async (pos: {
+      symbol: string
+      name: string
+      shares: number
+      avg_buy_price: number
+      currency: string
+    }) => {
+      return addPosition({ broker_id: id!, ...pos })
+    },
+    [addPosition, id]
+  )
 
   const totalValue = positionsWithPrices.reduce((s, p) => s + p.currentValue, 0)
   const totalInvested = positionsWithPrices.reduce((s, p) => s + p.invested, 0)
   const totalGL = totalValue - totalInvested
   const totalGLPct = totalInvested > 0 ? (totalGL / totalInvested) * 100 : 0
-  const isPositive = totalGL >= 0
+  const isGain = totalGL >= 0
 
   if (!id || !broker) {
     return (
@@ -197,6 +132,7 @@ export default function BrokerDetailScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
+      {/* Header */}
       <View className="px-5 pt-2 pb-4 flex-row items-center gap-3">
         <Button variant="ghost" size="sm" isIconOnly onPress={() => router.back()}>
           <ArrowLeft color={accentFg} size={20} />
@@ -209,6 +145,7 @@ export default function BrokerDetailScreen() {
         </Button>
       </View>
 
+      {/* Summary */}
       <View className="px-5 mb-4">
         <Card className="bg-surface p-5">
           <Text className="text-muted text-sm mb-1">{_('totalValueLabel')}</Text>
@@ -216,26 +153,25 @@ export default function BrokerDetailScreen() {
             {formatAmount(totalValue, displayCurrency)}
           </Text>
           <View className="flex-row items-center gap-2">
-            {isPositive ? (
+            {isGain ? (
               <TrendingUp size={14} color={success} />
             ) : (
               <TrendingDown size={14} color={danger} />
             )}
             <Text
               className={
-                isPositive
-                  ? 'text-success text-sm font-semibold'
-                  : 'text-danger text-sm font-semibold'
+                isGain ? 'text-success text-sm font-semibold' : 'text-danger text-sm font-semibold'
               }
             >
-              {isPositive ? '+' : ''}
-              {formatAmount(totalGL, displayCurrency)} ({isPositive ? '+' : ''}
+              {isGain ? '+' : ''}
+              {formatAmount(totalGL, displayCurrency)} ({isGain ? '+' : ''}
               {totalGLPct.toFixed(2)}%)
             </Text>
           </View>
         </Card>
       </View>
 
+      {/* Positions */}
       {(loading || pricesLoading) && positionsWithPrices.length === 0 ? (
         <BrokerDetailSkeleton />
       ) : positionsWithPrices.length === 0 && !loading ? (
@@ -251,7 +187,7 @@ export default function BrokerDetailScreen() {
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={pricesLoading} onRefresh={fetchPrices} />}
           renderItem={({ item }) => {
-            const pos = item.gainLoss >= 0
+            const isItemGain = item.gainLoss >= 0
             return (
               <Card className="bg-surface p-4 mb-2">
                 <View className="flex-row items-center">
@@ -268,11 +204,13 @@ export default function BrokerDetailScreen() {
                     </Text>
                     <Text
                       className={
-                        pos ? 'text-success text-xs font-medium' : 'text-danger text-xs font-medium'
+                        isItemGain
+                          ? 'text-success text-xs font-medium'
+                          : 'text-danger text-xs font-medium'
                       }
                     >
-                      {pos ? '+' : ''}
-                      {formatAmount(item.gainLoss, displayCurrency)} ({pos ? '+' : ''}
+                      {isItemGain ? '+' : ''}
+                      {formatAmount(item.gainLoss, displayCurrency)} ({isItemGain ? '+' : ''}
                       {item.gainLossPct.toFixed(2)}%)
                     </Text>
                     <Text className="text-muted text-xs">
@@ -294,113 +232,11 @@ export default function BrokerDetailScreen() {
         />
       )}
 
-      <Dialog
+      <AddPositionDialog
         isOpen={dialogOpen}
-        onOpenChange={open => {
-          if (!open) resetDialog()
-          setDialogOpen(open)
-        }}
-      >
-        <Dialog.Portal>
-          <Dialog.Overlay />
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            className="flex-1 justify-center"
-          >
-            <Dialog.Content>
-              <Dialog.Close className="self-end" />
-              <Dialog.Title>{_('addPosition')}</Dialog.Title>
-              <Dialog.Description>{_('addPositionDesc')}</Dialog.Description>
-
-              <View className="mt-4">
-                <Text className="text-muted text-sm mb-2">{_('symbol')}</Text>
-                <View className="flex-row items-center gap-2">
-                  <View className="flex-1">
-                    <Input
-                      placeholder={_('searchPlaceholder')}
-                      value={searchQuery}
-                      onChangeText={handleSearch}
-                      autoCapitalize="characters"
-                    />
-                  </View>
-                  {searching && <ActivityIndicator size="small" color={accent} />}
-                </View>
-              </View>
-
-              {searchResults.length > 0 && (
-                <View className="mt-2 max-h-40">
-                  {searchResults.slice(0, 5).map(r => (
-                    <Button
-                      key={r.symbol}
-                      variant="ghost"
-                      size="sm"
-                      onPress={() => handleSelectSymbol(r.symbol, r.name)}
-                      className="justify-start mb-1"
-                    >
-                      <Button.Label>
-                        {r.symbol} — {r.name}
-                      </Button.Label>
-                    </Button>
-                  ))}
-                </View>
-              )}
-
-              {selectedSymbol ? (
-                <View className="mt-3 bg-background rounded-xl p-3">
-                  <Text className="text-accent font-semibold">{selectedSymbol}</Text>
-                  <Text className="text-muted text-xs">{selectedName}</Text>
-                </View>
-              ) : null}
-
-              <View className="flex-row gap-3 mt-4">
-                <View className="flex-1">
-                  <Text className="text-muted text-sm mb-2">{_('shares')}</Text>
-                  <Input
-                    placeholder="10"
-                    value={shares}
-                    onChangeText={setShares}
-                    keyboardType="decimal-pad"
-                  />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-muted text-sm mb-2">{_('buyPrice')}</Text>
-                  <Input
-                    placeholder="0.00"
-                    value={price}
-                    onChangeText={setPrice}
-                    keyboardType="decimal-pad"
-                  />
-                </View>
-              </View>
-
-              <View className="flex-row gap-3 mt-6">
-                <View className="flex-1">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    onPress={() => {
-                      resetDialog()
-                      setDialogOpen(false)
-                    }}
-                  >
-                    <Button.Label>{_('cancel')}</Button.Label>
-                  </Button>
-                </View>
-                <View className="flex-1">
-                  <Button
-                    variant="primary"
-                    size="lg"
-                    onPress={handleAddPosition}
-                    isDisabled={saving || !selectedSymbol}
-                  >
-                    <Button.Label>{saving ? _('adding') : _('add')}</Button.Label>
-                  </Button>
-                </View>
-              </View>
-            </Dialog.Content>
-          </KeyboardAvoidingView>
-        </Dialog.Portal>
-      </Dialog>
+        onOpenChange={setDialogOpen}
+        onAdd={handleAddPosition}
+      />
     </SafeAreaView>
   )
 }

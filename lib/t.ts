@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import i18n from './i18n'
 import { useTranslation } from 'react-i18next'
 
@@ -9,6 +10,9 @@ export function _(key: string, options?: Record<string, unknown>): string {
 /** Reactive hook — use inside React components for auto re-render on language change */
 export function useT() {
   const { t } = useTranslation()
-  const _ = (key: string, options?: Record<string, unknown>) => t(key, options) as string
+  const _ = useCallback(
+    (key: string, options?: Record<string, unknown>) => t(key, options) as string,
+    [t]
+  )
   return { _ }
 }

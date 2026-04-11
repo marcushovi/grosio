@@ -43,10 +43,13 @@ export async function getExchangeRates(): Promise<ExchangeRates> {
   }
 }
 
-/** Convert a position value from its original currency to EUR (base) */
+/** Convert a position value from its original currency to EUR (base).
+ *  Only EUR and USD are supported — other currencies pass through as-is
+ *  (treated as EUR). This is a known limitation. */
 export function toEur(amount: number, currency: string, rates: ExchangeRates): number {
   if (currency === 'EUR') return amount
   if (currency === 'USD') return amount / rates.eurUsd
+  // Unsupported currency — treat as EUR (best-effort)
   return amount
 }
 
@@ -91,7 +94,8 @@ export function formatAmount(amount: number, displayCurrency: DisplayCurrency): 
 
 /** Format a raw price in its original currency (not converted) */
 export function formatRaw(amount: number, originalCurrency: string): string {
-  const cur = ['EUR', 'USD', 'CZK'].includes(originalCurrency) ? originalCurrency : 'USD'
+  const validCurrencies = ['EUR', 'USD', 'CZK', 'GBP', 'CHF', 'JPY', 'CAD', 'AUD']
+  const cur = validCurrencies.includes(originalCurrency) ? originalCurrency : 'USD'
   return new Intl.NumberFormat(getLocale(), {
     style: 'currency',
     currency: cur,
