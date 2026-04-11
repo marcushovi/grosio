@@ -1,6 +1,9 @@
-import { View, Text, ScrollView, Pressable } from 'react-native'
+import { View, Text, ScrollView, Pressable, Alert } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useThemeColor } from 'heroui-native'
+import { Button } from 'heroui-native/button'
+import { useState, useEffect, useCallback } from 'react'
+import { supabase } from '../../lib/supabase'
 import { useT } from '../../lib/t'
 import { useSettings } from '../../lib/settingsContext'
 import { CURRENCIES } from '../../lib/constants'
@@ -49,11 +52,39 @@ export default function SettingsScreen() {
   const { _ } = useT()
   const { language, themePreference, currency, setLanguage, setThemePreference, setCurrency } =
     useSettings()
+  const [email, setEmail] = useState('')
+
+  useEffect(() => {
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        if (session?.user) setEmail(session.user.email || '')
+      })
+      .catch(() => {})
+  }, [])
+
+  const handleLogout = useCallback(async () => {
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) Alert.alert(_('error'), _('logOutError'))
+    } catch {
+      Alert.alert(_('error'), _('logOutError'))
+    }
+  }, [_])
 
   return (
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView contentContainerStyle={{ padding: 20 }}>
         <Text className="text-foreground text-3xl font-bold mb-6">{_('settings')}</Text>
+
+        {/* Account */}
+        <View className="mb-6">
+          <Text className="text-muted text-xs mb-2 px-1">{_('profile')}</Text>
+          <View className="bg-surface rounded-2xl px-4 py-4">
+            <Text className="text-muted text-xs">{_('email')}</Text>
+            <Text className="text-foreground text-base mt-1">{email}</Text>
+          </View>
+        </View>
 
         <OptionRow
           label={_('language')}
@@ -84,6 +115,10 @@ export default function SettingsScreen() {
           onSelect={v => setCurrency(v as DisplayCurrency)}
           options={CURRENCIES}
         />
+
+        <Button variant="danger" size="lg" onPress={handleLogout} className="w-full">
+          <Button.Label>{_('logOut')}</Button.Label>
+        </Button>
       </ScrollView>
     </SafeAreaView>
   )

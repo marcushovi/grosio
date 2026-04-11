@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router'
-import { LayoutDashboard, Briefcase, User, Settings } from 'lucide-react-native'
+import { LayoutDashboard, Briefcase, Settings } from 'lucide-react-native'
 import { useThemeColor } from 'heroui-native'
 import { useT } from '../../lib/t'
 
@@ -37,13 +37,6 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
-        options={{
-          title: _('profile'),
-          tabBarIcon: ({ color }) => <User color={color} size={22} />,
-        }}
-      />
-      <Tabs.Screen
         name="settings"
         options={{
           title: _('settings'),
@@ -51,6 +44,7 @@ export default function AppLayout() {
         }}
       />
       <Tabs.Screen name="broker/[id]" options={{ href: null }} />
+      <Tabs.Screen name="profile" options={{ href: null }} />
     </Tabs>
   )
 }
