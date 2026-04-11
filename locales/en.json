@@ -47,6 +47,8 @@
   "pageNotFound": "This page does not exist.",
   "password": "Password",
   "position": "Position",
+  "portfolioHistory": "Portfolio History",
+  "portfolioHistorySubtitle": "Last 12 months (weekly)",
   "positions": "positions",
   "profile": "Profile",
   "register": "Create Account",

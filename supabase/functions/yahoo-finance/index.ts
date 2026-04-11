@@ -93,8 +93,48 @@ Deno.serve(async req => {
       })
     }
 
+    if (action === 'history' && query) {
+      const symbols = query.split(',').filter(Boolean)
+      const interval = url.searchParams.get('interval') || '1wk'
+      const range = url.searchParams.get('range') || '1y'
+
+      const history = await Promise.all(
+        symbols.map(async (sym: string) => {
+          try {
+            const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=${interval}&range=${range}`
+            const res = await fetch(yahooUrl, { headers: { 'User-Agent': UA } })
+            const data = await res.json()
+            const result = data?.chart?.result?.[0]
+            if (!result) return { symbol: sym, currency: 'USD', quotes: [] }
+
+            const timestamps: number[] = result.timestamp ?? []
+            const closes: (number | null)[] = result.indicators?.quote?.[0]?.close ?? []
+            const currency = result.meta?.currency ?? 'USD'
+
+            const quotes: Array<{ date: string; close: number }> = []
+            for (let i = 0; i < timestamps.length; i++) {
+              if (closes[i] != null) {
+                quotes.push({
+                  date: new Date(timestamps[i] * 1000).toISOString().split('T')[0],
+                  close: closes[i]!,
+                })
+              }
+            }
+
+            return { symbol: sym, currency, quotes }
+          } catch {
+            return { symbol: sym, currency: 'USD', quotes: [] }
+          }
+        })
+      )
+
+      return new Response(JSON.stringify({ history }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     return new Response(
-      JSON.stringify({ error: 'Invalid action. Use action=search|quote|quotes' }),
+      JSON.stringify({ error: 'Invalid action. Use action=search|quote|quotes|history' }),
       {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -1,19 +1,22 @@
 import { useCallback, useState } from 'react'
-import { View, Text, ScrollView, RefreshControl } from 'react-native'
+import { View, Text, ScrollView, RefreshControl, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useThemeColor } from 'heroui-native'
 import { Card } from 'heroui-native/card'
+import { CartesianChart, Line } from 'victory-native'
 import { TrendingUp, TrendingDown } from 'lucide-react-native'
 import { useBrokers } from '../../../hooks/useBrokers'
 import { useDashboardData } from '../../../hooks/useDashboardData'
+import { usePortfolioHistory } from '../../../hooks/usePortfolioHistory'
 import { useT } from '../../../lib/t'
 import { formatAmount, formatGainLoss } from '../../../lib/currency'
 import { CurrencyPicker } from '../../../components/CurrencyPicker'
 
 export default function DashboardScreen() {
   const { _ } = useT()
-  const [success, danger] = useThemeColor(['success', 'danger'])
+  const [success, danger, accent] = useThemeColor(['success', 'danger', 'accent'])
   const { brokers } = useBrokers()
+  const { data: historyData, loading: historyLoading } = usePortfolioHistory()
   const {
     brokerValues,
     totalValue,
@@ -34,6 +37,7 @@ export default function DashboardScreen() {
   const isPositive = totalGainLoss >= 0
   const fmt = useCallback((n: number) => formatAmount(n, displayCurrency), [displayCurrency])
   const brokersWithValue = brokerValues.filter(b => b.value > 0)
+  const chartData = historyData.map((p, i) => ({ x: i, value: p.value }))
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -74,6 +78,45 @@ export default function DashboardScreen() {
             </View>
           </Card.Body>
         </Card>
+
+        {/* Portfolio history chart */}
+        {chartData.length > 1 && (
+          <Card className="bg-surface mb-4">
+            <Card.Body>
+              <Text className="text-foreground font-semibold mb-1">
+                {_('portfolioHistory')}
+              </Text>
+              <Text className="text-muted text-xs mb-3">
+                {_('portfolioHistorySubtitle')}
+              </Text>
+              <View style={{ height: 180 }}>
+                {historyLoading ? (
+                  <View className="flex-1 justify-center items-center">
+                    <ActivityIndicator color={accent} />
+                  </View>
+                ) : (
+                  <CartesianChart data={chartData} xKey="x" yKeys={['value']}>
+                    {({ points }) => (
+                      <Line
+                        points={points.value}
+                        color={accent}
+                        strokeWidth={2}
+                        curveType="natural"
+                        animate={{ type: 'timing', duration: 500 }}
+                      />
+                    )}
+                  </CartesianChart>
+                )}
+              </View>
+              <View className="flex-row justify-between mt-1">
+                <Text className="text-muted text-xs">{historyData[0]?.date}</Text>
+                <Text className="text-muted text-xs">
+                  {historyData[historyData.length - 1]?.date}
+                </Text>
+              </View>
+            </Card.Body>
+          </Card>
+        )}
 
         {/* Allocation */}
         {brokersWithValue.length > 0 && (
