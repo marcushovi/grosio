@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { usePrices } from './usePrices'
 import { getExchangeRates, toEur, convertToDisplay } from '../lib/currency'
@@ -91,6 +91,10 @@ export function useDashboardData(brokers: Broker[]): DashboardData {
       return { values, rates: exchangeRates }
     },
     enabled: true,
+    // When broker IDs change (add/delete), the queryKey changes and a new fetch
+    // kicks off. Keep showing the previous data while that fetch runs to avoid
+    // a brief "empty dashboard" flash during the transition.
+    placeholderData: keepPreviousData,
   })
 
   // Convert EUR base values to display currency — recalculates instantly on currency switch

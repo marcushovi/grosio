@@ -19,3 +19,33 @@ This project uses **Uniwind + Tailwind v4**. All styling must be done via `class
 - Measured layout values (e.g., from `measureInWindow`)
 
 Everything static — positioning, z-index, margins, shadow presets — goes through `className`.
+
+## Data caching: never manually write to the TanStack Query cache
+
+All data fetching in this project goes through **TanStack Query** (see `hooks/useBrokers.ts`, `usePositions.ts`, `useDashboardData.ts`, `usePortfolioHistory.ts`). The `QueryClientProvider` lives in `app/_layout.tsx`.
+
+**Do NOT** use `queryClient.setQueryData(...)` to optimistically write mutation results into the cache. **Do NOT** use `.select().single()` on Supabase mutations just to feed the returned row into `setQueryData`.
+
+**Instead, after a mutation:**
+- Call `queryClient.invalidateQueries({ queryKey: [...] })` to mark the affected query stale and trigger a refetch.
+- If the mutation touches data consumed by several queries (e.g., deleting a broker cascades positions and affects dashboard + history), invalidate all of them with `Promise.all([...])`.
+- Make `onSuccess` `async` and `await` the invalidation — that way `mutateAsync` only resolves once the refetch is complete, so the UI (e.g., a closing dialog) sees the fresh data immediately.
+
+```tsx
+// ✅ Correct pattern
+onSuccess: async () => {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: ['brokers'] }),
+    queryClient.invalidateQueries({ queryKey: ['positions'] }),
+  ])
+}
+
+// ❌ Do not do this
+onSuccess: (newRow) => {
+  queryClient.setQueryData(['brokers'], (old) => [...old, newRow])
+}
+```
+
+**Why:** invalidation is always in sync with server state, avoids stale-cache bugs when the DB applies defaults/triggers/cascades, and doesn't require every mutation to return the inserted row. It's a small latency cost in exchange for correctness and simpler code.
+
+**Exception:** `hooks/usePrices.ts` uses `queryClient.getQueryData`/`setQueryData` as a deliberate KV cache for Yahoo Finance quotes — it's not backed by a `useQuery` call. That pattern is fine when the cache is the source of truth (no server round-trip to validate against). New code should not follow this pattern unless there's an equivalent justification.

@@ -1,12 +1,26 @@
 import '@supabase/functions-js/edge-runtime.d.ts'
 import yahooFinance from 'yahoo-finance2'
 
+// Silence yahoo-finance2's marketing/survey notices in Edge Function logs.
+yahooFinance.suppressNotices(['yahooSurvey', 'ripHistorical'])
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+
+// Shape returned by yahooFinance.quoteCombine when we request the 6 fields below.
+// Each field is optional because Yahoo may omit it for some symbol types.
+interface QuoteFields {
+  symbol?: string
+  regularMarketPrice?: number
+  currency?: string
+  regularMarketChange?: number
+  regularMarketChangePercent?: number
+  shortName?: string
+}
 
 Deno.serve(async req => {
   if (req.method === 'OPTIONS') {
@@ -74,8 +88,13 @@ Deno.serve(async req => {
         })
       }
 
-      const results = await Promise.all(
-        symbols.map((sym: string) =>
+      // quoteCombine debounces all calls within a 50ms window into a SINGLE
+      // Yahoo quote() HTTP request. Wrapping N calls in Promise.all therefore
+      // results in exactly one network round-trip regardless of symbol count.
+      // Field filtering further trims the payload vs. a full quote response.
+      // Unknown/delisted symbols resolve to undefined → .catch → null → filtered out.
+      const results = (await Promise.all(
+        symbols.map(sym =>
           yahooFinance
             .quoteCombine(sym, {
               fields: [
@@ -89,16 +108,18 @@ Deno.serve(async req => {
             })
             .catch(() => null)
         )
-      )
+      )) as (QuoteFields | null)[]
 
-      const quotes = results.filter(Boolean).map((q: any) => ({
-        symbol: q.symbol,
-        price: q.regularMarketPrice ?? 0,
-        currency: q.currency ?? 'USD',
-        change: q.regularMarketChange ?? 0,
-        changePercent: q.regularMarketChangePercent ?? 0,
-        name: q.shortName ?? q.symbol,
-      }))
+      const quotes = results
+        .filter((q): q is QuoteFields => q != null && typeof q.symbol === 'string')
+        .map(q => ({
+          symbol: q.symbol!,
+          price: q.regularMarketPrice ?? 0,
+          currency: q.currency ?? 'USD',
+          change: q.regularMarketChange ?? 0,
+          changePercent: q.regularMarketChangePercent ?? 0,
+          name: q.shortName ?? q.symbol!,
+        }))
 
       return new Response(JSON.stringify(quotes), {
         status: 200,

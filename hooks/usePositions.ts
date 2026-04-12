@@ -35,8 +35,13 @@ export function usePositions(brokerId?: string) {
       const { error } = await supabase.from('positions').insert({ ...position, user_id: userId })
       if (error) throw error
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['positions'] })
+    // Await invalidation so the mutation resolves only after derived caches are refreshed.
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['positions'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboardData'] }),
+        queryClient.invalidateQueries({ queryKey: ['portfolioHistoryEur'] }),
+      ])
     },
   })
 
@@ -47,8 +52,12 @@ export function usePositions(brokerId?: string) {
       const { error } = await supabase.from('positions').delete().eq('id', id).eq('user_id', userId)
       if (error) throw error
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['positions'] })
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['positions'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboardData'] }),
+        queryClient.invalidateQueries({ queryKey: ['portfolioHistoryEur'] }),
+      ])
     },
   })
 

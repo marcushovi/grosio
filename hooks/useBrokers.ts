@@ -29,8 +29,10 @@ export function useBrokers() {
       const { error } = await supabase.from('brokers').insert({ name, color, user_id: userId })
       if (error) throw error
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['brokers'] })
+    // Awaiting the invalidation means mutateAsync won't resolve until the refetch
+    // completes — so by the time the dialog closes, the broker list is already fresh.
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['brokers'] })
     },
   })
 
@@ -41,8 +43,14 @@ export function useBrokers() {
       const { error } = await supabase.from('brokers').delete().eq('id', id).eq('user_id', userId)
       if (error) throw error
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['brokers'] })
+    onSuccess: async () => {
+      // Cascade: ON DELETE CASCADE on positions.broker_id removes the broker's
+      // positions server-side. Invalidate all derived caches so they refetch.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['brokers'] }),
+        queryClient.invalidateQueries({ queryKey: ['positions'] }),
+        queryClient.invalidateQueries({ queryKey: ['portfolioHistoryEur'] }),
+      ])
     },
   })
 
