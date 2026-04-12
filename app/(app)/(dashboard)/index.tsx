@@ -155,41 +155,13 @@ export default function DashboardScreen() {
           </Card>
         )}
 
-        {/* Empty / Broker breakdown */}
-        {brokerValues.length === 0 ? (
+        {/* Empty state when there are no brokers yet */}
+        {brokerValues.length === 0 && (
           <Card className="bg-surface">
             <Card.Body className="items-center py-4">
               <Text className="text-muted text-sm text-center">{_('addBrokersHint')}</Text>
             </Card.Body>
           </Card>
-        ) : (
-          <View>
-            <Text className="text-foreground text-base font-semibold mb-3">
-              {_('brokersSummary')}
-            </Text>
-            {brokerValues.map(b => (
-              <Card key={b.brokerId} className="bg-surface mb-2">
-                <Card.Body>
-                  <View className="flex-row items-center mb-2">
-                    <View
-                      className="w-3 h-3 rounded-full mr-2"
-                      style={{ backgroundColor: b.color }}
-                    />
-                    <Text className="text-foreground font-semibold flex-1">{b.name}</Text>
-                    <Text className="text-muted text-xs">
-                      {b.positionCount} {_('positions')}
-                    </Text>
-                  </View>
-                  <Text className="text-foreground text-lg font-bold">{fmt(b.value)}</Text>
-                  <Text
-                    className={b.gainLoss >= 0 ? 'text-success text-sm' : 'text-danger text-sm'}
-                  >
-                    {formatGainLoss(b.gainLoss, b.gainLossPct, displayCurrency)}
-                  </Text>
-                </Card.Body>
-              </Card>
-            ))}
-          </View>
         )}
       </ScrollView>
     </SafeAreaView>
