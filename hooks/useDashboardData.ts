@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { usePrices } from './usePrices'
 import { getExchangeRates, toEur, convertToDisplay } from '../lib/currency'
@@ -30,31 +31,25 @@ export interface DashboardData {
 
 export function useDashboardData(brokers: Broker[]): DashboardData {
   const { currency: displayCurrency } = useSettings()
-  const [brokerValuesEur, setBrokerValuesEur] = useState<BrokerValueEur[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [rates, setRates] = useState<ExchangeRates | null>(null)
-
   const { fetchPrices } = usePrices()
 
-  // Fetch data from network — only depends on brokers, NOT displayCurrency
-  const fetchAllData = useCallback(async () => {
-    if (brokers.length === 0) {
-      setBrokerValuesEur([])
-      setLoading(false)
-      return
-    }
+  const {
+    data: fetchedData,
+    isPending: loading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['dashboardData', brokers.map(b => b.id).join(',')],
+    queryFn: async () => {
+      if (brokers.length === 0) {
+        return { values: [], rates: null }
+      }
 
-    setLoading(true)
-    setError(null)
-
-    try {
       const { data: allPositions, error: posErr } = await supabase.from('positions').select('*')
       if (posErr) throw posErr
 
       const positions: Position[] = allPositions ?? []
       const exchangeRates = await getExchangeRates()
-      setRates(exchangeRates)
 
       const allSymbols = [...new Set(positions.map(p => p.symbol))]
       const priceMap = await fetchPrices(allSymbols)
@@ -93,21 +88,17 @@ export function useDashboardData(brokers: Broker[]): DashboardData {
         }
       })
 
-      setBrokerValuesEur(values)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load data')
-    } finally {
-      setLoading(false)
-    }
-  }, [brokers, fetchPrices])
-
-  useEffect(() => {
-    fetchAllData()
-  }, [fetchAllData])
+      return { values, rates: exchangeRates }
+    },
+    enabled: true,
+  })
 
   // Convert EUR base values to display currency — recalculates instantly on currency switch
   const { brokerValues, totalValue, totalInvested, totalGainLoss, totalGainLossPct } =
     useMemo(() => {
+      const brokerValuesEur = fetchedData?.values ?? []
+      const rates = fetchedData?.rates ?? null
+
       if (!rates || brokerValuesEur.length === 0) {
         return {
           brokerValues: [] as BrokerValue[],
@@ -148,7 +139,7 @@ export function useDashboardData(brokers: Broker[]): DashboardData {
         totalGainLoss: gl,
         totalGainLossPct: sumInvested > 0 ? (gl / sumInvested) * 100 : 0,
       }
-    }, [brokerValuesEur, displayCurrency, rates])
+    }, [fetchedData, displayCurrency])
 
   return {
     brokerValues,
@@ -157,9 +148,9 @@ export function useDashboardData(brokers: Broker[]): DashboardData {
     totalGainLoss,
     totalGainLossPct,
     loading,
-    error,
-    refetch: fetchAllData,
-    rates,
+    error: error?.message ?? null,
+    refetch: () => refetch(),
+    rates: fetchedData?.rates ?? null,
     displayCurrency,
   }
 }

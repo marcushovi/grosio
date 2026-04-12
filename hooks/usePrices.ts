@@ -1,35 +1,41 @@
 import { useCallback } from 'react'
-import { getCached, setCache } from '../lib/cache'
+import { useQueryClient } from '@tanstack/react-query'
 import { getQuotes, QuoteResult } from '../lib/yahooFinance'
 
 export type PriceMap = Record<string, QuoteResult>
 
 export function usePrices() {
-  const fetchPrices = useCallback(async (symbols: string[]): Promise<PriceMap> => {
-    if (symbols.length === 0) return {}
+  const queryClient = useQueryClient()
 
-    const result: PriceMap = {}
-    const uncached: string[] = []
+  const fetchPrices = useCallback(
+    async (symbols: string[]): Promise<PriceMap> => {
+      if (symbols.length === 0) return {}
 
-    for (const symbol of symbols) {
-      const cached = await getCached<QuoteResult>(`quote_${symbol}`)
-      if (cached) {
-        result[symbol] = cached
-      } else {
-        uncached.push(symbol)
+      const result: PriceMap = {}
+      const uncached: string[] = []
+
+      for (const symbol of symbols) {
+        // Let React Query handle the caching layer instead of manual AsyncStorage
+        const cached = queryClient.getQueryData<QuoteResult>(['quote', symbol])
+        if (cached) {
+          result[symbol] = cached
+        } else {
+          uncached.push(symbol)
+        }
       }
-    }
 
-    if (uncached.length > 0) {
-      const quotes = await getQuotes(uncached)
-      for (const quote of quotes) {
-        result[quote.symbol] = quote
-        await setCache(`quote_${quote.symbol}`, quote)
+      if (uncached.length > 0) {
+        const quotes = await getQuotes(uncached)
+        for (const quote of quotes) {
+          result[quote.symbol] = quote
+          queryClient.setQueryData(['quote', quote.symbol], quote)
+        }
       }
-    }
 
-    return result
-  }, [])
+      return result
+    },
+    [queryClient]
+  )
 
   return { fetchPrices }
 }
