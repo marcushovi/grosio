@@ -56,6 +56,7 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
   const [shares, setShares] = useState('')
   const [price, setPrice] = useState('')
   const [buyDate, setBuyDate] = useState<Date>(() => new Date())
+  const [iosPickerVisible, setIosPickerVisible] = useState(false)
   const [pricingLoading, setPricingLoading] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -70,7 +71,7 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
     setPrice('')
     setSelectedCurrency('USD')
     setBuyDate(new Date())
-    setIosPickerOpen(false)
+    setIosPickerVisible(false)
   }, [])
 
   const handleSearch = useCallback(async (query: string) => {
@@ -123,19 +124,17 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
     }
   }, [selectedSymbol, buyDateIso])
 
-  const openDatePicker = useCallback(() => {
-    if (Platform.OS === 'android') {
-      DateTimePickerAndroid.open({
-        value: buyDate,
-        mode: 'date',
-        maximumDate: new Date(),
-        onChange: (_event, selected) => {
-          if (selected) setBuyDate(selected)
-        },
-      })
-    } else {
-      setIosPickerOpen(true)
-    }
+  // Android: imperative native date dialog (Material calendar). iOS uses the
+  // inline `<DateTimePicker display="compact">` below — doesn't need this.
+  const openAndroidPicker = useCallback(() => {
+    DateTimePickerAndroid.open({
+      value: buyDate,
+      mode: 'date',
+      maximumDate: new Date(),
+      onChange: (_event, selected) => {
+        if (selected) setBuyDate(selected)
+      },
+    })
   }, [buyDate])
 
   const handleAdd = useCallback(async () => {
@@ -252,12 +251,44 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
             <View className="mt-4">
               <Text className="text-muted text-sm mb-2">{_('buyDate')}</Text>
               <Pressable
-                onPress={openDatePicker}
+                onPress={() => {
+                  if (Platform.OS === 'android') {
+                    openAndroidPicker()
+                  } else {
+                    setIosPickerVisible(v => !v)
+                  }
+                }}
                 className="bg-surface border border-border rounded-xl px-4 py-3 flex-row items-center gap-2"
               >
                 <Calendar size={16} color={foreground} />
                 <Text className="text-foreground flex-1">{dateLabel}</Text>
               </Pressable>
+
+              {/*
+                iOS: inline spinner rendered inside the dialog body. `<Modal>`
+                or `display="compact"` both break here because the native
+                popover fights with HeroUI's Dialog.Portal responder chain.
+                An inline spinner is just a regular RN view — it receives taps
+                normally inside the portal.
+              */}
+              {Platform.OS === 'ios' && iosPickerVisible && (
+                <View className="mt-2 bg-surface rounded-xl border border-border">
+                  <DateTimePicker
+                    value={buyDate}
+                    mode="date"
+                    display="spinner"
+                    maximumDate={new Date()}
+                    onChange={(_event, selected) => {
+                      if (selected) setBuyDate(selected)
+                    }}
+                  />
+                  <View className="items-end px-2 pb-2">
+                    <Button variant="ghost" size="sm" onPress={() => setIosPickerVisible(false)}>
+                      <Button.Label>{_('ok')}</Button.Label>
+                    </Button>
+                  </View>
+                </View>
+              )}
             </View>
 
             <View className="flex-row gap-3 mt-4">
@@ -311,39 +342,6 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
           </Dialog.Content>
         </KeyboardAvoidingView>
       </Dialog.Portal>
-
-      {/* iOS: render picker inside a bottom-sheet Modal. Android opens the native
-          date dialog imperatively via DateTimePickerAndroid.open above. */}
-      {Platform.OS === 'ios' && (
-        <Modal
-          visible={iosPickerOpen}
-          transparent
-          animationType="slide"
-          onRequestClose={() => setIosPickerOpen(false)}
-        >
-          <Pressable className="flex-1 bg-black/40" onPress={() => setIosPickerOpen(false)}>
-            <Pressable
-              onPress={e => e.stopPropagation()}
-              className="mt-auto bg-surface rounded-t-3xl p-4"
-            >
-              <View className="flex-row justify-end mb-2">
-                <Button variant="ghost" size="sm" onPress={() => setIosPickerOpen(false)}>
-                  <Button.Label>{_('ok')}</Button.Label>
-                </Button>
-              </View>
-              <DateTimePicker
-                value={buyDate}
-                mode="date"
-                display="spinner"
-                maximumDate={new Date()}
-                onChange={(_event, selected) => {
-                  if (selected) setBuyDate(selected)
-                }}
-              />
-            </Pressable>
-          </Pressable>
-        </Modal>
-      )}
     </Dialog>
   )
 }
