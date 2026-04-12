@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import {
   View,
   Text,
@@ -8,11 +8,13 @@ import {
   Platform,
   Pressable,
 } from 'react-native'
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker'
 import { Button } from 'heroui-native/button'
 import { Input } from 'heroui-native/input'
 import { Dialog } from 'heroui-native/dialog'
 import { SearchField, Separator, useThemeColor } from 'heroui-native'
-import { getQuote, searchSymbols } from '../lib/yahooFinance'
+import { Calendar } from 'lucide-react-native'
+import { getPriceOnDate, searchSymbols } from '../lib/yahooFinance'
 import { useT } from '../lib/t'
 
 interface SearchResult {
@@ -21,6 +23,12 @@ interface SearchResult {
   exchange: string
   type: string
 }
+
+// Format a Date → 'YYYY-MM-DD' in local time (not UTC). Using toISOString()
+// here would produce off-by-one-day bugs for users in negative-UTC offsets.
+const pad = (n: number) => String(n).padStart(2, '0')
+const toYyyyMmDd = (d: Date): string =>
+  `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 
 interface AddPositionDialogProps {
   isOpen: boolean
@@ -31,12 +39,13 @@ interface AddPositionDialogProps {
     shares: number
     avg_buy_price: number
     currency: string
+    buy_date: string
   }) => Promise<{ error: { message: string } | null }>
 }
 
 export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDialogProps) {
   const { _ } = useT()
-  const accent = useThemeColor('accent') as string
+  const [accent, foreground] = useThemeColor(['accent', 'foreground'])
 
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
@@ -46,7 +55,11 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
   const [selectedCurrency, setSelectedCurrency] = useState('USD')
   const [shares, setShares] = useState('')
   const [price, setPrice] = useState('')
+  const [buyDate, setBuyDate] = useState<Date>(() => new Date())
+  const [pricingLoading, setPricingLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+
+  const buyDateIso = useMemo(() => toYyyyMmDd(buyDate), [buyDate])
 
   const reset = useCallback(() => {
     setSearchQuery('')
@@ -56,6 +69,8 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
     setShares('')
     setPrice('')
     setSelectedCurrency('USD')
+    setBuyDate(new Date())
+    setIosPickerOpen(false)
   }, [])
 
   const handleSearch = useCallback(async (query: string) => {
@@ -75,21 +90,53 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
     }
   }, [])
 
-  const handleSelectSymbol = useCallback(async (symbol: string, name: string) => {
+  const handleSelectSymbol = useCallback((symbol: string, name: string) => {
+    // The effect below auto-fetches the historical close for buyDate, so we
+    // intentionally do NOT fetch the current quote here — keeps behaviour
+    // consistent whether the user picked today or a past date.
     setSelectedSymbol(symbol)
     setSelectedName(name)
     setSearchResults([])
     setSearchQuery(name)
-    try {
-      const quote = await getQuote(symbol)
-      if (quote) {
-        setPrice(quote.price.toFixed(2))
-        setSelectedCurrency(quote.currency)
-      }
-    } catch {
-      // keep defaults if quote fetch fails
-    }
   }, [])
+
+  // Auto-fetch the historical close price whenever the symbol or the buy date
+  // changes, so the user rarely needs to touch the price field. Debounced so
+  // rapid date changes don't spam the Edge Function.
+  useEffect(() => {
+    if (!selectedSymbol) return
+    let cancelled = false
+    const timer = setTimeout(async () => {
+      setPricingLoading(true)
+      try {
+        const result = await getPriceOnDate(selectedSymbol, buyDateIso)
+        if (cancelled || !result) return
+        setPrice(result.close.toFixed(2))
+        setSelectedCurrency(result.currency)
+      } finally {
+        if (!cancelled) setPricingLoading(false)
+      }
+    }, 300)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [selectedSymbol, buyDateIso])
+
+  const openDatePicker = useCallback(() => {
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: buyDate,
+        mode: 'date',
+        maximumDate: new Date(),
+        onChange: (_event, selected) => {
+          if (selected) setBuyDate(selected)
+        },
+      })
+    } else {
+      setIosPickerOpen(true)
+    }
+  }, [buyDate])
 
   const handleAdd = useCallback(async () => {
     if (!selectedSymbol) return Alert.alert(_('error'), _('selectSymbol'))
@@ -102,12 +149,24 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
       shares: parseFloat(shares),
       avg_buy_price: parseFloat(price),
       currency: selectedCurrency,
+      buy_date: buyDateIso,
     })
     setSaving(false)
     if (error) return Alert.alert(_('error'), error.message)
     reset()
     onOpenChange(false)
-  }, [selectedSymbol, selectedName, shares, price, selectedCurrency, onAdd, reset, onOpenChange, _])
+  }, [
+    selectedSymbol,
+    selectedName,
+    shares,
+    price,
+    selectedCurrency,
+    buyDateIso,
+    onAdd,
+    reset,
+    onOpenChange,
+    _,
+  ])
 
   const handleOpenChange = useCallback(
     (open: boolean) => {
@@ -116,6 +175,14 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
     },
     [reset, onOpenChange]
   )
+
+  // Locale-aware display formatting for the date picker trigger, e.g.
+  // "Jan 15, 2024" (en) or "15. 1. 2024" (cs/sk/de).
+  const dateLabel = buyDate.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
 
   return (
     <Dialog isOpen={isOpen} onOpenChange={handleOpenChange}>
@@ -182,6 +249,17 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
               </View>
             ) : null}
 
+            <View className="mt-4">
+              <Text className="text-muted text-sm mb-2">{_('buyDate')}</Text>
+              <Pressable
+                onPress={openDatePicker}
+                className="bg-surface border border-border rounded-xl px-4 py-3 flex-row items-center gap-2"
+              >
+                <Calendar size={16} color={foreground} />
+                <Text className="text-foreground flex-1">{dateLabel}</Text>
+              </Pressable>
+            </View>
+
             <View className="flex-row gap-3 mt-4">
               <View className="flex-1">
                 <Text className="text-muted text-sm mb-2">{_('shares')}</Text>
@@ -193,7 +271,10 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
                 />
               </View>
               <View className="flex-1">
-                <Text className="text-muted text-sm mb-2">{_('buyPrice')}</Text>
+                <View className="flex-row items-center gap-2 mb-2">
+                  <Text className="text-muted text-sm">{_('buyPrice')}</Text>
+                  {pricingLoading && <ActivityIndicator size="small" color={accent} />}
+                </View>
                 <Input
                   placeholder="0.00"
                   value={price}
@@ -230,6 +311,39 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
           </Dialog.Content>
         </KeyboardAvoidingView>
       </Dialog.Portal>
+
+      {/* iOS: render picker inside a bottom-sheet Modal. Android opens the native
+          date dialog imperatively via DateTimePickerAndroid.open above. */}
+      {Platform.OS === 'ios' && (
+        <Modal
+          visible={iosPickerOpen}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setIosPickerOpen(false)}
+        >
+          <Pressable className="flex-1 bg-black/40" onPress={() => setIosPickerOpen(false)}>
+            <Pressable
+              onPress={e => e.stopPropagation()}
+              className="mt-auto bg-surface rounded-t-3xl p-4"
+            >
+              <View className="flex-row justify-end mb-2">
+                <Button variant="ghost" size="sm" onPress={() => setIosPickerOpen(false)}>
+                  <Button.Label>{_('ok')}</Button.Label>
+                </Button>
+              </View>
+              <DateTimePicker
+                value={buyDate}
+                mode="date"
+                display="spinner"
+                maximumDate={new Date()}
+                onChange={(_event, selected) => {
+                  if (selected) setBuyDate(selected)
+                }}
+              />
+            </Pressable>
+          </Pressable>
+        </Modal>
+      )}
     </Dialog>
   )
 }

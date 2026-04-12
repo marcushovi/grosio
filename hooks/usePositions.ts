@@ -29,6 +29,7 @@ export function usePositions(brokerId?: string) {
       shares: number
       avg_buy_price: number
       currency: string
+      buy_date: string // 'YYYY-MM-DD'
     }) => {
       const userId = await getAuthUserId()
       if (!userId) throw new Error('Not authenticated')
@@ -72,6 +73,7 @@ export function usePositions(brokerId?: string) {
       shares: number
       avg_buy_price: number
       currency: string
+      buy_date: string
     }) => {
       try {
         await addPositionMutation.mutateAsync(position)

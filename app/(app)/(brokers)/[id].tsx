@@ -79,6 +79,7 @@ export default function BrokerDetailScreen() {
         shares: pos.shares,
         avg_buy_price: pos.avg_buy_price,
         currency: pv.currentCurrency,
+        buy_date: pos.buy_date,
         currentPrice: pv.currentPrice,
         currentValue: pnl.currentValue,
         invested: pnl.invested,
@@ -112,6 +113,7 @@ export default function BrokerDetailScreen() {
       shares: number
       avg_buy_price: number
       currency: string
+      buy_date: string
     }) => {
       if (typeof id !== 'string') return { error: { message: 'Invalid broker' } }
       return addPosition({ broker_id: id, ...pos })
@@ -202,6 +204,7 @@ export default function BrokerDetailScreen() {
                     <Text className="text-muted text-xs mt-1">
                       {item.shares}× {formatRaw(item.avg_buy_price, item.currency)}
                     </Text>
+                    {item.buy_date && <Text className="text-muted text-xs">{item.buy_date}</Text>}
                   </View>
                   <View className="items-end mr-3">
                     <Text className="text-foreground font-semibold">

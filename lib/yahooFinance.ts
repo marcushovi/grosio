@@ -99,6 +99,36 @@ export async function getHistory(
   }
 }
 
+export interface PriceOnDate {
+  symbol: string
+  /** Actual trading day used (nearest ≤ requested date). */
+  date: string // 'YYYY-MM-DD'
+  close: number
+  currency: string
+}
+
+/**
+ * Fetch a single symbol's close price on a specific historical date.
+ * Used by AddPositionDialog so users don't have to key in the buy price
+ * manually — selecting the symbol and the buy date is enough.
+ */
+export async function getPriceOnDate(symbol: string, date: string): Promise<PriceOnDate | null> {
+  try {
+    const headers = await authHeaders()
+    if (!headers) return null
+    const res = await fetch(
+      `${EDGE_FUNCTION_URL}?action=priceOnDate&symbol=${encodeURIComponent(symbol)}&date=${encodeURIComponent(date)}`,
+      { headers }
+    )
+    if (!res.ok) return null
+    const data = await res.json()
+    if (typeof data?.close !== 'number') return null
+    return data as PriceOnDate
+  } catch {
+    return null
+  }
+}
+
 export async function searchSymbols(
   query: string
 ): Promise<Array<{ symbol: string; name: string; exchange: string; type: string }>> {

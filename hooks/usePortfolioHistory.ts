@@ -58,12 +58,17 @@ export function usePortfolioHistory() {
       }
       const sortedDates = Array.from(allDates).sort()
 
-      // For each date, compute total portfolio value in EUR
+      // For each date, compute total portfolio value in EUR.
+      // A position only contributes to dates on or after its buy_date —
+      // buying later shouldn't retroactively show up on earlier dates.
+      // Positions with a null buy_date (legacy rows) are treated as "always held".
       const points: PortfolioDataPoint[] = []
       for (const date of sortedDates) {
         let totalValueEur = 0
 
         for (const pos of positions as Position[]) {
+          if (pos.buy_date && pos.buy_date > date) continue
+
           const dateMap = priceBySymbolDate.get(pos.symbol)
           if (!dateMap) continue
 

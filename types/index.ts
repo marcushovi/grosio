@@ -15,6 +15,7 @@ export interface Position {
   shares: number
   avg_buy_price: number
   currency: string
+  buy_date: string | null // 'YYYY-MM-DD' or null for legacy rows
   created_at: string
 }
 
@@ -38,6 +39,7 @@ export interface PositionWithPrice {
   shares: number
   avg_buy_price: number
   currency: string
+  buy_date: string | null
   currentPrice: number
   currentValue: number
   invested: number
