@@ -1,54 +1,72 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase, getAuthUserId } from '../lib/supabase'
 import type { Broker } from '../types'
 
 export function useBrokers() {
-  const [brokers, setBrokers] = useState<Broker[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const queryClient = useQueryClient()
 
-  const fetchBrokers = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
+  const {
+    data: brokers = [],
+    isPending: loading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['brokers'],
+    queryFn: async () => {
       const { data, error: fetchErr } = await supabase
         .from('brokers')
         .select('*')
         .order('created_at', { ascending: true })
       if (fetchErr) throw fetchErr
-      setBrokers(data || [])
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load brokers')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+      return (data || []) as Broker[]
+    },
+  })
 
-  const addBroker = useCallback(
-    async (name: string, color: string) => {
+  const addBrokerMutation = useMutation({
+    mutationFn: async ({ name, color }: { name: string; color: string }) => {
       const userId = await getAuthUserId()
-      if (!userId) return { error: { message: 'Not authenticated' } }
+      if (!userId) throw new Error('Not authenticated')
       const { error } = await supabase.from('brokers').insert({ name, color, user_id: userId })
-      if (!error) await fetchBrokers()
-      return { error }
+      if (error) throw error
     },
-    [fetchBrokers]
-  )
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['brokers'] })
+    },
+  })
 
-  const deleteBroker = useCallback(
-    async (id: string) => {
+  const deleteBrokerMutation = useMutation({
+    mutationFn: async (id: string) => {
       const userId = await getAuthUserId()
-      if (!userId) return { error: { message: 'Not authenticated' } }
+      if (!userId) throw new Error('Not authenticated')
       const { error } = await supabase.from('brokers').delete().eq('id', id).eq('user_id', userId)
-      if (!error) await fetchBrokers()
-      return { error }
+      if (error) throw error
     },
-    [fetchBrokers]
-  )
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['brokers'] })
+    },
+  })
 
-  useEffect(() => {
-    fetchBrokers()
-  }, [fetchBrokers])
-
-  return { brokers, loading, error, addBroker, deleteBroker, refetch: fetchBrokers }
+  // Exposing the original API signature so dependent components don't immediately break
+  return {
+    brokers,
+    loading,
+    error: error?.message || null,
+    addBroker: async (name: string, color: string) => {
+      try {
+        await addBrokerMutation.mutateAsync({ name, color })
+        return { error: null }
+      } catch (e) {
+        return { error: e as Error }
+      }
+    },
+    deleteBroker: async (id: string) => {
+      try {
+        await deleteBrokerMutation.mutateAsync(id)
+        return { error: null }
+      } catch (e) {
+        return { error: e as Error }
+      }
+    },
+    refetch,
+  }
 }

@@ -1,48 +1,36 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { getHistory } from '../lib/yahooFinance'
 import { getExchangeRates, toEur, convertToDisplay } from '../lib/currency'
-import { getCached, setCache } from '../lib/cache'
 import { useSettings } from '../lib/settingsContext'
 import type { Position } from '../types'
-import type { ExchangeRates } from '../lib/currency'
 
 export interface PortfolioDataPoint {
   date: string // 'YYYY-MM-DD'
   value: number
 }
 
-const CACHE_KEY = 'portfolio_history_eur'
 const HISTORY_CACHE_TTL = 60 * 60 * 1000 // 1 hour
 
 export function usePortfolioHistory() {
   const { currency: displayCurrency } = useSettings()
-  const [dataEur, setDataEur] = useState<PortfolioDataPoint[]>([])
-  const [rates, setRates] = useState<ExchangeRates | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
-  const fetchHistory = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-
-    try {
+  const {
+    data: fetchedData,
+    isPending: loading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['portfolioHistoryEur'],
+    staleTime: HISTORY_CACHE_TTL,
+    queryFn: async () => {
       const exchangeRates = await getExchangeRates()
-      setRates(exchangeRates)
-
-      const cached = await getCached<PortfolioDataPoint[]>(CACHE_KEY)
-      if (cached) {
-        setDataEur(cached)
-        setLoading(false)
-        return
-      }
 
       const { data: positions, error: posErr } = await supabase.from('positions').select('*')
       if (posErr) throw posErr
       if (!positions || positions.length === 0) {
-        setDataEur([])
-        setLoading(false)
-        return
+        return { dataEur: [], rates: exchangeRates }
       }
 
       const symbols = [...new Set((positions as Position[]).map(p => p.symbol))]
@@ -100,27 +88,21 @@ export function usePortfolioHistory() {
         }
       }
 
-      await setCache(CACHE_KEY, points, HISTORY_CACHE_TTL)
-      setDataEur(points)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error loading history')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchHistory()
-  }, [fetchHistory])
+      return { dataEur: points, rates: exchangeRates }
+    },
+  })
 
   // Convert EUR base values to display currency — instant on currency switch
   const data = useMemo(() => {
+    const dataEur = fetchedData?.dataEur ?? []
+    const rates = fetchedData?.rates ?? null
+
     if (!rates || dataEur.length === 0) return []
     return dataEur.map(p => ({
       date: p.date,
       value: convertToDisplay(p.value, displayCurrency, rates),
     }))
-  }, [dataEur, displayCurrency, rates])
+  }, [fetchedData, displayCurrency])
 
-  return { data, loading, error, refetch: fetchHistory }
+  return { data, loading, error: error?.message ?? null, refetch: () => refetch() }
 }

@@ -56,7 +56,7 @@ export default function BrokersScreen() {
     return (
       <SafeAreaView className="flex-1 bg-background justify-center items-center px-6">
         <Text className="text-danger text-center mb-4">{error}</Text>
-        <Text className="text-accent" onPress={refetch}>
+        <Text className="text-destructive font-semibold mb-4" onPress={() => refetch()}>
           {_('tryAgain')}
         </Text>
       </SafeAreaView>

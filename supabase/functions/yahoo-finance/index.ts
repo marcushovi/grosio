@@ -1,4 +1,5 @@
 import '@supabase/functions-js/edge-runtime.d.ts'
+import yahooFinance from 'yahoo-finance2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -66,29 +67,41 @@ Deno.serve(async req => {
 
     if (action === 'quotes' && query) {
       const symbols = query.split(',').filter(Boolean)
-      const quotes: Record<string, any> = {}
-      await Promise.all(
-        symbols.map(async sym => {
-          const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${sym}?interval=1d&range=1d`
-          const res = await fetch(yahooUrl, { headers: { 'User-Agent': UA } })
-          const data = await res.json()
-          const meta = data?.chart?.result?.[0]?.meta
-          if (meta) {
-            const prevClose =
-              meta.chartPreviousClose ?? meta.previousClose ?? meta.regularMarketPrice ?? 0
-            const price = meta.regularMarketPrice ?? 0
-            quotes[sym] = {
-              symbol: sym,
-              price,
-              currency: meta.currency ?? 'USD',
-              change: price - prevClose,
-              changePercent: prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0,
-              name: meta.shortName ?? sym,
-            }
-          }
+      if (symbols.length === 0) {
+        return new Response(JSON.stringify({ error: 'symbols required' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
+      }
+
+      const results = await Promise.all(
+        symbols.map((sym: string) =>
+          yahooFinance
+            .quoteCombine(sym, {
+              fields: [
+                'symbol',
+                'regularMarketPrice',
+                'currency',
+                'regularMarketChange',
+                'regularMarketChangePercent',
+                'shortName',
+              ],
+            })
+            .catch(() => null)
+        )
       )
-      return new Response(JSON.stringify({ quotes }), {
+
+      const quotes = results.filter(Boolean).map((q: any) => ({
+        symbol: q.symbol,
+        price: q.regularMarketPrice ?? 0,
+        currency: q.currency ?? 'USD',
+        change: q.regularMarketChange ?? 0,
+        changePercent: q.regularMarketChangePercent ?? 0,
+        name: q.shortName ?? q.symbol,
+      }))
+
+      return new Response(JSON.stringify(quotes), {
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }

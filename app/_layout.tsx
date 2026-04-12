@@ -6,8 +6,18 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { HeroUINativeProvider } from 'heroui-native/provider'
 import { SettingsProvider } from '../lib/settingsContext'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import '../lib/i18n'
 import '../global.css'
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 1000 * 60 * 5, // 5 minutes
+    },
+  },
+})
 
 export default function RootLayout() {
   const [session, setSession] = useState<Session | null>(null)
@@ -45,9 +55,11 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <SettingsProvider>
-          <HeroUINativeProvider>
-            <Slot />
-          </HeroUINativeProvider>
+          <QueryClientProvider client={queryClient}>
+            <HeroUINativeProvider>
+              <Slot />
+            </HeroUINativeProvider>
+          </QueryClientProvider>
         </SettingsProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
