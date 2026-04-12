@@ -1,5 +1,30 @@
+import { supabase } from './supabase'
+
 const EDGE_FUNCTION_URL = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/yahoo-finance`
-const API_KEY = process.env.EXPO_PUBLIC_SUPABASE_KEY ?? ''
+const ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_KEY ?? ''
+
+/**
+ * Build auth headers for Supabase Edge Function calls.
+ *
+ * Uses the logged-in user's session access_token as the Bearer so the Supabase
+ * gateway (with verify_jwt enabled) accepts the request as an authenticated
+ * user rather than an anonymous caller. `apikey` is still the anon key —
+ * that header is for project routing/rate-limiting, not identity.
+ *
+ * Returns `null` if there is no active session. Callers should short-circuit
+ * in that case — the app's auth guard redirects to /login when the session is
+ * missing, so these fetches shouldn't run in that state anyway.
+ */
+async function authHeaders(): Promise<Record<string, string> | null> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+  if (!session?.access_token) return null
+  return {
+    Authorization: `Bearer ${session.access_token}`,
+    apikey: ANON_KEY,
+  }
+}
 
 export interface QuoteResult {
   symbol: string
@@ -12,7 +37,8 @@ export interface QuoteResult {
 
 export async function getQuote(symbol: string): Promise<QuoteResult | null> {
   try {
-    const headers = { Authorization: `Bearer ${API_KEY}`, apikey: API_KEY }
+    const headers = await authHeaders()
+    if (!headers) return null
     const res = await fetch(
       `${EDGE_FUNCTION_URL}?action=quote&symbol=${encodeURIComponent(symbol)}`,
       { headers }
@@ -28,7 +54,8 @@ export async function getQuote(symbol: string): Promise<QuoteResult | null> {
 export async function getQuotes(symbols: string[]): Promise<QuoteResult[]> {
   if (symbols.length === 0) return []
   try {
-    const headers = { Authorization: `Bearer ${API_KEY}`, apikey: API_KEY }
+    const headers = await authHeaders()
+    if (!headers) return []
     const res = await fetch(`${EDGE_FUNCTION_URL}?action=quotes&q=${symbols.join(',')}`, {
       headers,
     })
@@ -58,7 +85,8 @@ export async function getHistory(
 ): Promise<SymbolHistory[]> {
   if (symbols.length === 0) return []
   try {
-    const headers = { Authorization: `Bearer ${API_KEY}`, apikey: API_KEY }
+    const headers = await authHeaders()
+    if (!headers) return []
     const res = await fetch(
       `${EDGE_FUNCTION_URL}?action=history&q=${symbols.join(',')}&interval=${interval}&range=${range}`,
       { headers }
@@ -75,7 +103,8 @@ export async function searchSymbols(
   query: string
 ): Promise<Array<{ symbol: string; name: string; exchange: string; type: string }>> {
   try {
-    const headers = { Authorization: `Bearer ${API_KEY}`, apikey: API_KEY }
+    const headers = await authHeaders()
+    if (!headers) return []
     const res = await fetch(`${EDGE_FUNCTION_URL}?action=search&q=${encodeURIComponent(query)}`, {
       headers,
     })

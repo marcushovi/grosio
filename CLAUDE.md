@@ -49,3 +49,32 @@ onSuccess: (newRow) => {
 **Why:** invalidation is always in sync with server state, avoids stale-cache bugs when the DB applies defaults/triggers/cascades, and doesn't require every mutation to return the inserted row. It's a small latency cost in exchange for correctness and simpler code.
 
 **Exception:** `hooks/usePrices.ts` uses `queryClient.getQueryData`/`setQueryData` as a deliberate KV cache for Yahoo Finance quotes — it's not backed by a `useQuery` call. That pattern is fine when the cache is the source of truth (no server round-trip to validate against). New code should not follow this pattern unless there's an equivalent justification.
+
+## Edge Function auth: send the user's session JWT, not the anon key
+
+Supabase Edge Functions are deployed with JWT verification **enabled** (default). Do NOT deploy with `--no-verify-jwt` — that turns the function into a fully public endpoint anyone can hit. Deploy with:
+
+```bash
+npx supabase functions deploy <name>
+```
+
+Client calls from the app must use the logged-in user's session access_token as the Bearer, not the anon key:
+
+```tsx
+// lib/yahooFinance.ts — single helper for all Edge Function calls
+async function authHeaders(): Promise<Record<string, string> | null> {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.access_token) return null
+  return {
+    Authorization: `Bearer ${session.access_token}`,  // user JWT
+    apikey: ANON_KEY,                                  // routing/rate-limiting
+  }
+}
+```
+
+- `Authorization: Bearer <token>` → identity (user JWT). Supabase's gateway rejects the request if this JWT is missing, invalid, or expired.
+- `apikey: <anon_key>` → still required, but only for project routing and rate-limiting — it is NOT the identity.
+
+If `authHeaders()` returns `null` (no session), callers should short-circuit and return an empty result. The app's auth guard redirects to `/login` when there's no session, so Edge Function calls should never run unauthenticated in practice.
+
+**Why not the anon key as Bearer:** the anon key is bundled in the client app and therefore public. Using the user's session JWT means the Supabase gateway rejects any request that doesn't come from a currently logged-in user — protecting against bots, scrapers, or anyone who finds the anon key in the app bundle.

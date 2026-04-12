@@ -2,7 +2,8 @@ import { useMemo } from 'react'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { usePrices } from './usePrices'
-import { getExchangeRates, toEur, convertToDisplay } from '../lib/currency'
+import { getExchangeRates, convertToDisplay } from '../lib/currency'
+import { computePositionValueEur } from '../lib/portfolio'
 import { useSettings } from '../lib/settingsContext'
 import type { Broker, Position, BrokerValue } from '../types'
 import type { ExchangeRates, DisplayCurrency } from '../lib/currency'
@@ -64,18 +65,18 @@ export function useDashboardData(brokers: Broker[]): DashboardData {
         positionsByBroker.set(pos.broker_id, arr)
       }
 
-      // Store values in EUR (base currency) — no display conversion here
+      // Store values in EUR (base currency) — no display conversion here.
+      // Per-position math delegated to lib/portfolio so dashboard and broker
+      // detail stay in lock-step. See lib/portfolio.ts#computePositionValueEur.
       const values: BrokerValueEur[] = brokers.map(broker => {
         const bPositions = positionsByBroker.get(broker.id) ?? []
         let valueEur = 0
         let investedEur = 0
 
         for (const pos of bPositions) {
-          const quote = priceMap[pos.symbol]
-          const price = quote?.price ?? pos.avg_buy_price
-          const currency = quote?.currency ?? pos.currency
-          valueEur += toEur(pos.shares * price, currency, exchangeRates)
-          investedEur += toEur(pos.shares * pos.avg_buy_price, pos.currency, exchangeRates)
+          const pv = computePositionValueEur(pos, priceMap, exchangeRates)
+          valueEur += pv.valueEur
+          investedEur += pv.costEur
         }
 
         return {

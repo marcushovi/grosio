@@ -1,8 +1,10 @@
 import { useCallback } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { getQuotes, QuoteResult } from '../lib/yahooFinance'
+import type { PriceMap } from '../lib/portfolio'
 
-export type PriceMap = Record<string, QuoteResult>
+// Re-export so existing consumers keep working.
+export type { PriceMap }
 
 export function usePrices() {
   const queryClient = useQueryClient()

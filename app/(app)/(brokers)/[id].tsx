@@ -9,15 +9,9 @@ import { ArrowLeft, Plus, TrendingUp, TrendingDown, Trash2 } from 'lucide-react-
 import { useBrokers } from '../../../hooks/useBrokers'
 import { usePositions } from '../../../hooks/usePositions'
 import { usePrices, type PriceMap } from '../../../hooks/usePrices'
-import {
-  getExchangeRates,
-  toEur,
-  convertToDisplay,
-  formatAmount,
-  formatRaw,
-  formatGainLoss,
-} from '../../../lib/currency'
+import { getExchangeRates, formatAmount, formatRaw, formatGainLoss } from '../../../lib/currency'
 import type { ExchangeRates } from '../../../lib/currency'
+import { computePositionValueEur, computePositionPnl } from '../../../lib/portfolio'
 import { useSettings } from '../../../lib/settingsContext'
 import { useT } from '../../../lib/t'
 import { AddPositionDialog } from '../../../components/AddPositionDialog'
@@ -69,18 +63,13 @@ export default function BrokerDetailScreen() {
   }, [fetchPrices])
 
   // Derive positionsWithPrices during render — no effect, no state, no loops.
-  // Recomputes instantly when displayCurrency changes, without re-fetching.
+  // Per-position math delegated to lib/portfolio so the broker-detail screen and
+  // useDashboardData stay in lock-step.
   const positionsWithPrices = useMemo<PositionWithPrice[]>(() => {
     if (!rates || positions.length === 0) return []
     return positions.map(pos => {
-      const quote = prices[pos.symbol]
-      const rawPrice = quote?.price ?? pos.avg_buy_price
-      const currency = quote?.currency ?? pos.currency
-      const valueEur = toEur(pos.shares * rawPrice, currency, rates)
-      const costEur = toEur(pos.shares * pos.avg_buy_price, pos.currency, rates)
-      const currentValue = convertToDisplay(valueEur, displayCurrency, rates)
-      const invested = convertToDisplay(costEur, displayCurrency, rates)
-      const gainLoss = currentValue - invested
+      const pv = computePositionValueEur(pos, prices, rates)
+      const pnl = computePositionPnl(pv, displayCurrency, rates)
       return {
         id: pos.id,
         broker_id: pos.broker_id,
@@ -89,12 +78,12 @@ export default function BrokerDetailScreen() {
         name: pos.name,
         shares: pos.shares,
         avg_buy_price: pos.avg_buy_price,
-        currency,
-        currentPrice: rawPrice,
-        currentValue,
-        invested,
-        gainLoss,
-        gainLossPct: invested > 0 ? (gainLoss / invested) * 100 : 0,
+        currency: pv.currentCurrency,
+        currentPrice: pv.currentPrice,
+        currentValue: pnl.currentValue,
+        invested: pnl.invested,
+        gainLoss: pnl.gainLoss,
+        gainLossPct: pnl.gainLossPct,
       }
     })
   }, [positions, prices, rates, displayCurrency])
