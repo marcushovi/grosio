@@ -1,9 +1,17 @@
 import { useState, useCallback } from 'react'
-import { View, Text, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native'
+import {
+  View,
+  Text,
+  Alert,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+} from 'react-native'
 import { Button } from 'heroui-native/button'
 import { Input } from 'heroui-native/input'
 import { Dialog } from 'heroui-native/dialog'
-import { useThemeColor } from 'heroui-native'
+import { SearchField, Separator, useThemeColor } from 'heroui-native'
 import { getQuote, searchSymbols } from '../lib/yahooFinance'
 import { useT } from '../lib/t'
 
@@ -101,14 +109,16 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
     onOpenChange(false)
   }, [selectedSymbol, selectedName, shares, price, selectedCurrency, onAdd, reset, onOpenChange, _])
 
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open) reset()
+      onOpenChange(open)
+    },
+    [reset, onOpenChange]
+  )
+
   return (
-    <Dialog
-      isOpen={isOpen}
-      onOpenChange={open => {
-        if (!open) reset()
-        onOpenChange(open)
-      }}
-    >
+    <Dialog isOpen={isOpen} onOpenChange={handleOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay />
         <KeyboardAvoidingView
@@ -122,36 +132,48 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
 
             <View className="mt-4">
               <Text className="text-muted text-sm mb-2">{_('symbol')}</Text>
-              <View className="flex-row items-center gap-2">
-                <View className="flex-1">
-                  <Input
-                    placeholder={_('searchPlaceholder')}
-                    value={searchQuery}
-                    onChangeText={handleSearch}
-                    autoCapitalize="characters"
-                  />
-                </View>
-                {searching && <ActivityIndicator size="small" color={accent} />}
+              {/* Relative anchor so the results list can float over fields below */}
+              <View className="relative z-10">
+                <SearchField value={searchQuery} onChange={handleSearch}>
+                  <SearchField.Group>
+                    <SearchField.SearchIcon />
+                    <SearchField.Input
+                      placeholder={_('searchPlaceholder')}
+                      autoCapitalize="characters"
+                    />
+                    <SearchField.ClearButton />
+                  </SearchField.Group>
+                </SearchField>
+
+                {searching && (
+                  <View
+                    pointerEvents="none"
+                    className="absolute right-10 top-0 bottom-0 justify-center"
+                  >
+                    <ActivityIndicator size="small" color={accent} />
+                  </View>
+                )}
+
+                {searchResults.length > 0 && (
+                  <View className="absolute top-full left-0 right-0 mt-1 z-20 bg-surface rounded-xl border border-border shadow-lg">
+                    {searchResults.slice(0, 5).map((r, i) => (
+                      <View key={r.symbol}>
+                        {i > 0 && <Separator />}
+                        <Pressable
+                          onPress={() => handleSelectSymbol(r.symbol, r.name)}
+                          className="px-4 py-3"
+                        >
+                          <Text className="text-foreground font-semibold">{r.symbol}</Text>
+                          <Text className="text-muted text-xs" numberOfLines={1}>
+                            {r.name}
+                          </Text>
+                        </Pressable>
+                      </View>
+                    ))}
+                  </View>
+                )}
               </View>
             </View>
-
-            {searchResults.length > 0 && (
-              <View className="mt-2 max-h-40">
-                {searchResults.slice(0, 5).map(r => (
-                  <Button
-                    key={r.symbol}
-                    variant="ghost"
-                    size="sm"
-                    onPress={() => handleSelectSymbol(r.symbol, r.name)}
-                    className="justify-start mb-1"
-                  >
-                    <Button.Label>
-                      {r.symbol} — {r.name}
-                    </Button.Label>
-                  </Button>
-                ))}
-              </View>
-            )}
 
             {selectedSymbol ? (
               <View className="mt-3 bg-background rounded-xl p-3">

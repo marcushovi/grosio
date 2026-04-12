@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { View, Text, FlatList, Alert, RefreshControl } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
@@ -8,7 +8,7 @@ import { useThemeColor } from 'heroui-native'
 import { ArrowLeft, Plus, TrendingUp, TrendingDown, Trash2 } from 'lucide-react-native'
 import { useBrokers } from '../../../hooks/useBrokers'
 import { usePositions } from '../../../hooks/usePositions'
-import { usePrices } from '../../../hooks/usePrices'
+import { usePrices, type PriceMap } from '../../../hooks/usePrices'
 import {
   getExchangeRates,
   toEur,
@@ -17,6 +17,7 @@ import {
   formatRaw,
   formatGainLoss,
 } from '../../../lib/currency'
+import type { ExchangeRates } from '../../../lib/currency'
 import { useSettings } from '../../../lib/settingsContext'
 import { useT } from '../../../lib/t'
 import { AddPositionDialog } from '../../../components/AddPositionDialog'
@@ -38,58 +39,65 @@ export default function BrokerDetailScreen() {
   const { fetchPrices: fetchPricesFromHook } = usePrices()
   const broker = brokers.find(b => b.id === id)
 
-  const [positionsWithPrices, setPositionsWithPrices] = useState<PositionWithPrice[]>([])
+  const [prices, setPrices] = useState<PriceMap>({})
+  const [rates, setRates] = useState<ExchangeRates | null>(null)
   const [pricesLoading, setPricesLoading] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
 
+  // Fetch raw async data only. No setState when there's nothing to fetch —
+  // initial prices={} + rates=null already yield an empty derived list via the useMemo below.
   const fetchPrices = useCallback(async () => {
-    if (positions.length === 0) {
-      setPositionsWithPrices([])
-      return
-    }
+    if (positions.length === 0) return
     setPricesLoading(true)
     try {
-      const rates = await getExchangeRates()
       const symbols = [...new Set(positions.map(p => p.symbol))]
-      const prices = await fetchPricesFromHook(symbols)
-
-      setPositionsWithPrices(
-        positions.map(pos => {
-          const quote = prices[pos.symbol]
-          const rawPrice = quote?.price ?? pos.avg_buy_price
-          const currency = quote?.currency ?? pos.currency
-          const valueEur = toEur(pos.shares * rawPrice, currency, rates)
-          const costEur = toEur(pos.shares * pos.avg_buy_price, pos.currency, rates)
-          const currentValue = convertToDisplay(valueEur, displayCurrency, rates)
-          const invested = convertToDisplay(costEur, displayCurrency, rates)
-          const gainLoss = currentValue - invested
-          return {
-            id: pos.id,
-            broker_id: pos.broker_id,
-            user_id: pos.user_id,
-            symbol: pos.symbol,
-            name: pos.name,
-            shares: pos.shares,
-            avg_buy_price: pos.avg_buy_price,
-            currency,
-            currentPrice: rawPrice,
-            currentValue,
-            invested,
-            gainLoss,
-            gainLossPct: invested > 0 ? (gainLoss / invested) * 100 : 0,
-          }
-        })
-      )
+      const [nextRates, nextPrices] = await Promise.all([
+        getExchangeRates(),
+        fetchPricesFromHook(symbols),
+      ])
+      setRates(nextRates)
+      setPrices(nextPrices)
     } catch {
       // fall back to showing positions without live prices
     } finally {
       setPricesLoading(false)
     }
-  }, [positions, fetchPricesFromHook, displayCurrency])
+  }, [positions, fetchPricesFromHook])
 
   useEffect(() => {
     fetchPrices()
   }, [fetchPrices])
+
+  // Derive positionsWithPrices during render — no effect, no state, no loops.
+  // Recomputes instantly when displayCurrency changes, without re-fetching.
+  const positionsWithPrices = useMemo<PositionWithPrice[]>(() => {
+    if (!rates || positions.length === 0) return []
+    return positions.map(pos => {
+      const quote = prices[pos.symbol]
+      const rawPrice = quote?.price ?? pos.avg_buy_price
+      const currency = quote?.currency ?? pos.currency
+      const valueEur = toEur(pos.shares * rawPrice, currency, rates)
+      const costEur = toEur(pos.shares * pos.avg_buy_price, pos.currency, rates)
+      const currentValue = convertToDisplay(valueEur, displayCurrency, rates)
+      const invested = convertToDisplay(costEur, displayCurrency, rates)
+      const gainLoss = currentValue - invested
+      return {
+        id: pos.id,
+        broker_id: pos.broker_id,
+        user_id: pos.user_id,
+        symbol: pos.symbol,
+        name: pos.name,
+        shares: pos.shares,
+        avg_buy_price: pos.avg_buy_price,
+        currency,
+        currentPrice: rawPrice,
+        currentValue,
+        invested,
+        gainLoss,
+        gainLossPct: invested > 0 ? (gainLoss / invested) * 100 : 0,
+      }
+    })
+  }, [positions, prices, rates, displayCurrency])
 
   const handleDeletePosition = useCallback(
     (posId: string, symbol: string) => {

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { View, Text, ScrollView, RefreshControl, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useThemeColor } from 'heroui-native'
@@ -37,7 +37,10 @@ export default function DashboardScreen() {
   const isPositive = totalGainLoss >= 0
   const fmt = useCallback((n: number) => formatAmount(n, displayCurrency), [displayCurrency])
   const brokersWithValue = brokerValues.filter(b => b.value > 0)
-  const chartData = historyData.map((p, i) => ({ x: i, value: p.value }))
+  const chartData = useMemo(
+    () => historyData.map((p, i) => ({ x: i, value: p.value })),
+    [historyData]
+  )
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -98,7 +101,6 @@ export default function DashboardScreen() {
                         color={accent}
                         strokeWidth={2}
                         curveType="natural"
-                        animate={{ type: 'timing', duration: 500 }}
                       />
                     )}
                   </CartesianChart>

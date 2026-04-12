@@ -33,14 +33,16 @@ export function AddBrokerDialog({ isOpen, onOpenChange, onAdd }: AddBrokerDialog
     onOpenChange(false)
   }, [name, color, onAdd, reset, onOpenChange, _])
 
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open) reset()
+      onOpenChange(open)
+    },
+    [reset, onOpenChange]
+  )
+
   return (
-    <Dialog
-      isOpen={isOpen}
-      onOpenChange={open => {
-        if (!open) reset()
-        onOpenChange(open)
-      }}
-    >
+    <Dialog isOpen={isOpen} onOpenChange={handleOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay />
         <KeyboardAvoidingView
