@@ -193,8 +193,11 @@ export default function DashboardScreen() {
             <View className="flex-row">
               <View className="flex-1 pr-3">
                 <Text className="text-muted text-xs mb-2">{_('topGainers')}</Text>
-                {movers.topGainers.map(m => (
-                  <View key={m.symbol} className="flex-row justify-between items-center py-1">
+                {movers.topGainers.map((m, i) => (
+                  <View
+                    key={`gainer-${m.symbol}-${i}`}
+                    className="flex-row justify-between items-center py-1"
+                  >
                     <Text className="text-foreground text-sm font-semibold">{m.symbol}</Text>
                     <Text className="text-success text-sm font-semibold">
                       {m.pnlPercent >= 0 ? '+' : ''}
@@ -209,8 +212,11 @@ export default function DashboardScreen() {
               />
               <View className="flex-1 pl-3">
                 <Text className="text-muted text-xs mb-2">{_('topLosers')}</Text>
-                {movers.topLosers.map(m => (
-                  <View key={m.symbol} className="flex-row justify-between items-center py-1">
+                {movers.topLosers.map((m, i) => (
+                  <View
+                    key={`loser-${m.symbol}-${i}`}
+                    className="flex-row justify-between items-center py-1"
+                  >
                     <Text className="text-foreground text-sm font-semibold">{m.symbol}</Text>
                     <Text className="text-danger text-sm font-semibold">
                       {m.pnlPercent >= 0 ? '+' : ''}
