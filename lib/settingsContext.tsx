@@ -1,8 +1,7 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { useColorScheme } from 'react-native'
-import { Uniwind } from 'uniwind'
+import { Uniwind, useUniwind } from 'uniwind'
 import i18n from './i18n'
 import type { DisplayCurrency } from './currency'
 import type { Language } from './i18n'
@@ -23,31 +22,38 @@ interface SettingsContextValue extends Settings {
   setThemePreference: (theme: ThemePreference) => void
   setCurrency: (currency: DisplayCurrency) => void
   setDomicile: (domicile: Domicile) => void
+  /** 'light' | 'dark' — the theme currently applied after adaptive resolution. */
   resolvedTheme: 'light' | 'dark'
   isLoaded: boolean
 }
 
 const STORAGE_KEY = 'grosio_settings'
 
+// New users start on 'system' so the app follows the OS setting out of the
+// box (per Expo's `userInterfaceStyle: "automatic"` convention). Users can
+// pin 'light' or 'dark' from Settings → Theme at any time.
 const defaults: Settings = {
   language: 'en',
-  themePreference: 'dark',
+  themePreference: 'system',
   currency: 'EUR',
   domicile: 'SK',
 }
 
-// Eagerly apply the default theme at module load so the very first paint
-// is already in the right colours — if we only called setTheme inside a
-// useEffect, the first render would use Uniwind's OS-derived default and
-// the background would flash (or stay) white on light-mode devices.
+// Apply the stored preference to Uniwind at module load so the very first
+// paint uses the right palette. Uniwind accepts 'light' | 'dark' | 'system'
+// directly; 'system' enables its native adaptive mode, which tracks iOS /
+// Android Appearance changes automatically (no manual `useColorScheme` loop).
 Uniwind.setTheme(defaults.themePreference)
 
 const SettingsContext = createContext<SettingsContextValue | null>(null)
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const systemColorScheme = useColorScheme()
   const [settings, setSettings] = useState<Settings>(defaults)
   const [isLoaded, setIsLoaded] = useState(false)
+  // Uniwind is the single source of truth for the currently *applied* theme.
+  // When themePreference === 'system' it reflects the current OS scheme and
+  // updates automatically; otherwise it's the pinned 'light' | 'dark' value.
+  const { theme: resolvedTheme } = useUniwind()
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)
@@ -67,21 +73,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       .catch(() => setIsLoaded(true))
   }, [])
 
-  const systemTheme = systemColorScheme === 'light' ? 'light' : 'dark'
-  const resolvedTheme: 'light' | 'dark' =
-    settings.themePreference === 'system' ? systemTheme : settings.themePreference
-
-  // Sync the resolved theme into Uniwind. `useLayoutEffect` fires
-  // synchronously after render but before paint, which avoids a white-flash
-  // on dark-mode users with a light-mode OS while also not triggering a
-  // re-style of already-mounted components during render (React warns
-  // about setState-in-render otherwise). The eager module-load call above
-  // handles the very first paint.
+  // Sync Uniwind whenever the user's stored preference changes. `useLayoutEffect`
+  // fires synchronously before paint so transitions between themes don't flash.
   useLayoutEffect(() => {
-    if (Uniwind.currentTheme !== resolvedTheme) {
-      Uniwind.setTheme(resolvedTheme)
-    }
-  }, [resolvedTheme])
+    Uniwind.setTheme(settings.themePreference)
+  }, [settings.themePreference])
 
   const save = (next: Settings) => {
     setSettings(next)

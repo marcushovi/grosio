@@ -3,15 +3,10 @@ import { LayoutDashboard, Briefcase, Settings, ShieldCheck } from 'lucide-react-
 import { useThemeColor } from 'heroui-native'
 import * as Haptics from 'expo-haptics'
 import { useT } from '../../lib/t'
-import { useSettings } from '../../lib/settingsContext'
 
 export default function AppLayout() {
   const { _ } = useT()
-  const { resolvedTheme } = useSettings()
   const [bg, border, accent, muted] = useThemeColor(['background', 'border', 'accent', 'muted'])
-
-  // Native scene bg must use a static value keyed on theme, not a CSS variable
-  const sceneBg = resolvedTheme === 'dark' ? '#0a0a0a' : '#f5f5f5'
 
   return (
     <Tabs
@@ -25,7 +20,7 @@ export default function AppLayout() {
         tabBarActiveTintColor: accent,
         tabBarInactiveTintColor: muted,
         tabBarLabelStyle: { fontSize: 12, fontWeight: '500' },
-        sceneStyle: { backgroundColor: sceneBg },
+        sceneStyle: { backgroundColor: bg },
       }}
       screenListeners={{
         tabPress: () => {
