@@ -5,6 +5,7 @@
  */
 export {
   getExchangeRates,
+  areFallbackRates,
   toEur,
   convertToDisplay,
   currencySymbol,

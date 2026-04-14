@@ -47,6 +47,11 @@ export function useBrokers() {
     brokers: data ?? [],
     loading: isPending,
     error: error?.message ?? null,
+    /** Raw TanStack mutations — prefer these for new call sites so the
+     *  caller controls error handling via `onSuccess`/`onError` callbacks. */
+    addBrokerMutation,
+    deleteBrokerMutation,
+    /** Wrapper form kept for callers that still use the bespoke shape. */
     addBroker: async (name: string, color: string): Promise<MutationResult> => {
       try {
         await addBrokerMutation.mutateAsync({ name, color })

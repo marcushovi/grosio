@@ -105,8 +105,12 @@ export default function TaxScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.tax.all })
-    }, [queryClient])
+      const STALE_MS = 1000 * 60 * 15
+      const state = queryClient.getQueryState(queryKeys.tax.data(domicile))
+      if (!state?.dataUpdatedAt || Date.now() - state.dataUpdatedAt > STALE_MS) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.tax.all })
+      }
+    }, [queryClient, domicile])
   )
 
   if (isPending && !summary) {

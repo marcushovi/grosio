@@ -1,4 +1,4 @@
-import { Text, ScrollView, Alert, Pressable } from 'react-native'
+import { Text, ScrollView, Alert } from 'react-native'
 import { ListGroup, Separator, useThemeColor } from 'heroui-native'
 import { Button } from 'heroui-native/button'
 import { useRouter } from 'expo-router'
@@ -51,83 +51,73 @@ export default function SettingsScreen() {
         {/* Account */}
         <Text className="text-muted text-xs mb-2 px-1">{_('profile')}</Text>
         <ListGroup className="mb-6">
-          <Pressable onPress={() => navigate('/(app)/(settings)/profile')}>
-            <ListGroup.Item disabled>
-              <ListGroup.ItemPrefix>
-                <User size={20} color={foreground} />
-              </ListGroup.ItemPrefix>
-              <ListGroup.ItemContent>
-                <ListGroup.ItemTitle>{_('profile')}</ListGroup.ItemTitle>
-              </ListGroup.ItemContent>
-              <ListGroup.ItemSuffix />
-            </ListGroup.Item>
-          </Pressable>
+          <ListGroup.Item onPress={() => navigate('/(app)/(settings)/profile')}>
+            <ListGroup.ItemPrefix>
+              <User size={20} color={foreground} />
+            </ListGroup.ItemPrefix>
+            <ListGroup.ItemContent>
+              <ListGroup.ItemTitle>{_('profile')}</ListGroup.ItemTitle>
+            </ListGroup.ItemContent>
+            <ListGroup.ItemSuffix />
+          </ListGroup.Item>
         </ListGroup>
 
         {/* Preferences */}
         <Text className="text-muted text-xs mb-2 px-1">{_('settings')}</Text>
         <ListGroup className="mb-6">
-          <Pressable onPress={() => navigate('/(app)/(settings)/language')}>
-            <ListGroup.Item disabled>
-              <ListGroup.ItemPrefix>
-                <Globe size={20} color={foreground} />
-              </ListGroup.ItemPrefix>
-              <ListGroup.ItemContent>
-                <ListGroup.ItemTitle>{_('language')}</ListGroup.ItemTitle>
-                <ListGroup.ItemDescription>{LANGUAGE_LABELS[language]}</ListGroup.ItemDescription>
-              </ListGroup.ItemContent>
-              <ListGroup.ItemSuffix />
-            </ListGroup.Item>
-          </Pressable>
+          <ListGroup.Item onPress={() => navigate('/(app)/(settings)/language')}>
+            <ListGroup.ItemPrefix>
+              <Globe size={20} color={foreground} />
+            </ListGroup.ItemPrefix>
+            <ListGroup.ItemContent>
+              <ListGroup.ItemTitle>{_('language')}</ListGroup.ItemTitle>
+              <ListGroup.ItemDescription>{LANGUAGE_LABELS[language]}</ListGroup.ItemDescription>
+            </ListGroup.ItemContent>
+            <ListGroup.ItemSuffix />
+          </ListGroup.Item>
 
           <Separator className="mx-4" />
 
-          <Pressable onPress={() => navigate('/(app)/(settings)/theme')}>
-            <ListGroup.Item disabled>
-              <ListGroup.ItemPrefix>
-                <Palette size={20} color={foreground} />
-              </ListGroup.ItemPrefix>
-              <ListGroup.ItemContent>
-                <ListGroup.ItemTitle>{_('theme')}</ListGroup.ItemTitle>
-                <ListGroup.ItemDescription>{themeLabel}</ListGroup.ItemDescription>
-              </ListGroup.ItemContent>
-              <ListGroup.ItemSuffix />
-            </ListGroup.Item>
-          </Pressable>
+          <ListGroup.Item onPress={() => navigate('/(app)/(settings)/theme')}>
+            <ListGroup.ItemPrefix>
+              <Palette size={20} color={foreground} />
+            </ListGroup.ItemPrefix>
+            <ListGroup.ItemContent>
+              <ListGroup.ItemTitle>{_('theme')}</ListGroup.ItemTitle>
+              <ListGroup.ItemDescription>{themeLabel}</ListGroup.ItemDescription>
+            </ListGroup.ItemContent>
+            <ListGroup.ItemSuffix />
+          </ListGroup.Item>
 
           <Separator className="mx-4" />
 
-          <Pressable onPress={() => navigate('/(app)/(settings)/display-currency')}>
-            <ListGroup.Item disabled>
-              <ListGroup.ItemPrefix>
-                <Coins size={20} color={foreground} />
-              </ListGroup.ItemPrefix>
-              <ListGroup.ItemContent>
-                <ListGroup.ItemTitle>{_('displayCurrency')}</ListGroup.ItemTitle>
-                <ListGroup.ItemDescription>
-                  {currencySymbol(currency)} {currency}
-                </ListGroup.ItemDescription>
-              </ListGroup.ItemContent>
-              <ListGroup.ItemSuffix />
-            </ListGroup.Item>
-          </Pressable>
+          <ListGroup.Item onPress={() => navigate('/(app)/(settings)/display-currency')}>
+            <ListGroup.ItemPrefix>
+              <Coins size={20} color={foreground} />
+            </ListGroup.ItemPrefix>
+            <ListGroup.ItemContent>
+              <ListGroup.ItemTitle>{_('displayCurrency')}</ListGroup.ItemTitle>
+              <ListGroup.ItemDescription>
+                {currencySymbol(currency)} {currency}
+              </ListGroup.ItemDescription>
+            </ListGroup.ItemContent>
+            <ListGroup.ItemSuffix />
+          </ListGroup.Item>
 
           <Separator className="mx-4" />
 
-          <Pressable onPress={() => navigate('/(app)/(settings)/domicile')}>
-            <ListGroup.Item disabled>
-              <ListGroup.ItemPrefix>
-                <ShieldCheck size={20} color={foreground} />
-              </ListGroup.ItemPrefix>
-              <ListGroup.ItemContent>
-                <ListGroup.ItemTitle>{_('domicile')}</ListGroup.ItemTitle>
-                <ListGroup.ItemDescription>
-                  {domicile === 'SK' ? _('domicileSK') : _('domicileCZ')}
-                </ListGroup.ItemDescription>
-              </ListGroup.ItemContent>
-              <ListGroup.ItemSuffix />
-            </ListGroup.Item>
-          </Pressable>
+          <ListGroup.Item onPress={() => navigate('/(app)/(settings)/domicile')}>
+            <ListGroup.ItemPrefix>
+              <ShieldCheck size={20} color={foreground} />
+            </ListGroup.ItemPrefix>
+            <ListGroup.ItemContent>
+              <ListGroup.ItemTitle>{_('domicile')}</ListGroup.ItemTitle>
+              <ListGroup.ItemDescription>
+                {domicile === 'SK' ? _('domicileSK') : _('domicileCZ')}
+              </ListGroup.ItemDescription>
+            </ListGroup.ItemContent>
+            <ListGroup.ItemSuffix />
+          </ListGroup.Item>
         </ListGroup>
 
         <Button variant="danger" size="lg" onPress={handleLogout} className="w-full">

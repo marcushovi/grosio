@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { View, Text, FlatList, Alert, RefreshControl } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Card } from 'heroui-native/card'
 import { Button } from 'heroui-native/button'
 import { useThemeColor } from 'heroui-native'
@@ -23,6 +23,7 @@ import { useT } from '../../../lib/t'
 import { AddPositionDialog } from '../../../components/AddPositionDialog'
 import { EmptyState } from '../../../components/EmptyState'
 import { LastUpdated } from '../../../components/LastUpdated'
+import { LoadingState } from '../../../components/LoadingState'
 import { Screen } from '../../../components/Screen'
 import type { PositionWithPrice, PositionCurrency } from '../../../types'
 
@@ -42,6 +43,7 @@ export default function BrokerDetailScreen() {
   ])
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
+  const queryClient = useQueryClient()
   const { brokers, loading: brokersLoading } = useBrokers()
   const { positions, loading, addPosition, deletePosition } = usePositions(id)
   const broker = brokers.find(b => b.id === id)
@@ -60,7 +62,14 @@ export default function BrokerDetailScreen() {
   } = useQuery<PricesAndRates, Error>({
     queryKey: queryKeys.prices.quotes(symbols),
     queryFn: async () => {
-      const [rates, prices] = await Promise.all([getExchangeRates(), fetchPrices(symbols)])
+      const [rates, prices] = await Promise.all([
+        queryClient.fetchQuery({
+          queryKey: queryKeys.exchangeRates.latest(),
+          queryFn: getExchangeRates,
+          staleTime: 1000 * 60 * 60,
+        }),
+        fetchPrices(symbols),
+      ])
       return { rates, prices }
     },
     enabled: symbols.length > 0,
@@ -75,15 +84,8 @@ export default function BrokerDetailScreen() {
       const pv = computePositionValueEur(pos, pricing.prices, pricing.rates)
       const pnl = computePositionPnl(pv, displayCurrency, pricing.rates)
       return {
-        id: pos.id,
-        broker_id: pos.broker_id,
-        user_id: pos.user_id,
-        symbol: pos.symbol,
-        name: pos.name,
-        shares: pos.shares,
-        avg_buy_price: pos.avg_buy_price,
+        ...pos,
         currency: pv.currentCurrency,
-        buy_date: pos.buy_date,
         currentPrice: pv.currentPrice,
         currentValue: pnl.currentValue,
         invested: pnl.invested,
@@ -145,7 +147,11 @@ export default function BrokerDetailScreen() {
   }
 
   if (!broker) {
-    return <Screen>{null}</Screen>
+    return (
+      <Screen>
+        <LoadingState />
+      </Screen>
+    )
   }
 
   return (
@@ -153,7 +159,13 @@ export default function BrokerDetailScreen() {
       {/* Header */}
       <View className="px-5 pt-5 pb-4">
         <View className="flex-row items-center gap-3">
-          <Button variant="ghost" size="sm" isIconOnly onPress={() => router.back()}>
+          <Button
+            variant="ghost"
+            size="sm"
+            isIconOnly
+            onPress={() => router.back()}
+            accessibilityLabel={_('backHome')}
+          >
             <ArrowLeft color={foreground} size={20} />
           </Button>
           <View className="w-3 h-3 rounded-full" style={{ backgroundColor: broker.color }} />
@@ -237,6 +249,7 @@ export default function BrokerDetailScreen() {
                     size="sm"
                     isIconOnly
                     onPress={() => handleDeletePosition(item.id, item.symbol)}
+                    accessibilityLabel={_('deletePosition')}
                   >
                     <Trash2 color={danger} size={16} />
                   </Button>

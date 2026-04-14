@@ -5,33 +5,43 @@ import { Input } from 'heroui-native/input'
 import { Dialog } from 'heroui-native/dialog'
 import { ColorPicker, COLORS } from './ColorPicker'
 import { useT } from '../lib/t'
+import { useBrokers } from '../hooks/useBrokers'
 
 interface AddBrokerDialogProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
-  onAdd: (name: string, color: string) => Promise<{ error: { message: string } | null }>
 }
 
-export function AddBrokerDialog({ isOpen, onOpenChange, onAdd }: AddBrokerDialogProps) {
+export function AddBrokerDialog({ isOpen, onOpenChange }: AddBrokerDialogProps) {
   const { _ } = useT()
+  const { addBrokerMutation } = useBrokers()
   const [name, setName] = useState('')
   const [color, setColor] = useState(COLORS[0])
-  const [saving, setSaving] = useState(false)
 
   const reset = useCallback(() => {
     setName('')
     setColor(COLORS[0])
   }, [])
 
-  const handleAdd = useCallback(async () => {
-    if (!name.trim()) return Alert.alert(_('error'), _('enterBrokerName'))
-    setSaving(true)
-    const { error } = await onAdd(name.trim(), color)
-    setSaving(false)
-    if (error) return Alert.alert(_('error'), error.message)
-    reset()
-    onOpenChange(false)
-  }, [name, color, onAdd, reset, onOpenChange, _])
+  const handleAdd = useCallback(() => {
+    const trimmed = name.trim()
+    if (!trimmed) {
+      Alert.alert(_('error'), _('enterBrokerName'))
+      return
+    }
+    addBrokerMutation.mutate(
+      { name: trimmed, color },
+      {
+        onSuccess: () => {
+          reset()
+          onOpenChange(false)
+        },
+        onError: e => {
+          Alert.alert(_('error'), e instanceof Error ? e.message : String(e))
+        },
+      }
+    )
+  }, [name, color, addBrokerMutation, reset, onOpenChange, _])
 
   const handleOpenChange = useCallback(
     (open: boolean) => {
@@ -40,6 +50,8 @@ export function AddBrokerDialog({ isOpen, onOpenChange, onAdd }: AddBrokerDialog
     },
     [reset, onOpenChange]
   )
+
+  const saving = addBrokerMutation.isPending
 
   return (
     <Dialog isOpen={isOpen} onOpenChange={handleOpenChange}>

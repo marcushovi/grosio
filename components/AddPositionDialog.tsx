@@ -56,6 +56,7 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
   const [selectedCurrency, setSelectedCurrency] = useState<PositionCurrency>('USD')
   const [shares, setShares] = useState('')
   const [price, setPrice] = useState('')
+  const [isPriceManuallyEdited, setIsPriceManuallyEdited] = useState(false)
   const [buyDate, setBuyDate] = useState<Date>(() => new Date())
   const [iosPickerVisible, setIosPickerVisible] = useState(false)
   const [pricingLoading, setPricingLoading] = useState(false)
@@ -76,6 +77,7 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
     setSelectedName('')
     setShares('')
     setPrice('')
+    setIsPriceManuallyEdited(false)
     setSelectedCurrency('USD')
     setBuyDate(new Date())
     setIosPickerVisible(false)
@@ -117,6 +119,9 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
     // consistent whether the user picked today or a past date.
     setSelectedSymbol(symbol)
     setSelectedName(name)
+    // New symbol → fresh auto-fill. Clear any earlier manual-edit flag so the
+    // auto-fetch effect populates the price for the new ticker.
+    setIsPriceManuallyEdited(false)
     setSearchResults([])
     setSearchQuery(name)
   }, [])
@@ -132,7 +137,9 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
       try {
         const result = await getPriceOnDate(selectedSymbol, buyDateIso)
         if (cancelled || !result) return
-        setPrice(result.close.toFixed(2))
+        // Respect the user's manual edit — don't overwrite a typed price when
+        // the buy date changes afterwards. The flag is reset on symbol switch.
+        if (!isPriceManuallyEdited) setPrice(result.close.toFixed(2))
         setSelectedCurrency(result.currency)
       } finally {
         if (!cancelled) setPricingLoading(false)
@@ -142,7 +149,7 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
       cancelled = true
       clearTimeout(timer)
     }
-  }, [selectedSymbol, buyDateIso])
+  }, [selectedSymbol, buyDateIso, isPriceManuallyEdited])
 
   // Android: imperative native date dialog (Material calendar). iOS uses the
   // inline `<DateTimePicker display="compact">` below — doesn't need this.
@@ -161,6 +168,11 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
     if (!selectedSymbol) return Alert.alert(_('error'), _('selectSymbol'))
     if (!shares || parseFloat(shares) <= 0) return Alert.alert(_('error'), _('enterShares'))
     if (!price || parseFloat(price) <= 0) return Alert.alert(_('error'), _('enterPrice'))
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(buyDateIso)) return Alert.alert(_('error'), _('invalidBuyDate'))
+    const parsedDate = new Date(`${buyDateIso}T00:00:00`)
+    if (Number.isNaN(parsedDate.getTime()) || parsedDate > new Date()) {
+      return Alert.alert(_('error'), _('invalidBuyDate'))
+    }
     setSaving(true)
     const { error } = await onAdd({
       symbol: selectedSymbol,
@@ -329,7 +341,10 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
                 <Input
                   placeholder="0.00"
                   value={price}
-                  onChangeText={setPrice}
+                  onChangeText={text => {
+                    setIsPriceManuallyEdited(true)
+                    setPrice(text)
+                  }}
                   keyboardType="decimal-pad"
                 />
               </View>

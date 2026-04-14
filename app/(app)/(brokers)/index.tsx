@@ -29,7 +29,7 @@ export default function BrokersScreen() {
   const accentFg = useThemeColor('accent-foreground') as string
   const router = useRouter()
   const queryClient = useQueryClient()
-  const { brokers, loading, error: brokersError, addBroker, deleteBroker } = useBrokers()
+  const { brokers, loading, error: brokersError, deleteBroker } = useBrokers()
   const { currency: displayCurrency } = useSettings()
   const [dialogOpen, setDialogOpen] = useState(false)
 
@@ -43,7 +43,14 @@ export default function BrokersScreen() {
   } = useQuery<DashboardBase, Error>({
     queryKey: queryKeys.dashboard.data(),
     queryFn: async () => {
-      const [positions, rates] = await Promise.all([fetchAllPositions(), getExchangeRates()])
+      const [positions, rates] = await Promise.all([
+        fetchAllPositions(),
+        queryClient.fetchQuery({
+          queryKey: queryKeys.exchangeRates.latest(),
+          queryFn: getExchangeRates,
+          staleTime: 1000 * 60 * 60,
+        }),
+      ])
       const symbols = [...new Set(positions.map(p => p.symbol))]
       const priceMap = await fetchPrices(symbols)
       return computeDashboardBase(brokers, positions, priceMap, rates)
@@ -56,12 +63,21 @@ export default function BrokersScreen() {
     [dashboardBase, displayCurrency]
   )
 
-  // Refresh data when the tab regains focus so new data from the detail
-  // screen (add/delete position) shows up here.
+  // Refresh on tab focus, but only when the cached data is actually stale.
+  // `staleTime: 15m` on the queryClient is a hint we should honour — invalidating
+  // unconditionally defeats that and forces a pointless refetch every nav.
   useFocusEffect(
     useCallback(() => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.brokers.all })
-      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all })
+      const STALE_MS = 1000 * 60 * 15
+      const now = Date.now()
+      const brokersState = queryClient.getQueryState(queryKeys.brokers.list())
+      const dashboardState = queryClient.getQueryState(queryKeys.dashboard.data())
+      if (!brokersState?.dataUpdatedAt || now - brokersState.dataUpdatedAt > STALE_MS) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.brokers.all })
+      }
+      if (!dashboardState?.dataUpdatedAt || now - dashboardState.dataUpdatedAt > STALE_MS) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all })
+      }
     }, [queryClient])
   )
 
@@ -146,7 +162,7 @@ export default function BrokersScreen() {
         />
       )}
 
-      <AddBrokerDialog isOpen={dialogOpen} onOpenChange={setDialogOpen} onAdd={addBroker} />
+      <AddBrokerDialog isOpen={dialogOpen} onOpenChange={setDialogOpen} />
     </Screen>
   )
 }

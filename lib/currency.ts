@@ -9,9 +9,6 @@ export interface ExchangeRates {
   timestamp: number
 }
 
-let memCache: ExchangeRates | null = null
-const CACHE_TTL_MS = 60 * 60 * 1000
-
 const LOCALE_MAP: Record<string, string> = {
   en: 'en-US',
   sk: 'sk-SK',
@@ -23,25 +20,30 @@ function getLocale(): string {
   return LOCALE_MAP[i18n.language] ?? 'en-US'
 }
 
+/** Pure fetch — no internal caching. Callers wrap with TanStack Query
+ *  (`queryKeys.exchangeRates.latest()`, `staleTime: 1h`) so there's a single
+ *  cache layer the rest of the data layer can observe and invalidate. */
 export async function getExchangeRates(): Promise<ExchangeRates> {
-  const now = Date.now()
-  if (memCache && now - memCache.timestamp < CACHE_TTL_MS) {
-    return memCache
-  }
   try {
     const res = await fetch('https://api.frankfurter.app/latest?from=EUR&to=USD,CZK')
     if (!res.ok) throw new Error('Frankfurter fetch failed')
     const data = await res.json()
-    const rates: ExchangeRates = {
+    return {
       eurUsd: data.rates?.USD ?? 1.08,
       eurCzk: data.rates?.CZK ?? 25.3,
-      timestamp: now,
+      timestamp: Date.now(),
     }
-    memCache = rates
-    return rates
   } catch {
-    return memCache ?? { eurUsd: 1.08, eurCzk: 25.3, timestamp: 0 }
+    // Surface as "fallback" rates (timestamp: 0). UI checks via
+    // `areFallbackRates` and renders a banner when they're shown.
+    return { eurUsd: 1.08, eurCzk: 25.3, timestamp: 0 }
   }
+}
+
+/** Did `getExchangeRates` fall back to its hardcoded defaults?
+ *  True when the network call failed and no cached rates were available. */
+export function areFallbackRates(rates: ExchangeRates): boolean {
+  return rates.timestamp === 0
 }
 
 /** Convert a position value from its original currency to EUR (base).

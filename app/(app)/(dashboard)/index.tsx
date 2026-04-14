@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { View, Text, ScrollView, RefreshControl, Pressable } from 'react-native'
+import { View, Text, ScrollView, RefreshControl, Pressable, StyleSheet } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useThemeColor } from 'heroui-native'
@@ -11,7 +11,12 @@ import { useSettings } from '../../../lib/settingsContext'
 import { queryKeys } from '../../../lib/queryKeys'
 import { fetchAllPositions } from '../../../lib/api/positions'
 import { fetchPrices } from '../../../lib/api/prices'
-import { getExchangeRates, formatAmount, formatGainLoss } from '../../../lib/api/currency'
+import {
+  getExchangeRates,
+  areFallbackRates,
+  formatAmount,
+  formatGainLoss,
+} from '../../../lib/api/currency'
 import {
   computeDashboardBase,
   projectDashboardToDisplay,
@@ -44,7 +49,14 @@ export default function DashboardScreen() {
   } = useQuery<DashboardBase, Error>({
     queryKey: queryKeys.dashboard.data(),
     queryFn: async () => {
-      const [positions, rates] = await Promise.all([fetchAllPositions(), getExchangeRates()])
+      const [positions, rates] = await Promise.all([
+        fetchAllPositions(),
+        queryClient.fetchQuery({
+          queryKey: queryKeys.exchangeRates.latest(),
+          queryFn: getExchangeRates,
+          staleTime: 1000 * 60 * 60,
+        }),
+      ])
       const symbols = [...new Set(positions.map(p => p.symbol))]
       const priceMap = await fetchPrices(symbols)
       return computeDashboardBase(brokers, positions, priceMap, rates)
@@ -112,16 +124,27 @@ export default function DashboardScreen() {
           <LastUpdated timestamp={dataUpdatedAt} />
         </View>
 
-        {error ? (
-          <Card className="bg-surface mb-4">
-            <Card.Body className="items-center">
-              <Text className="text-danger text-center mb-2">{error.message}</Text>
-              <Text className="text-accent" onPress={() => refetchDashboard()}>
-                {_('tryAgain')}
-              </Text>
-            </Card.Body>
-          </Card>
-        ) : null}
+        {error
+          ? (() => {
+              console.warn('[dashboard] query error:', error.message)
+              return (
+                <Card className="bg-surface mb-4">
+                  <Card.Body className="items-center">
+                    <Text className="text-danger text-center mb-2">{_('error')}</Text>
+                    <Text className="text-accent" onPress={() => refetchDashboard()}>
+                      {_('tryAgain')}
+                    </Text>
+                  </Card.Body>
+                </Card>
+              )
+            })()
+          : null}
+
+        {dashboardBase && areFallbackRates(dashboardBase.rates) && (
+          <View className="bg-surface rounded-xl px-3 py-2 mb-3 flex-row items-center gap-2">
+            <Text className="text-warning text-xs">{_('ratesFallback')}</Text>
+          </View>
+        )}
 
         {/* Total value */}
         <Card className="bg-surface mb-4">
@@ -158,7 +181,10 @@ export default function DashboardScreen() {
                   </View>
                 ))}
               </View>
-              <View className="my-1" style={{ width: 0.5, backgroundColor: border }} />
+              <View
+                className="my-1"
+                style={{ width: StyleSheet.hairlineWidth, backgroundColor: border }}
+              />
               <View className="flex-1 pl-3">
                 <Text className="text-muted text-xs mb-2">{_('topLosers')}</Text>
                 {movers.topLosers.map(m => (
@@ -192,7 +218,10 @@ export default function DashboardScreen() {
                   {fmt(taxSummary.totalTaxFreeValue)}
                 </Text>
               </View>
-              <View className="my-1" style={{ width: 0.5, backgroundColor: border }} />
+              <View
+                className="my-1"
+                style={{ width: StyleSheet.hairlineWidth, backgroundColor: border }}
+              />
               <View className="flex-1 pl-3 gap-1">
                 <Text className="text-muted text-xs">{_('taxableLabel')}</Text>
                 <Text className="text-danger text-lg font-bold">

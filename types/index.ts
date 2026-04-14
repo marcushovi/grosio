@@ -57,16 +57,7 @@ export interface MoversData {
   topLosers: Mover[]
 }
 
-export interface PositionWithPrice {
-  id: string
-  broker_id: string
-  user_id: string
-  symbol: string
-  name: string
-  shares: number
-  avg_buy_price: number
-  currency: PositionCurrency
-  buy_date: string | null
+export interface PositionWithPrice extends Position {
   currentPrice: number
   currentValue: number
   invested: number
