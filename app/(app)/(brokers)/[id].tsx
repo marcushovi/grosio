@@ -151,7 +151,7 @@ export default function BrokerDetailScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       {/* Header */}
-      <View className="px-5 pt-2 pb-4">
+      <View className="px-5 pt-5 pb-4">
         <View className="flex-row items-center gap-3">
           <Button variant="ghost" size="sm" isIconOnly onPress={() => router.back()}>
             <ArrowLeft color={foreground} size={20} />

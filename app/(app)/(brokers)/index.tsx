@@ -88,7 +88,7 @@ export default function BrokersScreen() {
   if (loading && brokers.length === 0) {
     return (
       <SafeAreaView className="flex-1 bg-background">
-        <View className="px-5 pt-4 pb-2 flex-row justify-between items-center mb-4">
+        <View className="px-5 pt-5 pb-4 flex-row justify-between items-center">
           <Text className="text-foreground text-3xl font-bold">{_('brokers')}</Text>
         </View>
       </SafeAreaView>
@@ -108,7 +108,7 @@ export default function BrokersScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <View className="px-5 pt-4 pb-2 mb-4">
+      <View className="px-5 pt-5 pb-4">
         <View className="flex-row justify-between items-center">
           <Text className="text-foreground text-3xl font-bold">{_('brokers')}</Text>
           <Button variant="primary" size="sm" onPress={() => setDialogOpen(true)}>

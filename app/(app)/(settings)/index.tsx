@@ -45,7 +45,7 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <ScrollView contentContainerStyle={{ padding: 20 }}>
+      <ScrollView contentContainerClassName="p-5">
         <Text className="text-foreground text-3xl font-bold mb-6">{_('settings')}</Text>
 
         {/* Account */}
