@@ -31,6 +31,7 @@ export function usePositions(brokerId?: string) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.positions.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.tax.all }),
       ])
     },
   })
@@ -41,6 +42,7 @@ export function usePositions(brokerId?: string) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.positions.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.tax.all }),
       ])
     },
   })

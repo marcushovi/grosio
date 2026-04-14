@@ -67,8 +67,11 @@ function computeMoversBase(
   }
   const sorted = [...movers].sort((a, b) => b.pnlPercent - a.pnlPercent)
   return {
-    topGainers: sorted.slice(0, 3),
-    topLosers: sorted.slice(-3).reverse(),
+    topGainers: sorted.filter(m => m.pnlPercent > 0).slice(0, 3),
+    topLosers: sorted
+      .filter(m => m.pnlPercent < 0)
+      .slice(-3)
+      .reverse(),
   }
 }
 

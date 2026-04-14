@@ -11,6 +11,17 @@ export async function fetchBrokers(): Promise<Broker[]> {
   return (data ?? []) as Broker[]
 }
 
+/** Fetch a single broker by id. Returns `null` when the row doesn't exist
+ *  (RLS-filtered-out or deleted) — other errors still throw. */
+export async function fetchBrokerById(id: string): Promise<Broker | null> {
+  const { data, error } = await supabase.from('brokers').select('*').eq('id', id).single()
+  if (error) {
+    if (error.code === 'PGRST116') return null // no rows
+    throw new Error(error.message)
+  }
+  return data as Broker
+}
+
 /** Insert a broker owned by the current user. */
 export async function insertBroker(name: string, color: string): Promise<void> {
   const userId = await getAuthUserId()

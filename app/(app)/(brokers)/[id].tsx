@@ -6,9 +6,9 @@ import { Card } from 'heroui-native/card'
 import { Button } from 'heroui-native/button'
 import { useThemeColor } from 'heroui-native'
 import { ArrowLeft, Plus, TrendingUp, TrendingDown, Trash2 } from 'lucide-react-native'
-import { useBrokers } from '../../../hooks/useBrokers'
 import { usePositions } from '../../../hooks/usePositions'
 import { queryKeys } from '../../../lib/queryKeys'
+import { fetchBrokerById } from '../../../lib/api/brokers'
 import { fetchPrices, type PriceMap } from '../../../lib/api/prices'
 import {
   getExchangeRates,
@@ -44,9 +44,16 @@ export default function BrokerDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
   const queryClient = useQueryClient()
-  const { brokers, loading: brokersLoading } = useBrokers()
   const { positions, loading, addPosition, deletePosition } = usePositions(id)
-  const broker = brokers.find(b => b.id === id)
+
+  // Targeted single-row fetch instead of pulling the entire brokers list and
+  // `.find()`-ing. The deletion cascade on the brokers list query already
+  // invalidates `queryKeys.brokers.all`, which covers this key too.
+  const { data: broker, isLoading: brokerLoading } = useQuery({
+    queryKey: queryKeys.brokers.byId(id ?? ''),
+    queryFn: () => fetchBrokerById(id as string),
+    enabled: !!id,
+  })
 
   const [dialogOpen, setDialogOpen] = useState(false)
 
@@ -138,7 +145,7 @@ export default function BrokerDetailScreen() {
   const isGain = totalGL >= 0
   const pricesLoading = pricesPending && symbols.length > 0
 
-  if (!id || (!broker && !brokersLoading)) {
+  if (!id || (!broker && !brokerLoading)) {
     return (
       <Screen className="justify-center items-center">
         <Text className="text-muted">{_('brokerNotFound')}</Text>

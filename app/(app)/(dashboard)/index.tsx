@@ -263,7 +263,11 @@ export default function DashboardScreen() {
                 {brokersWithValue.map(b => (
                   <View
                     key={b.brokerId}
-                    style={{ flex: b.value / totalValue, backgroundColor: b.color }}
+                    style={{
+                      flexGrow: b.value / totalValue,
+                      flexBasis: 0,
+                      backgroundColor: b.color,
+                    }}
                   />
                 ))}
               </View>

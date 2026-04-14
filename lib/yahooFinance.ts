@@ -31,6 +31,20 @@ function logError(context: string, error: unknown): void {
   console.warn(`[yahooFinance:${context}]`, error instanceof Error ? error.message : String(error))
 }
 
+/** Log a non-2xx response from the Edge Function with the body so 401/500
+ *  failures don't silently collapse into empty result arrays. Attempts to
+ *  parse the body as JSON (the edge function responds with `{ error }`);
+ *  falls back to the raw text otherwise. */
+async function logHttpFailure(context: string, res: Response): Promise<void> {
+  let body: string
+  try {
+    body = await res.clone().text()
+  } catch {
+    body = '<unreadable>'
+  }
+  console.warn(`[yahooFinance:${context}] HTTP ${res.status} ${res.statusText}: ${body}`)
+}
+
 /** Narrow whatever currency string Yahoo returned to the app's supported set.
  *  EUR / USD / CZK pass through; everything else (GBP, JPY, CHF, ...) collapses
  *  to USD so downstream FX math stays exhaustive. A misclassified GBP position
@@ -57,7 +71,10 @@ export async function getQuote(symbol: string): Promise<QuoteResult | null> {
       `${EDGE_FUNCTION_URL}?action=quote&symbol=${encodeURIComponent(symbol)}`,
       { headers }
     )
-    if (!res.ok) return null
+    if (!res.ok) {
+      await logHttpFailure('getQuote', res)
+      return null
+    }
     const data = await res.json()
     const quote = data?.quote
     if (!quote) return null
@@ -77,7 +94,10 @@ export async function getQuotes(symbols: string[]): Promise<QuoteResult[]> {
     const res = await fetch(`${EDGE_FUNCTION_URL}?action=quotes&q=${q}`, {
       headers,
     })
-    if (!res.ok) return []
+    if (!res.ok) {
+      await logHttpFailure('getQuotes', res)
+      return []
+    }
     const data = await res.json()
     const raw = Array.isArray(data) ? data : []
     return raw.map(q => ({ ...q, currency: narrowCurrency(q?.currency) })) as QuoteResult[]
@@ -108,7 +128,10 @@ export async function getPriceOnDate(symbol: string, date: string): Promise<Pric
       `${EDGE_FUNCTION_URL}?action=priceOnDate&symbol=${encodeURIComponent(symbol)}&date=${encodeURIComponent(date)}`,
       { headers }
     )
-    if (!res.ok) return null
+    if (!res.ok) {
+      await logHttpFailure('getPriceOnDate', res)
+      return null
+    }
     const data = await res.json()
     if (typeof data?.close !== 'number') return null
     return { ...data, currency: narrowCurrency(data.currency) } as PriceOnDate
@@ -127,7 +150,10 @@ export async function searchSymbols(
     const res = await fetch(`${EDGE_FUNCTION_URL}?action=search&q=${encodeURIComponent(query)}`, {
       headers,
     })
-    if (!res.ok) return []
+    if (!res.ok) {
+      await logHttpFailure('searchSymbols', res)
+      return []
+    }
     const data = await res.json()
     return data?.quotes ?? []
   } catch (error) {

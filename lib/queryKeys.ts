@@ -15,6 +15,7 @@ export const queryKeys = {
   brokers: {
     all: ['brokers'] as const,
     list: () => [...queryKeys.brokers.all, 'list'] as const,
+    byId: (id: string) => [...queryKeys.brokers.all, 'detail', id] as const,
   },
   positions: {
     all: ['positions'] as const,

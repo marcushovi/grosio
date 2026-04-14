@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
-import { View, Text, Pressable, Modal } from 'react-native'
+import { View, Text, Pressable, Modal, StyleSheet } from 'react-native'
 import { useThemeColor } from 'heroui-native'
 import * as Haptics from 'expo-haptics'
 import { currencySymbol } from '../lib/currency'
@@ -56,11 +56,14 @@ export function CurrencyPicker() {
         <Pressable className="flex-1" onPress={() => setMenuOpen(false)}>
           <View
             className="absolute min-w-40 rounded-xl py-1 shadow-md"
-            style={{
-              top: menuPos.top,
-              right: menuPos.right,
-              backgroundColor: surface,
-            }}
+            style={[
+              styles.dropdown,
+              {
+                top: menuPos.top,
+                right: menuPos.right,
+                backgroundColor: surface,
+              },
+            ]}
           >
             {CURRENCIES.map(c => (
               <Pressable
@@ -90,3 +93,12 @@ export function CurrencyPicker() {
     </>
   )
 }
+
+// Explicit Android elevation on top of the iOS shadow-md. `shadow-md`'s
+// Android-elevation mapping is weak on older devices — an explicit value
+// guarantees the dropdown floats above list content and tab bars.
+const styles = StyleSheet.create({
+  dropdown: {
+    elevation: 8,
+  },
+})

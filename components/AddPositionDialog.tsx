@@ -7,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  StyleSheet,
 } from 'react-native'
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker'
 import { Button } from 'heroui-native/button'
@@ -253,7 +254,10 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
                 )}
 
                 {searchResults.length > 0 && (
-                  <View className="absolute top-full left-0 right-0 mt-1 z-20 bg-surface rounded-xl border border-border shadow-lg">
+                  <View
+                    className="absolute top-full left-0 right-0 mt-1 z-20 bg-surface rounded-xl border border-border shadow-lg"
+                    style={styles.searchDropdown}
+                  >
                     {searchResults.slice(0, 5).map((r, i) => (
                       <View key={r.symbol}>
                         {i > 0 && <Separator />}
@@ -380,3 +384,12 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
     </Dialog>
   )
 }
+
+// Explicit Android elevation — the floating search-results dropdown needs to
+// render above the form fields beneath it, which `shadow-lg`'s elevation
+// mapping doesn't reliably provide on older Android.
+const styles = StyleSheet.create({
+  searchDropdown: {
+    elevation: 8,
+  },
+})
