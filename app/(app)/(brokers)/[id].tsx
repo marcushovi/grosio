@@ -24,7 +24,7 @@ import { AddPositionDialog } from '../../../components/AddPositionDialog'
 import { EmptyState } from '../../../components/EmptyState'
 import { LastUpdated } from '../../../components/LastUpdated'
 import { Screen } from '../../../components/Screen'
-import type { PositionWithPrice } from '../../../types'
+import type { PositionWithPrice, PositionCurrency } from '../../../types'
 
 interface PricesAndRates {
   prices: PriceMap
@@ -116,7 +116,7 @@ export default function BrokerDetailScreen() {
       name: string
       shares: number
       avg_buy_price: number
-      currency: string
+      currency: PositionCurrency
       buy_date: string
     }) => {
       if (typeof id !== 'string') return { error: { message: 'Invalid broker' } }

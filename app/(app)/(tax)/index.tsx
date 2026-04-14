@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { View, Text, ScrollView, RefreshControl, Pressable } from 'react-native'
 import { useFocusEffect } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
@@ -15,7 +15,7 @@ import { useT } from '../../../lib/t'
 import { useSettings } from '../../../lib/settingsContext'
 import { queryKeys } from '../../../lib/queryKeys'
 import { formatAmount } from '../../../lib/api/currency'
-import type { PositionTaxStatus } from '../../../lib/tax'
+import { projectTaxSummaryToDisplay, type PositionTaxStatus } from '../../../lib/tax'
 import type { DisplayCurrency } from '../../../lib/currency'
 import { useTaxSummary } from '../../../hooks/useTaxSummary'
 import { EmptyState } from '../../../components/EmptyState'
@@ -87,7 +87,21 @@ export default function TaxScreen() {
     })
   }, [])
 
-  const { data: summary, isPending, error, refetch, dataUpdatedAt } = useTaxSummary()
+  const {
+    data: summaryBase,
+    isPending,
+    isFetching,
+    error,
+    refetch,
+    dataUpdatedAt,
+  } = useTaxSummary()
+
+  // Project EUR-base tax numbers into the user's display currency. Pure,
+  // cheap math — no refetch when switching EUR/USD/CZK.
+  const summary = useMemo(
+    () => projectTaxSummaryToDisplay(summaryBase, displayCurrency),
+    [summaryBase, displayCurrency]
+  )
 
   useFocusEffect(
     useCallback(() => {
@@ -132,7 +146,7 @@ export default function TaxScreen() {
     <Screen>
       <ScrollView
         contentContainerClassName="p-5"
-        refreshControl={<RefreshControl refreshing={isPending} onRefresh={() => refetch()} />}
+        refreshControl={<RefreshControl refreshing={isFetching} onRefresh={() => refetch()} />}
       >
         <View className="mb-4">
           <View className="flex-row items-center justify-between">

@@ -1,5 +1,5 @@
 import { supabase, getAuthUserId } from '../supabase'
-import type { Position } from '../../types'
+import type { Position, PositionCurrency } from '../../types'
 
 /** Fetch every position the user owns, oldest first. */
 export async function fetchAllPositions(): Promise<Position[]> {
@@ -28,12 +28,15 @@ export interface InsertPositionInput {
   name: string
   shares: number
   avg_buy_price: number
-  currency: string
+  currency: PositionCurrency
   buy_date: string // 'YYYY-MM-DD'
 }
 
 /** Insert a new position owned by the current user. */
 export async function insertPosition(position: InsertPositionInput): Promise<void> {
+  if (position.currency !== 'EUR' && position.currency !== 'USD') {
+    throw new Error(`Unsupported currency: ${position.currency}`)
+  }
   const userId = await getAuthUserId()
   if (!userId) throw new Error('Not authenticated')
   const { error } = await supabase.from('positions').insert({ ...position, user_id: userId })

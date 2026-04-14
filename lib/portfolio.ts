@@ -7,7 +7,7 @@
  * that's how the "profit always shows 0" bug hid in plain sight. Everything
  * goes through these helpers now.
  */
-import type { Position } from '../types'
+import type { Position, PositionCurrency } from '../types'
 import type { ExchangeRates, DisplayCurrency } from './currency'
 import { toEur, convertToDisplay } from './currency'
 import type { QuoteResult } from './yahooFinance'
@@ -22,7 +22,7 @@ export interface PositionValueEur {
   /** Current price per share in `currentCurrency`. */
   currentPrice: number
   /** Currency in which `currentPrice` is expressed. */
-  currentCurrency: string
+  currentCurrency: PositionCurrency
   /** shares × currentPrice, converted to EUR. */
   valueEur: number
   /** shares × avg_buy_price, converted to EUR. */

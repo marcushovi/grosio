@@ -8,7 +8,7 @@
  * FX rates. All math is pure — callers fetch positions/prices/rates via
  * TanStack Query and pass them in.
  */
-import type { Position } from '../types'
+import type { Position, PositionCurrency } from '../types'
 import type { ExchangeRates, DisplayCurrency } from './currency'
 import { toEur, convertToDisplay } from './currency'
 import type { PriceMap } from './portfolio'
@@ -22,6 +22,40 @@ export const TAX_THRESHOLD_DAYS: Record<Domicile, number> = {
   CZ: 1095,
 }
 
+/** EUR-base per-position tax status. Currency-invariant — the tax screen
+ *  projects `currentValueEur` into the display currency in a `useMemo` so
+ *  switching EUR/USD/CZK doesn't refetch prices or FX. */
+export interface PositionTaxStatusBase {
+  position: Position
+  buyDate: Date
+  daysHeld: number
+  thresholdDays: number
+  isTaxFree: boolean
+  daysUntilTaxFree: number
+  currentValueEur: number
+}
+
+export interface BrokerTaxSummaryBase {
+  brokerId: string
+  brokerName: string
+  brokerColor: string
+  taxFreeValueEur: number
+  taxableValueEur: number
+  positions: PositionTaxStatusBase[]
+  unknownDatePositions: Position[]
+}
+
+export interface TaxSummaryBase {
+  totalTaxFreeValueEur: number
+  totalTaxableValueEur: number
+  brokers: BrokerTaxSummaryBase[]
+  domicile: Domicile
+  rates: ExchangeRates
+}
+
+/** Display-currency projection of `PositionTaxStatusBase`. Shape kept
+ *  structurally compatible with the previous `PositionTaxStatus` so the
+ *  tax screen didn't need a prop rename. */
 export interface PositionTaxStatus {
   position: Position
   buyDate: Date
@@ -51,40 +85,27 @@ export interface TaxSummary {
 }
 
 /**
- * Convert an amount in `fromCurrency` into the display currency using the
- * EUR-base FX rates. Composed from existing helpers — positions can be
- * priced in EUR or USD, and display can be any of EUR/USD/CZK, so we
- * normalise to EUR first and then project.
- */
-function toDisplay(
-  amount: number,
-  fromCurrency: string,
-  displayCurrency: DisplayCurrency,
-  rates: ExchangeRates
-): number {
-  return convertToDisplay(toEur(amount, fromCurrency, rates), displayCurrency, rates)
-}
-
-/**
  * Pure computation. Given fetched positions, brokers, a live-price map and
  * FX rates, bucket each position into tax-free / still-taxable for the
- * selected domicile. Positions without a `buy_date` can't be judged and
- * fall into `unknownDatePositions` so the UI can surface them.
+ * selected domicile. Produces values in the EUR base currency — the caller
+ * projects to display currency via `projectTaxSummaryToDisplay`, keeping
+ * the query cache display-currency-invariant. Positions without a `buy_date`
+ * can't be judged and fall into `unknownDatePositions` so the UI can surface
+ * them.
  */
-export function computeTaxStatus(
+export function computeTaxStatusBase(
   positions: Position[],
   brokers: { id: string; name: string; color: string }[],
   domicile: Domicile,
-  displayCurrency: DisplayCurrency,
   rates: ExchangeRates,
   priceMap: PriceMap
-): TaxSummary {
+): TaxSummaryBase {
   const threshold = TAX_THRESHOLD_DAYS[domicile]
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  let totalTaxFree = 0
-  let totalTaxable = 0
+  let totalTaxFreeEur = 0
+  let totalTaxableEur = 0
 
   const positionsByBroker = new Map<string, Position[]>()
   for (const broker of brokers) {
@@ -96,12 +117,12 @@ export function computeTaxStatus(
     positionsByBroker.set(pos.broker_id, arr)
   }
 
-  const brokerSummaries: BrokerTaxSummary[] = brokers.map(broker => {
+  const brokerSummaries: BrokerTaxSummaryBase[] = brokers.map(broker => {
     const bPositions = positionsByBroker.get(broker.id) ?? []
-    const taxStatuses: PositionTaxStatus[] = []
+    const taxStatuses: PositionTaxStatusBase[] = []
     const unknownDate: Position[] = []
-    let bTaxFree = 0
-    let bTaxable = 0
+    let bTaxFreeEur = 0
+    let bTaxableEur = 0
 
     for (const pos of bPositions) {
       if (!pos.buy_date) {
@@ -118,20 +139,15 @@ export function computeTaxStatus(
       const quote = priceMap[pos.symbol]
       const hasLivePrice = quote != null && Number.isFinite(quote.price) && quote.price > 0
       const price = hasLivePrice ? quote.price : pos.avg_buy_price
-      const positionCurrency = hasLivePrice ? quote.currency : pos.currency
-      const currentValueDisplay = toDisplay(
-        pos.shares * price,
-        positionCurrency,
-        displayCurrency,
-        rates
-      )
+      const positionCurrency: PositionCurrency = hasLivePrice ? quote.currency : pos.currency
+      const currentValueEur = toEur(pos.shares * price, positionCurrency, rates)
 
       if (isTaxFree) {
-        bTaxFree += currentValueDisplay
-        totalTaxFree += currentValueDisplay
+        bTaxFreeEur += currentValueEur
+        totalTaxFreeEur += currentValueEur
       } else {
-        bTaxable += currentValueDisplay
-        totalTaxable += currentValueDisplay
+        bTaxableEur += currentValueEur
+        totalTaxableEur += currentValueEur
       }
 
       taxStatuses.push({
@@ -141,7 +157,7 @@ export function computeTaxStatus(
         thresholdDays: threshold,
         isTaxFree,
         daysUntilTaxFree,
-        currentValueDisplay,
+        currentValueEur,
       })
     }
 
@@ -155,18 +171,52 @@ export function computeTaxStatus(
       brokerId: broker.id,
       brokerName: broker.name,
       brokerColor: broker.color,
-      taxFreeValue: bTaxFree,
-      taxableValue: bTaxable,
+      taxFreeValueEur: bTaxFreeEur,
+      taxableValueEur: bTaxableEur,
       positions: taxStatuses,
       unknownDatePositions: unknownDate,
     }
   })
 
   return {
-    totalTaxFreeValue: totalTaxFree,
-    totalTaxableValue: totalTaxable,
+    totalTaxFreeValueEur: totalTaxFreeEur,
+    totalTaxableValueEur: totalTaxableEur,
     brokers: brokerSummaries,
     domicile,
+    rates,
+  }
+}
+
+/** Project an EUR-base `TaxSummaryBase` into the requested display currency.
+ *  Pure — no fetches, no React; safe to call from a `useMemo` on every render. */
+export function projectTaxSummaryToDisplay(
+  base: TaxSummaryBase | undefined,
+  displayCurrency: DisplayCurrency
+): TaxSummary | undefined {
+  if (!base) return undefined
+  const project = (amountEur: number): number =>
+    convertToDisplay(amountEur, displayCurrency, base.rates)
+  return {
+    totalTaxFreeValue: project(base.totalTaxFreeValueEur),
+    totalTaxableValue: project(base.totalTaxableValueEur),
+    domicile: base.domicile,
     displayCurrency,
+    brokers: base.brokers.map(b => ({
+      brokerId: b.brokerId,
+      brokerName: b.brokerName,
+      brokerColor: b.brokerColor,
+      taxFreeValue: project(b.taxFreeValueEur),
+      taxableValue: project(b.taxableValueEur),
+      unknownDatePositions: b.unknownDatePositions,
+      positions: b.positions.map(p => ({
+        position: p.position,
+        buyDate: p.buyDate,
+        daysHeld: p.daysHeld,
+        thresholdDays: p.thresholdDays,
+        isTaxFree: p.isTaxFree,
+        daysUntilTaxFree: p.daysUntilTaxFree,
+        currentValueDisplay: project(p.currentValueEur),
+      })),
+    })),
   }
 }

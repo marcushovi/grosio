@@ -36,7 +36,6 @@ export const queryKeys = {
   },
   tax: {
     all: ['tax'] as const,
-    data: (domicile: string, currency: string) =>
-      [...queryKeys.tax.all, domicile, currency] as const,
+    data: (domicile: string) => [...queryKeys.tax.all, domicile] as const,
   },
 } as const

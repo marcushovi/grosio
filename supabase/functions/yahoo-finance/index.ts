@@ -22,15 +22,21 @@ Deno.serve(async req => {
       const yahooUrl = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=8&newsCount=0`
       const res = await fetch(yahooUrl, { headers: { 'User-Agent': UA } })
       const data = await res.json()
-      const quotes = (data?.quotes ?? [])
-        .filter((q: any) => q.quoteType === 'EQUITY' || q.quoteType === 'ETF')
-        .map((q: any) => ({
+      const rawQuotes = (data?.quotes ?? []) as any[]
+      const allowed = ['EQUITY', 'ETF', 'MUTUALFUND', 'CRYPTOCURRENCY', 'INDEX']
+      const quotes = rawQuotes
+        .filter(q => allowed.includes(q.quoteType))
+        .map(q => ({
           symbol: q.symbol ?? '',
           name: q.shortname ?? q.longname ?? q.symbol ?? '',
           exchange: q.exchange ?? '',
           type: q.quoteType ?? '',
         }))
-      return new Response(JSON.stringify({ quotes }), {
+      const body: { quotes: typeof quotes; hint?: string } = { quotes }
+      if (quotes.length === 0 && rawQuotes.length > 0) {
+        body.hint = 'Found results but none match equity/ETF/mutualfund/crypto/index types'
+      }
+      return new Response(JSON.stringify(body), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }

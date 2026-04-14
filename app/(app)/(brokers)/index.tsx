@@ -29,7 +29,7 @@ export default function BrokersScreen() {
   const accentFg = useThemeColor('accent-foreground') as string
   const router = useRouter()
   const queryClient = useQueryClient()
-  const { brokers, loading, error, addBroker, deleteBroker } = useBrokers()
+  const { brokers, loading, error: brokersError, addBroker, deleteBroker } = useBrokers()
   const { currency: displayCurrency } = useSettings()
   const [dialogOpen, setDialogOpen] = useState(false)
 
@@ -38,6 +38,7 @@ export default function BrokersScreen() {
   const {
     data: dashboardBase,
     refetch: refetchDashboard,
+    isFetching,
     dataUpdatedAt,
   } = useQuery<DashboardBase, Error>({
     queryKey: queryKeys.dashboard.data(),
@@ -95,11 +96,11 @@ export default function BrokersScreen() {
     )
   }
 
-  if (error) {
+  if (brokersError) {
     return (
       <Screen>
         <ErrorState
-          message={error}
+          message={brokersError}
           onRetry={() => queryClient.invalidateQueries({ queryKey: queryKeys.brokers.all })}
         />
       </Screen>
@@ -141,7 +142,7 @@ export default function BrokersScreen() {
           }}
           contentContainerClassName="px-5 pb-10"
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={false} onRefresh={onRefresh} />}
+          refreshControl={<RefreshControl refreshing={isFetching} onRefresh={onRefresh} />}
         />
       )}
 

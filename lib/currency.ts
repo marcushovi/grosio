@@ -1,4 +1,5 @@
 import i18n from './i18n'
+import type { PositionCurrency } from '../types'
 
 export type DisplayCurrency = 'EUR' | 'USD' | 'CZK'
 
@@ -44,13 +45,15 @@ export async function getExchangeRates(): Promise<ExchangeRates> {
 }
 
 /** Convert a position value from its original currency to EUR (base).
- *  Only EUR and USD are supported — other currencies pass through as-is
- *  (treated as EUR). This is a known limitation. */
-export function toEur(amount: number, currency: string, rates: ExchangeRates): number {
-  if (currency === 'EUR') return amount
-  if (currency === 'USD') return amount / rates.eurUsd
-  // Unsupported currency — treat as EUR (best-effort)
-  return amount
+ *  Exhaustive over `PositionCurrency` — any broader string is rejected at the
+ *  type level, eliminating the "silently treat GBP as EUR" footgun. */
+export function toEur(amount: number, currency: PositionCurrency, rates: ExchangeRates): number {
+  switch (currency) {
+    case 'EUR':
+      return amount
+    case 'USD':
+      return amount / rates.eurUsd
+  }
 }
 
 /** Convert an EUR amount to the display currency */

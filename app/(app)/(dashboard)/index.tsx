@@ -20,14 +20,16 @@ import {
 import { CurrencyPicker } from '../../../components/CurrencyPicker'
 import { LastUpdated } from '../../../components/LastUpdated'
 import { Screen } from '../../../components/Screen'
+import { ErrorState } from '../../../components/ErrorState'
 import { useTaxSummary } from '../../../hooks/useTaxSummary'
+import { projectTaxSummaryToDisplay } from '../../../lib/tax'
 
 export default function DashboardScreen() {
   const { _ } = useT()
   const [success, danger, muted, border] = useThemeColor(['success', 'danger', 'muted', 'border'])
   const queryClient = useQueryClient()
   const router = useRouter()
-  const { brokers } = useBrokers()
+  const { brokers, error: brokersError } = useBrokers()
   const { currency: displayCurrency } = useSettings()
 
   // EUR-base dashboard aggregate. Currency-invariant so switching display
@@ -58,7 +60,11 @@ export default function DashboardScreen() {
 
   // Tax summary — shown as a brief overview beneath the total. Shares the
   // tax-screen cache (same queryKey) so switching tabs doesn't refetch.
-  const { data: taxSummary } = useTaxSummary()
+  const { data: taxSummaryBase } = useTaxSummary()
+  const taxSummary = useMemo(
+    () => projectTaxSummaryToDisplay(taxSummaryBase, displayCurrency),
+    [taxSummaryBase, displayCurrency]
+  )
 
   const [refreshing, setRefreshing] = useState(false)
   const onRefresh = useCallback(async () => {
@@ -77,6 +83,18 @@ export default function DashboardScreen() {
   const isPositive = totalGainLoss >= 0
   const fmt = useCallback((n: number) => formatAmount(n, displayCurrency), [displayCurrency])
   const brokersWithValue = brokerValues.filter(b => b.value > 0)
+
+  if (brokersError) {
+    return (
+      <Screen>
+        <ErrorState
+          message={brokersError}
+          onRetry={() => queryClient.invalidateQueries({ queryKey: queryKeys.brokers.all })}
+          retryLabel={_('tryAgain')}
+        />
+      </Screen>
+    )
+  }
 
   return (
     <Screen>

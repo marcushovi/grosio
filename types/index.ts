@@ -6,6 +6,12 @@ export interface Broker {
   created_at: string
 }
 
+/** Currencies a stock/ETF can be priced in. Stocks/ETFs on Yahoo Finance are
+ *  overwhelmingly quoted in USD or EUR; anything else is narrowed to USD at
+ *  the Yahoo boundary so the FX rate table (EUR→{USD,CZK} from Frankfurter)
+ *  stays exhaustive. Distinct from `DisplayCurrency`, which also includes CZK. */
+export type PositionCurrency = 'EUR' | 'USD'
+
 export interface Position {
   id: string
   broker_id: string
@@ -14,7 +20,7 @@ export interface Position {
   name: string
   shares: number
   avg_buy_price: number
-  currency: string
+  currency: PositionCurrency
   buy_date: string | null // 'YYYY-MM-DD' or null for legacy rows
   created_at: string
 }
@@ -59,7 +65,7 @@ export interface PositionWithPrice {
   name: string
   shares: number
   avg_buy_price: number
-  currency: string
+  currency: PositionCurrency
   buy_date: string | null
   currentPrice: number
   currentValue: number

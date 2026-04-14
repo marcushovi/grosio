@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import type { PositionCurrency } from '../types'
 
 const EDGE_FUNCTION_URL = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/yahoo-finance`
 const ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_KEY ?? ''
@@ -26,10 +27,23 @@ async function authHeaders(): Promise<Record<string, string> | null> {
   }
 }
 
+function logError(context: string, error: unknown): void {
+  console.warn(`[yahooFinance:${context}]`, error instanceof Error ? error.message : String(error))
+}
+
+/** Narrow whatever currency string Yahoo returned to the app's supported set.
+ *  EUR stays EUR; everything else (USD, GBP, GBp, JPY, ...) collapses to USD
+ *  so downstream FX math stays exhaustive. A safe default: users almost always
+ *  hold USD-denominated tickers, and a misclassified GBP position will at
+ *  least land in a currency we can convert, not get quietly mis-valued. */
+function narrowCurrency(raw: string | null | undefined): PositionCurrency {
+  return raw === 'EUR' ? 'EUR' : 'USD'
+}
+
 export interface QuoteResult {
   symbol: string
   price: number
-  currency: string
+  currency: PositionCurrency
   change: number
   changePercent: number
   name: string
@@ -45,8 +59,11 @@ export async function getQuote(symbol: string): Promise<QuoteResult | null> {
     )
     if (!res.ok) return null
     const data = await res.json()
-    return data?.quote ?? null
-  } catch {
+    const quote = data?.quote
+    if (!quote) return null
+    return { ...quote, currency: narrowCurrency(quote.currency) }
+  } catch (error) {
+    logError('getQuote', error)
     return null
   }
 }
@@ -56,13 +73,16 @@ export async function getQuotes(symbols: string[]): Promise<QuoteResult[]> {
   try {
     const headers = await authHeaders()
     if (!headers) return []
-    const res = await fetch(`${EDGE_FUNCTION_URL}?action=quotes&q=${symbols.join(',')}`, {
+    const q = symbols.map(encodeURIComponent).join(',')
+    const res = await fetch(`${EDGE_FUNCTION_URL}?action=quotes&q=${q}`, {
       headers,
     })
     if (!res.ok) return []
     const data = await res.json()
-    return (Array.isArray(data) ? data : []) as QuoteResult[]
-  } catch {
+    const raw = Array.isArray(data) ? data : []
+    return raw.map(q => ({ ...q, currency: narrowCurrency(q?.currency) })) as QuoteResult[]
+  } catch (error) {
+    logError('getQuotes', error)
     return []
   }
 }
@@ -72,7 +92,7 @@ export interface PriceOnDate {
   /** Actual trading day used (nearest ≤ requested date). */
   date: string // 'YYYY-MM-DD'
   close: number
-  currency: string
+  currency: PositionCurrency
 }
 
 /**
@@ -91,8 +111,9 @@ export async function getPriceOnDate(symbol: string, date: string): Promise<Pric
     if (!res.ok) return null
     const data = await res.json()
     if (typeof data?.close !== 'number') return null
-    return data as PriceOnDate
-  } catch {
+    return { ...data, currency: narrowCurrency(data.currency) } as PriceOnDate
+  } catch (error) {
+    logError('getPriceOnDate', error)
     return null
   }
 }
@@ -109,7 +130,8 @@ export async function searchSymbols(
     if (!res.ok) return []
     const data = await res.json()
     return data?.quotes ?? []
-  } catch {
+  } catch (error) {
+    logError('searchSymbols', error)
     return []
   }
 }

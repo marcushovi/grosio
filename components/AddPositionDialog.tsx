@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import { SearchField, Separator, useThemeColor } from 'heroui-native'
 import { Calendar } from 'lucide-react-native'
 import { getPriceOnDate, searchSymbols } from '../lib/yahooFinance'
 import { useT } from '../lib/t'
+import type { PositionCurrency } from '../types'
 
 interface SearchResult {
   symbol: string
@@ -38,7 +39,7 @@ interface AddPositionDialogProps {
     name: string
     shares: number
     avg_buy_price: number
-    currency: string
+    currency: PositionCurrency
     buy_date: string
   }) => Promise<{ error: { message: string } | null }>
 }
@@ -52,7 +53,7 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
   const [searching, setSearching] = useState(false)
   const [selectedSymbol, setSelectedSymbol] = useState('')
   const [selectedName, setSelectedName] = useState('')
-  const [selectedCurrency, setSelectedCurrency] = useState('USD')
+  const [selectedCurrency, setSelectedCurrency] = useState<PositionCurrency>('USD')
   const [shares, setShares] = useState('')
   const [price, setPrice] = useState('')
   const [buyDate, setBuyDate] = useState<Date>(() => new Date())
@@ -61,6 +62,12 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
   const [saving, setSaving] = useState(false)
 
   const buyDateIso = useMemo(() => toYyyyMmDd(buyDate), [buyDate])
+
+  // Debounce the ticker search + track the latest request id so an earlier
+  // (slower) response can't overwrite the result of a newer query. Without
+  // this, rapid typing produces out-of-order results.
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const searchRequestIdRef = useRef(0)
 
   const reset = useCallback(() => {
     setSearchQuery('')
@@ -74,20 +81,33 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
     setIosPickerVisible(false)
   }, [])
 
-  const handleSearch = useCallback(async (query: string) => {
+  const handleSearch = useCallback((query: string) => {
     setSearchQuery(query)
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
     if (query.length < 2) {
       setSearchResults([])
+      setSearching(false)
       return
     }
     setSearching(true)
-    try {
-      const results = await searchSymbols(query)
-      setSearchResults(results)
-    } catch {
-      setSearchResults([])
-    } finally {
-      setSearching(false)
+    searchTimeoutRef.current = setTimeout(async () => {
+      const reqId = ++searchRequestIdRef.current
+      try {
+        const results = await searchSymbols(query)
+        if (reqId !== searchRequestIdRef.current) return
+        setSearchResults(results)
+      } catch {
+        if (reqId !== searchRequestIdRef.current) return
+        setSearchResults([])
+      } finally {
+        if (reqId === searchRequestIdRef.current) setSearching(false)
+      }
+    }, 300)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
     }
   }, [])
 

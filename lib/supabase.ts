@@ -1,6 +1,7 @@
 import 'react-native-url-polyfill/auto'
 import { createClient } from '@supabase/supabase-js'
 import * as SecureStore from 'expo-secure-store'
+import { AppState } from 'react-native'
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL
 const key = process.env.EXPO_PUBLIC_SUPABASE_KEY
@@ -31,3 +32,14 @@ export async function getAuthUserId(): Promise<string | null> {
   } = await supabase.auth.getSession()
   return session?.user?.id ?? null
 }
+
+// Supabase requires the auto-refresh loop to be paused when the app is
+// backgrounded and restarted on foreground — otherwise a long background
+// period lets the access token expire and the next API call 401s.
+AppState.addEventListener('change', state => {
+  if (state === 'active') {
+    supabase.auth.startAutoRefresh()
+  } else {
+    supabase.auth.stopAutoRefresh()
+  }
+})
