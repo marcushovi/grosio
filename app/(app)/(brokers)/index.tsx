@@ -19,6 +19,9 @@ import {
 import { useSettings } from '../../../lib/settingsContext'
 import { BrokerCard } from '../../../components/BrokerCard'
 import { AddBrokerDialog } from '../../../components/AddBrokerDialog'
+import { EmptyState } from '../../../components/EmptyState'
+import { ErrorState } from '../../../components/ErrorState'
+import { LastUpdated } from '../../../components/LastUpdated'
 import { useT } from '../../../lib/t'
 
 export default function BrokersScreen() {
@@ -32,7 +35,11 @@ export default function BrokersScreen() {
 
   // Shares the same cache entry as the dashboard screen — queryKey identity
   // is what makes that work. No separate fetch when both screens are warm.
-  const { data: dashboardBase, refetch: refetchDashboard } = useQuery<DashboardBase, Error>({
+  const {
+    data: dashboardBase,
+    refetch: refetchDashboard,
+    dataUpdatedAt,
+  } = useQuery<DashboardBase, Error>({
     queryKey: queryKeys.dashboard.data(),
     queryFn: async () => {
       const [positions, rates] = await Promise.all([fetchAllPositions(), getExchangeRates()])
@@ -90,33 +97,30 @@ export default function BrokersScreen() {
 
   if (error) {
     return (
-      <SafeAreaView className="flex-1 bg-background justify-center items-center px-6">
-        <Text className="text-danger text-center mb-4">{error}</Text>
-        <Text
-          className="text-destructive font-semibold mb-4"
-          onPress={() => queryClient.invalidateQueries({ queryKey: queryKeys.brokers.all })}
-        >
-          {_('tryAgain')}
-        </Text>
+      <SafeAreaView className="flex-1 bg-background">
+        <ErrorState
+          message={error}
+          onRetry={() => queryClient.invalidateQueries({ queryKey: queryKeys.brokers.all })}
+        />
       </SafeAreaView>
     )
   }
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      <View className="px-5 pt-4 pb-2 flex-row justify-between items-center mb-4">
-        <Text className="text-foreground text-3xl font-bold">{_('brokers')}</Text>
-        <Button variant="primary" size="sm" onPress={() => setDialogOpen(true)}>
-          <Plus color={accentFg} size={16} />
-          <Button.Label>{_('addBroker')}</Button.Label>
-        </Button>
+      <View className="px-5 pt-4 pb-2 mb-4">
+        <View className="flex-row justify-between items-center">
+          <Text className="text-foreground text-3xl font-bold">{_('brokers')}</Text>
+          <Button variant="primary" size="sm" onPress={() => setDialogOpen(true)}>
+            <Plus color={accentFg} size={16} />
+            <Button.Label>{_('addBroker')}</Button.Label>
+          </Button>
+        </View>
+        <LastUpdated timestamp={dataUpdatedAt} className="mt-1" />
       </View>
 
       {brokers.length === 0 ? (
-        <View className="flex-1 justify-center items-center">
-          <Text className="text-foreground text-lg mb-2">{_('noBrokersYet')}</Text>
-          <Text className="text-muted text-sm">{_('addFirstBroker')}</Text>
-        </View>
+        <EmptyState title={_('noBrokersYet')} subtitle={_('addFirstBroker')} />
       ) : (
         <FlatList
           data={brokers}
@@ -134,7 +138,7 @@ export default function BrokersScreen() {
               />
             )
           }}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
+          contentContainerClassName="px-5 pb-10"
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={false} onRefresh={onRefresh} />}
         />

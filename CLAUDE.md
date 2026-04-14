@@ -22,7 +22,7 @@ Everything static — positioning, z-index, margins, shadow presets — goes thr
 
 ## Data caching: never manually write to the TanStack Query cache
 
-All data fetching in this project goes through **TanStack Query** (see `hooks/useBrokers.ts`, `usePositions.ts`, `useDashboardData.ts`, `usePortfolioHistory.ts`). The `QueryClientProvider` lives in `app/_layout.tsx`.
+All data fetching in this project goes through **TanStack Query**. The shared hooks live in `hooks/useBrokers.ts` and `hooks/usePositions.ts`; dashboard and tax screens call `useQuery` inline with pure computation helpers from `lib/api/dashboard.ts` and `lib/tax.ts`. The `QueryClientProvider` lives in `app/_layout.tsx`.
 
 **Do NOT** use `queryClient.setQueryData(...)` to optimistically write mutation results into the cache. **Do NOT** use `.select().single()` on Supabase mutations just to feed the returned row into `setQueryData`.
 
@@ -48,7 +48,7 @@ onSuccess: (newRow) => {
 
 **Why:** invalidation is always in sync with server state, avoids stale-cache bugs when the DB applies defaults/triggers/cascades, and doesn't require every mutation to return the inserted row. It's a small latency cost in exchange for correctness and simpler code.
 
-**Exception:** `hooks/usePrices.ts` uses `queryClient.getQueryData`/`setQueryData` as a deliberate KV cache for Yahoo Finance quotes — it's not backed by a `useQuery` call. That pattern is fine when the cache is the source of truth (no server round-trip to validate against). New code should not follow this pattern unless there's an equivalent justification.
+**No manual cache writes anywhere in the codebase** — every data source is backed by a `useQuery`, and every mutation invalidates. If you feel tempted to `setQueryData`, refactor the data source into a proper `useQuery` instead.
 
 ## Edge Function auth: send the user's session JWT, not the anon key
 

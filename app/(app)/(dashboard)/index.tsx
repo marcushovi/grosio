@@ -18,6 +18,8 @@ import {
   type DashboardBase,
 } from '../../../lib/api/dashboard'
 import { CurrencyPicker } from '../../../components/CurrencyPicker'
+import { LastUpdated } from '../../../components/LastUpdated'
+import { useTaxSummary } from '../../../hooks/useTaxSummary'
 
 export default function DashboardScreen() {
   const { _ } = useT()
@@ -34,6 +36,7 @@ export default function DashboardScreen() {
     isPending: dashboardLoading,
     error,
     refetch: refetchDashboard,
+    dataUpdatedAt,
   } = useQuery<DashboardBase, Error>({
     queryKey: queryKeys.dashboard.data(),
     queryFn: async () => {
@@ -50,6 +53,10 @@ export default function DashboardScreen() {
     () => projectDashboardToDisplay(dashboardBase, displayCurrency),
     [dashboardBase, displayCurrency]
   )
+
+  // Tax summary — shown as a brief overview beneath the total. Shares the
+  // tax-screen cache (same queryKey) so switching tabs doesn't refetch.
+  const { data: taxSummary } = useTaxSummary()
 
   const [refreshing, setRefreshing] = useState(false)
   const onRefresh = useCallback(async () => {
@@ -72,14 +79,17 @@ export default function DashboardScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView
-        contentContainerStyle={{ padding: 20 }}
+        contentContainerClassName="p-5"
         refreshControl={
           <RefreshControl refreshing={refreshing || dashboardLoading} onRefresh={onRefresh} />
         }
       >
-        <View className="flex-row items-center justify-between mb-4">
-          <Text className="text-foreground text-3xl font-bold">{_('dashboard')}</Text>
-          <CurrencyPicker />
+        <View className="mb-4">
+          <View className="flex-row items-center justify-between">
+            <Text className="text-foreground text-3xl font-bold">{_('dashboard')}</Text>
+            <CurrencyPicker />
+          </View>
+          <LastUpdated timestamp={dataUpdatedAt} />
         </View>
 
         {error ? (
@@ -110,6 +120,24 @@ export default function DashboardScreen() {
             </View>
           </Card.Body>
         </Card>
+
+        {/* Tax summary — brief overview; full breakdown lives on the tax tab */}
+        {taxSummary && (
+          <View className="flex-row gap-3 mb-4">
+            <Card className="flex-1 bg-surface p-4">
+              <Text className="text-muted text-xs mb-1">{_('taxFreeLabel')}</Text>
+              <Text className="text-success text-xl font-bold">
+                {fmt(taxSummary.totalTaxFreeValue)}
+              </Text>
+            </Card>
+            <Card className="flex-1 bg-surface p-4">
+              <Text className="text-muted text-xs mb-1">{_('taxableLabel')}</Text>
+              <Text className="text-danger text-xl font-bold">
+                {fmt(taxSummary.totalTaxableValue)}
+              </Text>
+            </Card>
+          </View>
+        )}
 
         {/* Allocation */}
         {brokersWithValue.length > 0 && (

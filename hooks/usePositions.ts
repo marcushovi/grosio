@@ -7,11 +7,7 @@ import {
   deletePosition as deletePositionApi,
   type InsertPositionInput,
 } from '../lib/api/positions'
-import type { Position } from '../types'
-
-interface MutationResult {
-  error: { message: string } | null
-}
+import type { Position, MutationResult } from '../types'
 
 /**
  * Positions query + add/delete mutations, scoped to a single broker.

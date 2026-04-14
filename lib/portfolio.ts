@@ -1,11 +1,11 @@
 /**
  * Centralised portfolio P&L math.
  *
- * `useDashboardData` and the broker-detail screen both need to combine a list of
+ * The dashboard, broker-detail and tax screens all need to combine a list of
  * positions with a map of live quotes and a set of FX rates to produce values,
- * invested amounts, gain/loss and %. The formulas were duplicated — that's how
- * the "profit always shows 0" bug hid in plain sight. Everything goes through
- * these helpers now.
+ * invested amounts, gain/loss and %. The formulas used to be duplicated —
+ * that's how the "profit always shows 0" bug hid in plain sight. Everything
+ * goes through these helpers now.
  */
 import type { Position } from '../types'
 import type { ExchangeRates, DisplayCurrency } from './currency'
@@ -73,25 +73,6 @@ export function computePositionPnl(
 ): Pnl {
   const currentValue = convertToDisplay(posValue.valueEur, displayCurrency, rates)
   const invested = convertToDisplay(posValue.costEur, displayCurrency, rates)
-  const gainLoss = currentValue - invested
-  const gainLossPct = invested > 0 ? (gainLoss / invested) * 100 : 0
-  return { currentValue, invested, gainLoss, gainLossPct }
-}
-
-/** Aggregate a list of EUR-base position values and convert to display P&L. */
-export function aggregatePnl(
-  positionValues: PositionValueEur[],
-  displayCurrency: DisplayCurrency,
-  rates: ExchangeRates
-): Pnl {
-  let valueEur = 0
-  let costEur = 0
-  for (const pv of positionValues) {
-    valueEur += pv.valueEur
-    costEur += pv.costEur
-  }
-  const currentValue = convertToDisplay(valueEur, displayCurrency, rates)
-  const invested = convertToDisplay(costEur, displayCurrency, rates)
   const gainLoss = currentValue - invested
   const gainLossPct = invested > 0 ? (gainLoss / invested) * 100 : 0
   return { currentValue, invested, gainLoss, gainLossPct }

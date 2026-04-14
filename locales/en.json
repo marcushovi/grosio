@@ -40,6 +40,7 @@
   "haveAccount": "Already have an account? Log in",
   "invalidBuyDate": "Enter a valid date (YYYY-MM-DD)",
   "language": "Language",
+  "lastUpdated": "Last updated",
   "logOut": "Log Out",
   "logOutError": "Log out failed.",
   "loggingIn": "Logging in...",

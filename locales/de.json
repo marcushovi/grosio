@@ -40,6 +40,7 @@
   "haveAccount": "Bereits ein Konto? Anmelden",
   "invalidBuyDate": "Geben Sie ein gültiges Datum ein (YYYY-MM-DD)",
   "language": "Sprache",
+  "lastUpdated": "Zuletzt aktualisiert",
   "logOut": "Abmelden",
   "logOutError": "Abmeldung fehlgeschlagen.",
   "loggingIn": "Anmelden...",

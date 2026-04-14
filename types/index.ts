@@ -30,6 +30,11 @@ export interface BrokerValue {
   positionCount: number
 }
 
+/** Uniform mutation result shape for hook callers. `error: null` means success. */
+export interface MutationResult {
+  error: { message: string } | null
+}
+
 export interface PositionWithPrice {
   id: string
   broker_id: string

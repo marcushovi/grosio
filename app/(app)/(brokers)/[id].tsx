@@ -22,6 +22,8 @@ import { computePositionValueEur, computePositionPnl } from '../../../lib/portfo
 import { useSettings } from '../../../lib/settingsContext'
 import { useT } from '../../../lib/t'
 import { AddPositionDialog } from '../../../components/AddPositionDialog'
+import { EmptyState } from '../../../components/EmptyState'
+import { LastUpdated } from '../../../components/LastUpdated'
 import type { PositionWithPrice } from '../../../types'
 
 interface PricesAndRates {
@@ -54,6 +56,7 @@ export default function BrokerDetailScreen() {
     data: pricing,
     isPending: pricesPending,
     refetch: refetchPrices,
+    dataUpdatedAt,
   } = useQuery<PricesAndRates, Error>({
     queryKey: queryKeys.prices.quotes(symbols),
     queryFn: async () => {
@@ -148,16 +151,19 @@ export default function BrokerDetailScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       {/* Header */}
-      <View className="px-5 pt-2 pb-4 flex-row items-center gap-3">
-        <Button variant="ghost" size="sm" isIconOnly onPress={() => router.back()}>
-          <ArrowLeft color={foreground} size={20} />
-        </Button>
-        <View className="w-3 h-3 rounded-full" style={{ backgroundColor: broker.color }} />
-        <Text className="text-foreground text-2xl font-bold flex-1">{broker.name}</Text>
-        <Button variant="primary" size="sm" onPress={() => setDialogOpen(true)}>
-          <Plus color={accentFg} size={16} />
-          <Button.Label>{_('position')}</Button.Label>
-        </Button>
+      <View className="px-5 pt-2 pb-4">
+        <View className="flex-row items-center gap-3">
+          <Button variant="ghost" size="sm" isIconOnly onPress={() => router.back()}>
+            <ArrowLeft color={foreground} size={20} />
+          </Button>
+          <View className="w-3 h-3 rounded-full" style={{ backgroundColor: broker.color }} />
+          <Text className="text-foreground text-3xl font-bold flex-1">{broker.name}</Text>
+          <Button variant="primary" size="sm" onPress={() => setDialogOpen(true)}>
+            <Plus color={accentFg} size={16} />
+            <Button.Label>{_('position')}</Button.Label>
+          </Button>
+        </View>
+        <LastUpdated timestamp={dataUpdatedAt} className="mt-1" />
       </View>
 
       {/* Summary */}
@@ -188,15 +194,12 @@ export default function BrokerDetailScreen() {
       {(loading || pricesLoading) && positionsWithPrices.length === 0 ? (
         <View className="flex-1 justify-center items-center" />
       ) : positionsWithPrices.length === 0 && !loading ? (
-        <View className="flex-1 justify-center items-center">
-          <Text className="text-foreground text-lg mb-2">{_('noPositions')}</Text>
-          <Text className="text-muted text-sm">{_('addFirstPosition')}</Text>
-        </View>
+        <EmptyState title={_('noPositions')} subtitle={_('addFirstPosition')} />
       ) : (
         <FlatList
           data={positionsWithPrices}
           keyExtractor={item => item.id}
-          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
+          contentContainerClassName="px-5 pb-10"
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={pricesLoading} onRefresh={onRefresh} />}
           renderItem={({ item }) => {

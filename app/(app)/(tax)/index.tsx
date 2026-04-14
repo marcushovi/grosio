@@ -1,41 +1,42 @@
-import { useCallback } from 'react'
-import { View, Text, ScrollView, ActivityIndicator, RefreshControl } from 'react-native'
+import { useCallback, useState } from 'react'
+import { View, Text, ScrollView, RefreshControl, Pressable } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect } from 'expo-router'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
 import { Card } from 'heroui-native/card'
 import { useThemeColor } from 'heroui-native'
-import { ShieldCheck, ShieldAlert, Clock, CircleDollarSign } from 'lucide-react-native'
+import {
+  ShieldCheck,
+  Clock,
+  CircleDollarSign,
+  ChevronDown,
+  ChevronRight,
+} from 'lucide-react-native'
 import { useT } from '../../../lib/t'
 import { useSettings } from '../../../lib/settingsContext'
-import { useBrokers } from '../../../hooks/useBrokers'
 import { queryKeys } from '../../../lib/queryKeys'
-import { fetchAllPositions } from '../../../lib/api/positions'
-import { fetchPrices } from '../../../lib/api/prices'
-import { getExchangeRates, formatAmount } from '../../../lib/api/currency'
-import { computeTaxStatus } from '../../../lib/tax'
+import { formatAmount } from '../../../lib/api/currency'
 import type { PositionTaxStatus } from '../../../lib/tax'
 import type { DisplayCurrency } from '../../../lib/currency'
+import { useTaxSummary } from '../../../hooks/useTaxSummary'
+import { EmptyState } from '../../../components/EmptyState'
+import { ErrorState } from '../../../components/ErrorState'
+import { LoadingState } from '../../../components/LoadingState'
+import { CurrencyPicker } from '../../../components/CurrencyPicker'
+import { LastUpdated } from '../../../components/LastUpdated'
 
 interface TaxRowProps {
   item: PositionTaxStatus
   displayCurrency: DisplayCurrency
-  successColor: string
-  dangerColor: string
   warningColor: string
 }
 
-function TaxRow({ item, displayCurrency, successColor, dangerColor, warningColor }: TaxRowProps) {
+function TaxRow({ item, displayCurrency, warningColor }: TaxRowProps) {
   const { _ } = useT()
   return (
     <View className="flex-row items-center justify-between py-3 border-b border-border">
       <View className="flex-1 gap-0.5 pr-3">
         <View className="flex-row items-center gap-2">
-          {item.isTaxFree ? (
-            <ShieldCheck size={14} color={successColor} />
-          ) : (
-            <ShieldAlert size={14} color={dangerColor} />
-          )}
           <Text className="text-foreground font-semibold">{item.position.symbol}</Text>
           <Text className="text-muted text-xs">× {item.position.shares}</Text>
         </View>
@@ -70,56 +71,45 @@ function TaxRow({ item, displayCurrency, successColor, dangerColor, warningColor
 export default function TaxScreen() {
   const { _ } = useT()
   const { domicile, currency: displayCurrency } = useSettings()
-  const { brokers } = useBrokers()
-  const qc = useQueryClient()
-  const [success, danger, warning, accent, muted] = useThemeColor([
-    'success',
-    'danger',
-    'warning',
-    'accent',
-    'muted',
-  ])
+  const queryClient = useQueryClient()
+  const [success, warning, foreground] = useThemeColor(['success', 'warning', 'foreground'])
 
-  const {
-    data: summary,
-    isPending,
-    error,
-    refetch,
-  } = useQuery({
-    queryKey: queryKeys.tax.data(domicile, displayCurrency),
-    queryFn: async () => {
-      const [positions, rates] = await Promise.all([fetchAllPositions(), getExchangeRates()])
-      const symbols = [...new Set(positions.map(p => p.symbol))]
-      const priceMap = await fetchPrices(symbols)
-      return computeTaxStatus(positions, brokers, domicile, displayCurrency, rates, priceMap)
-    },
-    enabled: brokers.length > 0,
-    staleTime: 1000 * 60 * 15,
-  })
+  // Broker position lists collapse by default — users with many holdings
+  // would otherwise face a very long scroll. Tapping the broker header
+  // toggles its section.
+  const [expandedBrokers, setExpandedBrokers] = useState<Set<string>>(new Set())
+  const toggleBroker = useCallback((brokerId: string) => {
+    setExpandedBrokers(prev => {
+      const next = new Set(prev)
+      if (next.has(brokerId)) next.delete(brokerId)
+      else next.add(brokerId)
+      return next
+    })
+  }, [])
+
+  const { data: summary, isPending, error, refetch, dataUpdatedAt } = useTaxSummary()
 
   useFocusEffect(
     useCallback(() => {
-      qc.invalidateQueries({ queryKey: queryKeys.tax.all })
-    }, [qc])
+      queryClient.invalidateQueries({ queryKey: queryKeys.tax.all })
+    }, [queryClient])
   )
 
   if (isPending && !summary) {
     return (
-      <SafeAreaView className="flex-1 bg-background items-center justify-center">
-        <ActivityIndicator color={accent} />
+      <SafeAreaView className="flex-1 bg-background">
+        <LoadingState />
       </SafeAreaView>
     )
   }
 
   if (error) {
     return (
-      <SafeAreaView className="flex-1 bg-background items-center justify-center px-6 gap-3">
-        <Text className="text-danger text-center">
-          {error instanceof Error ? error.message : _('error')}
-        </Text>
-        <Text className="text-accent" onPress={() => refetch()}>
-          {_('tryAgain')}
-        </Text>
+      <SafeAreaView className="flex-1 bg-background">
+        <ErrorState
+          message={error instanceof Error ? error.message : _('error')}
+          onRetry={refetch}
+        />
       </SafeAreaView>
     )
   }
@@ -128,12 +118,12 @@ export default function TaxScreen() {
 
   if (!summary || !hasPositionsWithDate) {
     return (
-      <SafeAreaView className="flex-1 bg-background items-center justify-center px-8 gap-3">
-        <CircleDollarSign size={48} color={muted} />
-        <Text className="text-foreground text-lg font-semibold text-center">
-          {_('taxNoPositions')}
-        </Text>
-        <Text className="text-muted text-center text-sm">{_('taxNoPositionsHint')}</Text>
+      <SafeAreaView className="flex-1 bg-background">
+        <EmptyState
+          icon={CircleDollarSign}
+          title={_('taxNoPositions')}
+          subtitle={_('taxNoPositionsHint')}
+        />
       </SafeAreaView>
     )
   }
@@ -141,10 +131,16 @@ export default function TaxScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView
-        contentContainerStyle={{ padding: 20 }}
+        contentContainerClassName="p-5"
         refreshControl={<RefreshControl refreshing={isPending} onRefresh={() => refetch()} />}
       >
-        <Text className="text-foreground text-3xl font-bold mb-4">{_('tax')}</Text>
+        <View className="mb-4">
+          <View className="flex-row items-center justify-between">
+            <Text className="text-foreground text-3xl font-bold">{_('tax')}</Text>
+            <CurrencyPicker />
+          </View>
+          <LastUpdated timestamp={dataUpdatedAt} />
+        </View>
 
         {/* Rule banner */}
         <Card className="bg-surface p-4 mb-3 flex-row items-start gap-3">
@@ -172,44 +168,53 @@ export default function TaxScreen() {
         {summary.brokers.map(broker => {
           if (broker.positions.length === 0 && broker.unknownDatePositions.length === 0) return null
 
+          const isExpanded = expandedBrokers.has(broker.brokerId)
+
           return (
             <Card key={broker.brokerId} className="bg-surface p-4 mb-3">
-              <View className="flex-row items-center gap-2 mb-2">
+              <Pressable
+                onPress={() => toggleBroker(broker.brokerId)}
+                className="flex-row items-center gap-2"
+              >
+                {isExpanded ? (
+                  <ChevronDown size={16} color={foreground} />
+                ) : (
+                  <ChevronRight size={16} color={foreground} />
+                )}
                 <View
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: broker.brokerColor }}
                 />
                 <Text className="text-foreground font-semibold flex-1">{broker.brokerName}</Text>
                 {broker.taxFreeValue > 0 && (
-                  <View className="flex-row items-center gap-1">
-                    <ShieldCheck size={12} color={success} />
-                    <Text className="text-success text-xs font-medium">
-                      {formatAmount(broker.taxFreeValue, displayCurrency)}
-                    </Text>
-                  </View>
+                  <Text className="text-success text-xs font-medium">
+                    {formatAmount(broker.taxFreeValue, displayCurrency)}
+                  </Text>
                 )}
-              </View>
+              </Pressable>
 
-              {broker.positions.map(item => (
-                <TaxRow
-                  key={item.position.id}
-                  item={item}
-                  displayCurrency={displayCurrency}
-                  successColor={success}
-                  dangerColor={danger}
-                  warningColor={warning}
-                />
-              ))}
+              {isExpanded && (
+                <View className="mt-2">
+                  {broker.positions.map(item => (
+                    <TaxRow
+                      key={item.position.id}
+                      item={item}
+                      displayCurrency={displayCurrency}
+                      warningColor={warning}
+                    />
+                  ))}
 
-              {broker.unknownDatePositions.map(pos => (
-                <View
-                  key={pos.id}
-                  className="flex-row items-center justify-between py-3 border-b border-border opacity-40"
-                >
-                  <Text className="text-foreground">{pos.symbol}</Text>
-                  <Text className="text-muted text-xs">{_('noBuyDate')}</Text>
+                  {broker.unknownDatePositions.map(pos => (
+                    <View
+                      key={pos.id}
+                      className="flex-row items-center justify-between py-3 border-b border-border opacity-40"
+                    >
+                      <Text className="text-foreground">{pos.symbol}</Text>
+                      <Text className="text-muted text-xs">{_('noBuyDate')}</Text>
+                    </View>
+                  ))}
                 </View>
-              ))}
+              )}
             </Card>
           )
         })}
