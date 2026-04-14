@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
 import { View, Text, FlatList, Alert, RefreshControl } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { Card } from 'heroui-native/card'
@@ -24,6 +23,7 @@ import { useT } from '../../../lib/t'
 import { AddPositionDialog } from '../../../components/AddPositionDialog'
 import { EmptyState } from '../../../components/EmptyState'
 import { LastUpdated } from '../../../components/LastUpdated'
+import { Screen } from '../../../components/Screen'
 import type { PositionWithPrice } from '../../../types'
 
 interface PricesAndRates {
@@ -138,18 +138,18 @@ export default function BrokerDetailScreen() {
 
   if (!id || (!broker && !brokersLoading)) {
     return (
-      <SafeAreaView className="flex-1 bg-background justify-center items-center">
+      <Screen className="justify-center items-center">
         <Text className="text-muted">{_('brokerNotFound')}</Text>
-      </SafeAreaView>
+      </Screen>
     )
   }
 
   if (!broker) {
-    return <SafeAreaView className="flex-1 bg-background" />
+    return <Screen>{null}</Screen>
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <Screen>
       {/* Header */}
       <View className="px-5 pt-5 pb-4">
         <View className="flex-row items-center gap-3">
@@ -252,6 +252,6 @@ export default function BrokerDetailScreen() {
         onOpenChange={setDialogOpen}
         onAdd={handleAddPosition}
       />
-    </SafeAreaView>
+    </Screen>
   )
 }

@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
 import { View, Text, ScrollView, RefreshControl, Pressable } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useThemeColor } from 'heroui-native'
@@ -20,6 +19,7 @@ import {
 } from '../../../lib/api/dashboard'
 import { CurrencyPicker } from '../../../components/CurrencyPicker'
 import { LastUpdated } from '../../../components/LastUpdated'
+import { Screen } from '../../../components/Screen'
 import { useTaxSummary } from '../../../hooks/useTaxSummary'
 
 export default function DashboardScreen() {
@@ -79,7 +79,7 @@ export default function DashboardScreen() {
   const brokersWithValue = brokerValues.filter(b => b.value > 0)
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <Screen>
       <ScrollView
         contentContainerClassName="p-5"
         refreshControl={
@@ -233,6 +233,6 @@ export default function DashboardScreen() {
           </Card>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </Screen>
   )
 }

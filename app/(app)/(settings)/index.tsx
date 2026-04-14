@@ -1,5 +1,4 @@
 import { Text, ScrollView, Alert, Pressable } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { ListGroup, Separator, useThemeColor } from 'heroui-native'
 import { Button } from 'heroui-native/button'
 import { useRouter } from 'expo-router'
@@ -11,6 +10,7 @@ import { signOut } from '../../../lib/api/auth'
 import { useT } from '../../../lib/t'
 import { useSettings } from '../../../lib/settingsContext'
 import { currencySymbol } from '../../../lib/currency'
+import { Screen } from '../../../components/Screen'
 
 const LANGUAGE_LABELS: Record<string, string> = {
   en: 'English',
@@ -44,7 +44,7 @@ export default function SettingsScreen() {
         : _('themeSystem')
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <Screen>
       <ScrollView contentContainerClassName="p-5">
         <Text className="text-foreground text-3xl font-bold mb-6">{_('settings')}</Text>
 
@@ -134,6 +134,6 @@ export default function SettingsScreen() {
           <Button.Label>{_('logOut')}</Button.Label>
         </Button>
       </ScrollView>
-    </SafeAreaView>
+    </Screen>
   )
 }

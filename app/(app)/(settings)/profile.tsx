@@ -1,5 +1,5 @@
 import { View, Text } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { Screen } from '../../../components/Screen'
 import { useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { ListGroup, useThemeColor } from 'heroui-native'
@@ -21,7 +21,7 @@ export default function ProfileScreen() {
   })
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <Screen>
       <View className="px-5 pt-2 pb-4 flex-row items-center gap-3">
         <Button variant="ghost" size="sm" isIconOnly onPress={() => router.back()}>
           <ArrowLeft color={foreground} size={20} />
@@ -38,6 +38,6 @@ export default function ProfileScreen() {
           </ListGroup.Item>
         </ListGroup>
       </View>
-    </SafeAreaView>
+    </Screen>
   )
 }

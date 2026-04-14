@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react'
 import { View, Text, ScrollView, RefreshControl, Pressable } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Card } from 'heroui-native/card'
@@ -24,6 +23,7 @@ import { ErrorState } from '../../../components/ErrorState'
 import { LoadingState } from '../../../components/LoadingState'
 import { CurrencyPicker } from '../../../components/CurrencyPicker'
 import { LastUpdated } from '../../../components/LastUpdated'
+import { Screen } from '../../../components/Screen'
 
 interface TaxRowProps {
   item: PositionTaxStatus
@@ -97,20 +97,20 @@ export default function TaxScreen() {
 
   if (isPending && !summary) {
     return (
-      <SafeAreaView className="flex-1 bg-background">
+      <Screen>
         <LoadingState />
-      </SafeAreaView>
+      </Screen>
     )
   }
 
   if (error) {
     return (
-      <SafeAreaView className="flex-1 bg-background">
+      <Screen>
         <ErrorState
           message={error instanceof Error ? error.message : _('error')}
           onRetry={refetch}
         />
-      </SafeAreaView>
+      </Screen>
     )
   }
 
@@ -118,18 +118,18 @@ export default function TaxScreen() {
 
   if (!summary || !hasPositionsWithDate) {
     return (
-      <SafeAreaView className="flex-1 bg-background">
+      <Screen>
         <EmptyState
           icon={CircleDollarSign}
           title={_('taxNoPositions')}
           subtitle={_('taxNoPositionsHint')}
         />
-      </SafeAreaView>
+      </Screen>
     )
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <Screen>
       <ScrollView
         contentContainerClassName="p-5"
         refreshControl={<RefreshControl refreshing={isPending} onRefresh={() => refetch()} />}
@@ -219,6 +219,6 @@ export default function TaxScreen() {
           )
         })}
       </ScrollView>
-    </SafeAreaView>
+    </Screen>
   )
 }

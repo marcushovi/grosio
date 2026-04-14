@@ -1,6 +1,6 @@
 import { Fragment } from 'react'
 import { View, Text } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { Screen } from '../../../components/Screen'
 import { useRouter } from 'expo-router'
 import { RadioGroup, Radio, Label, Separator, Surface, useThemeColor } from 'heroui-native'
 import { Button } from 'heroui-native/button'
@@ -18,7 +18,7 @@ export default function DisplayCurrencyScreen() {
   const { currency, setCurrency } = useSettings()
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <Screen>
       <View className="px-5 pt-2 pb-4 flex-row items-center gap-3">
         <Button variant="ghost" size="sm" isIconOnly onPress={() => router.back()}>
           <ArrowLeft color={foreground} size={20} />
@@ -46,6 +46,6 @@ export default function DisplayCurrencyScreen() {
           </RadioGroup>
         </Surface>
       </View>
-    </SafeAreaView>
+    </Screen>
   )
 }

@@ -53,7 +53,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   // Uniwind is the single source of truth for the currently *applied* theme.
   // When themePreference === 'system' it reflects the current OS scheme and
   // updates automatically; otherwise it's the pinned 'light' | 'dark' value.
-  const { theme: resolvedTheme } = useUniwind()
+  // `useUniwind().theme` is typed as `ThemeName` (which includes 'system' in
+  // the base type) but at runtime is always resolved to 'light' | 'dark'
+  // because Uniwind's `setTheme('system')` maps `#currentTheme` to the actual
+  // color scheme. The `=== 'light'` check narrows safely.
+  const { theme } = useUniwind()
+  const resolvedTheme: 'light' | 'dark' = theme === 'light' ? 'light' : 'dark'
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)

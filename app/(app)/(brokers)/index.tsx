@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
 import { View, Text, FlatList, Alert, RefreshControl } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter, useFocusEffect } from 'expo-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button } from 'heroui-native/button'
@@ -22,6 +21,7 @@ import { AddBrokerDialog } from '../../../components/AddBrokerDialog'
 import { EmptyState } from '../../../components/EmptyState'
 import { ErrorState } from '../../../components/ErrorState'
 import { LastUpdated } from '../../../components/LastUpdated'
+import { Screen } from '../../../components/Screen'
 import { useT } from '../../../lib/t'
 
 export default function BrokersScreen() {
@@ -87,27 +87,27 @@ export default function BrokersScreen() {
 
   if (loading && brokers.length === 0) {
     return (
-      <SafeAreaView className="flex-1 bg-background">
+      <Screen>
         <View className="px-5 pt-5 pb-4 flex-row justify-between items-center">
           <Text className="text-foreground text-3xl font-bold">{_('brokers')}</Text>
         </View>
-      </SafeAreaView>
+      </Screen>
     )
   }
 
   if (error) {
     return (
-      <SafeAreaView className="flex-1 bg-background">
+      <Screen>
         <ErrorState
           message={error}
           onRetry={() => queryClient.invalidateQueries({ queryKey: queryKeys.brokers.all })}
         />
-      </SafeAreaView>
+      </Screen>
     )
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <Screen>
       <View className="px-5 pt-5 pb-4">
         <View className="flex-row justify-between items-center">
           <Text className="text-foreground text-3xl font-bold">{_('brokers')}</Text>
@@ -146,6 +146,6 @@ export default function BrokersScreen() {
       )}
 
       <AddBrokerDialog isOpen={dialogOpen} onOpenChange={setDialogOpen} onAdd={addBroker} />
-    </SafeAreaView>
+    </Screen>
   )
 }
