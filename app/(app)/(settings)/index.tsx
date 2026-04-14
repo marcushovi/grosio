@@ -4,9 +4,10 @@ import { ListGroup, Separator, useThemeColor } from 'heroui-native'
 import { Button } from 'heroui-native/button'
 import { useRouter } from 'expo-router'
 import { useCallback } from 'react'
-import { User, Globe, Palette, Coins } from 'lucide-react-native'
+import { User, Globe, Palette, Coins, ShieldCheck } from 'lucide-react-native'
 import * as Haptics from 'expo-haptics'
-import { supabase } from '../../../lib/supabase'
+import { useMutation } from '@tanstack/react-query'
+import { signOut } from '../../../lib/api/auth'
 import { useT } from '../../../lib/t'
 import { useSettings } from '../../../lib/settingsContext'
 import { currencySymbol } from '../../../lib/currency'
@@ -22,16 +23,13 @@ export default function SettingsScreen() {
   const { _ } = useT()
   const router = useRouter()
   const foreground = useThemeColor('foreground') as string
-  const { language, themePreference, currency } = useSettings()
+  const { language, themePreference, currency, domicile } = useSettings()
 
-  const handleLogout = useCallback(async () => {
-    try {
-      const { error } = await supabase.auth.signOut()
-      if (error) Alert.alert(_('error'), _('logOutError'))
-    } catch {
-      Alert.alert(_('error'), _('logOutError'))
-    }
-  }, [_])
+  const logout = useMutation({
+    mutationFn: signOut,
+    onError: () => Alert.alert(_('error'), _('logOutError')),
+  })
+  const handleLogout = useCallback(() => logout.mutate(), [logout])
 
   const navigate = (path: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
@@ -108,6 +106,23 @@ export default function SettingsScreen() {
                 <ListGroup.ItemTitle>{_('displayCurrency')}</ListGroup.ItemTitle>
                 <ListGroup.ItemDescription>
                   {currencySymbol(currency)} {currency}
+                </ListGroup.ItemDescription>
+              </ListGroup.ItemContent>
+              <ListGroup.ItemSuffix />
+            </ListGroup.Item>
+          </Pressable>
+
+          <Separator className="mx-4" />
+
+          <Pressable onPress={() => navigate('/(app)/(settings)/domicile')}>
+            <ListGroup.Item disabled>
+              <ListGroup.ItemPrefix>
+                <ShieldCheck size={20} color={foreground} />
+              </ListGroup.ItemPrefix>
+              <ListGroup.ItemContent>
+                <ListGroup.ItemTitle>{_('domicile')}</ListGroup.ItemTitle>
+                <ListGroup.ItemDescription>
+                  {domicile === 'SK' ? _('domicileSK') : _('domicileCZ')}
                 </ListGroup.ItemDescription>
               </ListGroup.ItemContent>
               <ListGroup.ItemSuffix />

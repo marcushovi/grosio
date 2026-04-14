@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { Text, Alert, KeyboardAvoidingView, Platform } from 'react-native'
-import { supabase } from '../../lib/supabase'
 import { Link, useRouter } from 'expo-router'
+import { useMutation } from '@tanstack/react-query'
 import { Button } from 'heroui-native/button'
 import { Input } from 'heroui-native/input'
+import { signUp } from '../../lib/api/auth'
 import { useT } from '../../lib/t'
 import { APP_NAME } from '../../lib/constants'
 
@@ -12,26 +13,21 @@ export default function RegisterScreen() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
 
-  const handleRegister = useCallback(async () => {
+  const register = useMutation({
+    mutationFn: signUp,
+    onSuccess: () => {
+      Alert.alert(_('registerSuccess'), _('registerSuccessMsg'), [
+        { text: _('ok'), onPress: () => router.replace('/(auth)/login') },
+      ])
+    },
+    onError: (err: Error) => Alert.alert(_('error'), err.message || _('unexpectedError')),
+  })
+
+  const handleRegister = useCallback(() => {
     if (!email || !password) return Alert.alert(_('error'), _('fillEmailPassword'))
-    setLoading(true)
-    try {
-      const { error } = await supabase.auth.signUp({ email, password })
-      if (error) {
-        Alert.alert(_('error'), error.message)
-      } else {
-        Alert.alert(_('registerSuccess'), _('registerSuccessMsg'), [
-          { text: _('ok'), onPress: () => router.replace('/(auth)/login') },
-        ])
-      }
-    } catch (e) {
-      Alert.alert(_('error'), e instanceof Error ? e.message : _('unexpectedError'))
-    } finally {
-      setLoading(false)
-    }
-  }, [email, password, _, router])
+    register.mutate({ email, password })
+  }, [email, password, register, _])
 
   return (
     <KeyboardAvoidingView
@@ -59,10 +55,10 @@ export default function RegisterScreen() {
         variant="primary"
         size="lg"
         onPress={handleRegister}
-        isDisabled={loading}
+        isDisabled={register.isPending}
         className="mb-4"
       >
-        <Button.Label>{loading ? _('registering') : _('register')}</Button.Label>
+        <Button.Label>{register.isPending ? _('registering') : _('register')}</Button.Label>
       </Button>
       <Link href="/(auth)/login" className="text-accent text-center text-sm">
         {_('haveAccount')}

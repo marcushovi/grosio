@@ -1,93 +1,72 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase, getAuthUserId } from '../lib/supabase'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { queryKeys } from '../lib/queryKeys'
+import {
+  fetchAllPositions,
+  fetchPositionsByBroker,
+  insertPosition,
+  deletePosition as deletePositionApi,
+  type InsertPositionInput,
+} from '../lib/api/positions'
 import type { Position } from '../types'
 
+interface MutationResult {
+  error: { message: string } | null
+}
+
+/**
+ * Positions query + add/delete mutations, scoped to a single broker.
+ *
+ * When `brokerId` is undefined, the hook stays disabled — the caller hasn't
+ * resolved the URL param yet, and we don't want to fetch "all positions"
+ * through this hook (dashboard + history use `fetchAllPositions` inline).
+ */
 export function usePositions(brokerId?: string) {
   const queryClient = useQueryClient()
 
-  const {
-    data: positions = [],
-    isPending: loading,
-    error,
-    refetch,
-  } = useQuery({
-    queryKey: ['positions', brokerId],
-    queryFn: async () => {
-      let query = supabase.from('positions').select('*').order('created_at', { ascending: true })
-      if (brokerId) query = query.eq('broker_id', brokerId)
-      const { data, error: fetchErr } = await query
-      if (fetchErr) throw fetchErr
-      return (data || []) as Position[]
-    },
+  const { data, isPending, error, refetch } = useQuery<Position[], Error>({
+    queryKey: brokerId ? queryKeys.positions.byBroker(brokerId) : queryKeys.positions.list(),
+    queryFn: () => (brokerId ? fetchPositionsByBroker(brokerId) : fetchAllPositions()),
+    enabled: brokerId !== undefined,
   })
 
   const addPositionMutation = useMutation({
-    mutationFn: async (position: {
-      broker_id: string
-      symbol: string
-      name: string
-      shares: number
-      avg_buy_price: number
-      currency: string
-      buy_date: string // 'YYYY-MM-DD'
-    }) => {
-      const userId = await getAuthUserId()
-      if (!userId) throw new Error('Not authenticated')
-      const { error } = await supabase.from('positions').insert({ ...position, user_id: userId })
-      if (error) throw error
-    },
-    // Await invalidation so the mutation resolves only after derived caches are refreshed.
+    mutationFn: (position: InsertPositionInput) => insertPosition(position),
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['positions'] }),
-        queryClient.invalidateQueries({ queryKey: ['dashboardData'] }),
-        queryClient.invalidateQueries({ queryKey: ['portfolioHistoryEur'] }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.positions.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
       ])
     },
   })
 
   const deletePositionMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const userId = await getAuthUserId()
-      if (!userId) throw new Error('Not authenticated')
-      const { error } = await supabase.from('positions').delete().eq('id', id).eq('user_id', userId)
-      if (error) throw error
-    },
+    mutationFn: (id: string) => deletePositionApi(id),
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['positions'] }),
-        queryClient.invalidateQueries({ queryKey: ['dashboardData'] }),
-        queryClient.invalidateQueries({ queryKey: ['portfolioHistoryEur'] }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.positions.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
       ])
     },
   })
 
   return {
-    positions,
-    loading,
-    error: error?.message || null,
-    addPosition: async (position: {
-      broker_id: string
-      symbol: string
-      name: string
-      shares: number
-      avg_buy_price: number
-      currency: string
-      buy_date: string
-    }) => {
+    positions: data ?? [],
+    loading: isPending,
+    error: error?.message ?? null,
+    addPosition: async (position: InsertPositionInput): Promise<MutationResult> => {
       try {
         await addPositionMutation.mutateAsync(position)
         return { error: null }
       } catch (e) {
-        return { error: e as Error }
+        return { error: { message: e instanceof Error ? e.message : String(e) } }
       }
     },
-    deletePosition: async (id: string) => {
+    deletePosition: async (id: string): Promise<MutationResult> => {
       try {
         await deletePositionMutation.mutateAsync(id)
         return { error: null }
       } catch (e) {
-        return { error: e as Error }
+        return { error: { message: e instanceof Error ? e.message : String(e) } }
       }
     },
     refetch,

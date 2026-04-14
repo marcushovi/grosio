@@ -1,52 +1,81 @@
 import { useCallback, useMemo, useState } from 'react'
-import { View, Text, ScrollView, RefreshControl, ActivityIndicator } from 'react-native'
+import { View, Text, ScrollView, RefreshControl } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useThemeColor } from 'heroui-native'
 import { Card } from 'heroui-native/card'
-import { CartesianChart, Line } from 'victory-native'
 import { TrendingUp, TrendingDown } from 'lucide-react-native'
 import { useBrokers } from '../../../hooks/useBrokers'
-import { useDashboardData } from '../../../hooks/useDashboardData'
-import { usePortfolioHistory } from '../../../hooks/usePortfolioHistory'
 import { useT } from '../../../lib/t'
-import { formatAmount, formatGainLoss } from '../../../lib/currency'
+import { useSettings } from '../../../lib/settingsContext'
+import { queryKeys } from '../../../lib/queryKeys'
+import { fetchAllPositions } from '../../../lib/api/positions'
+import { fetchPrices } from '../../../lib/api/prices'
+import { getExchangeRates, formatAmount, formatGainLoss } from '../../../lib/api/currency'
+import {
+  computeDashboardBase,
+  projectDashboardToDisplay,
+  type DashboardBase,
+} from '../../../lib/api/dashboard'
 import { CurrencyPicker } from '../../../components/CurrencyPicker'
 
 export default function DashboardScreen() {
   const { _ } = useT()
-  const [success, danger, accent] = useThemeColor(['success', 'danger', 'accent'])
+  const [success, danger] = useThemeColor(['success', 'danger'])
+  const queryClient = useQueryClient()
   const { brokers } = useBrokers()
-  const { data: historyData, loading: historyLoading } = usePortfolioHistory()
-  const {
-    brokerValues,
-    totalValue,
-    totalGainLoss,
-    totalGainLossPct,
-    error,
-    refetch,
-    displayCurrency,
-  } = useDashboardData(brokers)
-  const [refreshing, setRefreshing] = useState(false)
+  const { currency: displayCurrency } = useSettings()
 
+  // EUR-base dashboard aggregate. Currency-invariant so switching display
+  // currency doesn't trigger a refetch — the projection happens in the
+  // useMemo below.
+  const {
+    data: dashboardBase,
+    isPending: dashboardLoading,
+    error,
+    refetch: refetchDashboard,
+  } = useQuery<DashboardBase, Error>({
+    queryKey: queryKeys.dashboard.data(),
+    queryFn: async () => {
+      const [positions, rates] = await Promise.all([fetchAllPositions(), getExchangeRates()])
+      const symbols = [...new Set(positions.map(p => p.symbol))]
+      const priceMap = await fetchPrices(symbols)
+      return computeDashboardBase(brokers, positions, priceMap, rates)
+    },
+    enabled: brokers.length > 0,
+  })
+
+  // Display-currency projection — pure, runs every render (cheap math).
+  const { brokerValues, totalValue, totalGainLoss, totalGainLossPct } = useMemo(
+    () => projectDashboardToDisplay(dashboardBase, displayCurrency),
+    [dashboardBase, displayCurrency]
+  )
+
+  const [refreshing, setRefreshing] = useState(false)
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
-    await refetch()
-    setRefreshing(false)
-  }, [refetch])
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.brokers.all }),
+      ])
+      await refetchDashboard()
+    } finally {
+      setRefreshing(false)
+    }
+  }, [queryClient, refetchDashboard])
 
   const isPositive = totalGainLoss >= 0
   const fmt = useCallback((n: number) => formatAmount(n, displayCurrency), [displayCurrency])
   const brokersWithValue = brokerValues.filter(b => b.value > 0)
-  const chartData = useMemo(
-    () => historyData.map((p, i) => ({ x: i, value: p.value })),
-    [historyData]
-  )
 
   return (
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView
         contentContainerStyle={{ padding: 20 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing || dashboardLoading} onRefresh={onRefresh} />
+        }
       >
         <View className="flex-row items-center justify-between mb-4">
           <Text className="text-foreground text-3xl font-bold">{_('dashboard')}</Text>
@@ -56,8 +85,8 @@ export default function DashboardScreen() {
         {error ? (
           <Card className="bg-surface mb-4">
             <Card.Body className="items-center">
-              <Text className="text-danger text-center mb-2">{error}</Text>
-              <Text className="text-accent" onPress={refetch}>
+              <Text className="text-danger text-center mb-2">{error.message}</Text>
+              <Text className="text-accent" onPress={() => refetchDashboard()}>
                 {_('tryAgain')}
               </Text>
             </Card.Body>
@@ -81,40 +110,6 @@ export default function DashboardScreen() {
             </View>
           </Card.Body>
         </Card>
-
-        {/* Portfolio history chart */}
-        {chartData.length > 1 && (
-          <Card className="bg-surface mb-4">
-            <Card.Body>
-              <Text className="text-foreground font-semibold mb-1">{_('portfolioHistory')}</Text>
-              <Text className="text-muted text-xs mb-3">{_('portfolioHistorySubtitle')}</Text>
-              <View style={{ height: 180 }}>
-                {historyLoading ? (
-                  <View className="flex-1 justify-center items-center">
-                    <ActivityIndicator color={accent} />
-                  </View>
-                ) : (
-                  <CartesianChart data={chartData} xKey="x" yKeys={['value']}>
-                    {({ points }) => (
-                      <Line
-                        points={points.value}
-                        color={accent}
-                        strokeWidth={2}
-                        curveType="natural"
-                      />
-                    )}
-                  </CartesianChart>
-                )}
-              </View>
-              <View className="flex-row justify-between mt-1">
-                <Text className="text-muted text-xs">{historyData[0]?.date}</Text>
-                <Text className="text-muted text-xs">
-                  {historyData[historyData.length - 1]?.date}
-                </Text>
-              </View>
-            </Card.Body>
-          </Card>
-        )}
 
         {/* Allocation */}
         {brokersWithValue.length > 0 && (

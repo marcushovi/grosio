@@ -1,78 +1,70 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { supabase, getAuthUserId } from '../lib/supabase'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { queryKeys } from '../lib/queryKeys'
+import { fetchBrokers, insertBroker, deleteBroker as deleteBrokerApi } from '../lib/api/brokers'
 import type { Broker } from '../types'
 
+interface MutationResult {
+  error: { message: string } | null
+}
+
+/**
+ * Brokers query + add/delete mutations.
+ *
+ * Used by the dashboard, brokers list and broker-detail screens. Each
+ * mutation awaits `invalidateQueries`, so by the time `mutateAsync` resolves
+ * the dashboard / positions caches have been refreshed — the UI (e.g. a
+ * closing dialog) sees the new state immediately.
+ */
 export function useBrokers() {
   const queryClient = useQueryClient()
 
-  const {
-    data: brokers = [],
-    isPending: loading,
-    error,
-    refetch,
-  } = useQuery({
-    queryKey: ['brokers'],
-    queryFn: async () => {
-      const { data, error: fetchErr } = await supabase
-        .from('brokers')
-        .select('*')
-        .order('created_at', { ascending: true })
-      if (fetchErr) throw fetchErr
-      return (data || []) as Broker[]
-    },
+  const { data, isPending, error, refetch } = useQuery<Broker[], Error>({
+    queryKey: queryKeys.brokers.list(),
+    queryFn: fetchBrokers,
   })
 
   const addBrokerMutation = useMutation({
-    mutationFn: async ({ name, color }: { name: string; color: string }) => {
-      const userId = await getAuthUserId()
-      if (!userId) throw new Error('Not authenticated')
-      const { error } = await supabase.from('brokers').insert({ name, color, user_id: userId })
-      if (error) throw error
-    },
-    // Awaiting the invalidation means mutateAsync won't resolve until the refetch
-    // completes — so by the time the dialog closes, the broker list is already fresh.
+    mutationFn: ({ name, color }: { name: string; color: string }) => insertBroker(name, color),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['brokers'] })
-    },
-  })
-
-  const deleteBrokerMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const userId = await getAuthUserId()
-      if (!userId) throw new Error('Not authenticated')
-      const { error } = await supabase.from('brokers').delete().eq('id', id).eq('user_id', userId)
-      if (error) throw error
-    },
-    onSuccess: async () => {
-      // Cascade: ON DELETE CASCADE on positions.broker_id removes the broker's
-      // positions server-side. Invalidate all derived caches so they refetch.
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['brokers'] }),
-        queryClient.invalidateQueries({ queryKey: ['positions'] }),
-        queryClient.invalidateQueries({ queryKey: ['portfolioHistoryEur'] }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.brokers.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
       ])
     },
   })
 
-  // Exposing the original API signature so dependent components don't immediately break
+  const deleteBrokerMutation = useMutation({
+    mutationFn: (id: string) => deleteBrokerApi(id),
+    onSuccess: async () => {
+      // ON DELETE CASCADE on positions.broker_id removes the broker's positions
+      // server-side. Invalidate every query that reads positions or derived
+      // portfolio data so they refetch against the new state.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.brokers.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.positions.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
+      ])
+    },
+  })
+
   return {
-    brokers,
-    loading,
-    error: error?.message || null,
-    addBroker: async (name: string, color: string) => {
+    brokers: data ?? [],
+    loading: isPending,
+    error: error?.message ?? null,
+    addBroker: async (name: string, color: string): Promise<MutationResult> => {
       try {
         await addBrokerMutation.mutateAsync({ name, color })
         return { error: null }
       } catch (e) {
-        return { error: e as Error }
+        return { error: { message: e instanceof Error ? e.message : String(e) } }
       }
     },
-    deleteBroker: async (id: string) => {
+    deleteBroker: async (id: string): Promise<MutationResult> => {
       try {
         await deleteBrokerMutation.mutateAsync(id)
         return { error: null }
       } catch (e) {
-        return { error: e as Error }
+        return { error: { message: e instanceof Error ? e.message : String(e) } }
       }
     },
     refetch,

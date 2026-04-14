@@ -1,9 +1,10 @@
-import { useState, useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { Text, Alert, KeyboardAvoidingView, Platform } from 'react-native'
-import { supabase } from '../../lib/supabase'
 import { Link } from 'expo-router'
+import { useMutation } from '@tanstack/react-query'
 import { Button } from 'heroui-native/button'
 import { Input } from 'heroui-native/input'
+import { signInWithPassword } from '../../lib/api/auth'
 import { useT } from '../../lib/t'
 import { APP_NAME } from '../../lib/constants'
 
@@ -11,20 +12,16 @@ export default function LoginScreen() {
   const { _ } = useT()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
 
-  const handleLogin = useCallback(async () => {
+  const login = useMutation({
+    mutationFn: signInWithPassword,
+    onError: (err: Error) => Alert.alert(_('error'), err.message || _('unexpectedError')),
+  })
+
+  const handleLogin = useCallback(() => {
     if (!email || !password) return Alert.alert(_('error'), _('fillEmailPassword'))
-    setLoading(true)
-    try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) Alert.alert(_('error'), error.message)
-    } catch (e) {
-      Alert.alert(_('error'), e instanceof Error ? e.message : _('unexpectedError'))
-    } finally {
-      setLoading(false)
-    }
-  }, [email, password, _])
+    login.mutate({ email, password })
+  }, [email, password, login, _])
 
   return (
     <KeyboardAvoidingView
@@ -52,10 +49,10 @@ export default function LoginScreen() {
         variant="primary"
         size="lg"
         onPress={handleLogin}
-        isDisabled={loading}
+        isDisabled={login.isPending}
         className="mb-4"
       >
-        <Button.Label>{loading ? _('loggingIn') : _('login')}</Button.Label>
+        <Button.Label>{login.isPending ? _('loggingIn') : _('login')}</Button.Label>
       </Button>
       <Link href="/(auth)/register" className="text-accent text-center text-sm">
         {_('noAccount')}

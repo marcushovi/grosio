@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router'
-import { LayoutDashboard, Briefcase, Settings } from 'lucide-react-native'
+import { LayoutDashboard, Briefcase, Settings, ShieldCheck } from 'lucide-react-native'
 import { useThemeColor } from 'heroui-native'
 import * as Haptics from 'expo-haptics'
 import { useT } from '../../lib/t'
@@ -45,6 +45,13 @@ export default function AppLayout() {
         options={{
           title: _('brokers'),
           tabBarIcon: ({ color }) => <Briefcase color={color} size={22} />,
+        }}
+      />
+      <Tabs.Screen
+        name="(tax)"
+        options={{
+          title: _('tax'),
+          tabBarIcon: ({ color }) => <ShieldCheck color={color} size={22} />,
         }}
       />
       <Tabs.Screen

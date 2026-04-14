@@ -67,38 +67,6 @@ export async function getQuotes(symbols: string[]): Promise<QuoteResult[]> {
   }
 }
 
-export interface HistoricalQuote {
-  date: string // 'YYYY-MM-DD'
-  close: number
-}
-
-export interface SymbolHistory {
-  symbol: string
-  currency: string
-  quotes: HistoricalQuote[]
-}
-
-export async function getHistory(
-  symbols: string[],
-  interval: '1wk' | '1mo' | '1d' = '1wk',
-  range: '1y' | '6mo' | '3mo' = '1y'
-): Promise<SymbolHistory[]> {
-  if (symbols.length === 0) return []
-  try {
-    const headers = await authHeaders()
-    if (!headers) return []
-    const res = await fetch(
-      `${EDGE_FUNCTION_URL}?action=history&q=${symbols.join(',')}&interval=${interval}&range=${range}`,
-      { headers }
-    )
-    if (!res.ok) return []
-    const data = await res.json()
-    return data?.history ?? []
-  } catch {
-    return []
-  }
-}
-
 export interface PriceOnDate {
   symbol: string
   /** Actual trading day used (nearest ≤ requested date). */

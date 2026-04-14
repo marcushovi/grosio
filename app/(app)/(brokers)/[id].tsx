@@ -1,21 +1,33 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { View, Text, FlatList, Alert, RefreshControl } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useLocalSearchParams, useRouter } from 'expo-router'
+import { useQuery } from '@tanstack/react-query'
 import { Card } from 'heroui-native/card'
 import { Button } from 'heroui-native/button'
 import { useThemeColor } from 'heroui-native'
 import { ArrowLeft, Plus, TrendingUp, TrendingDown, Trash2 } from 'lucide-react-native'
 import { useBrokers } from '../../../hooks/useBrokers'
 import { usePositions } from '../../../hooks/usePositions'
-import { usePrices, type PriceMap } from '../../../hooks/usePrices'
-import { getExchangeRates, formatAmount, formatRaw, formatGainLoss } from '../../../lib/currency'
+import { queryKeys } from '../../../lib/queryKeys'
+import { fetchPrices, type PriceMap } from '../../../lib/api/prices'
+import {
+  getExchangeRates,
+  formatAmount,
+  formatRaw,
+  formatGainLoss,
+} from '../../../lib/api/currency'
 import type { ExchangeRates } from '../../../lib/currency'
 import { computePositionValueEur, computePositionPnl } from '../../../lib/portfolio'
 import { useSettings } from '../../../lib/settingsContext'
 import { useT } from '../../../lib/t'
 import { AddPositionDialog } from '../../../components/AddPositionDialog'
 import type { PositionWithPrice } from '../../../types'
+
+interface PricesAndRates {
+  prices: PriceMap
+  rates: ExchangeRates
+}
 
 export default function BrokerDetailScreen() {
   const { _ } = useT()
@@ -30,46 +42,35 @@ export default function BrokerDetailScreen() {
   const router = useRouter()
   const { brokers, loading: brokersLoading } = useBrokers()
   const { positions, loading, addPosition, deletePosition } = usePositions(id)
-  const { fetchPrices: fetchPricesFromHook } = usePrices()
   const broker = brokers.find(b => b.id === id)
 
-  const [prices, setPrices] = useState<PriceMap>({})
-  const [rates, setRates] = useState<ExchangeRates | null>(null)
-  const [pricesLoading, setPricesLoading] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
 
-  // Fetch raw async data only. No setState when there's nothing to fetch —
-  // initial prices={} + rates=null already yield an empty derived list via the useMemo below.
-  const fetchPrices = useCallback(async () => {
-    if (positions.length === 0) return
-    setPricesLoading(true)
-    try {
-      const symbols = [...new Set(positions.map(p => p.symbol))]
-      const [nextRates, nextPrices] = await Promise.all([
-        getExchangeRates(),
-        fetchPricesFromHook(symbols),
-      ])
-      setRates(nextRates)
-      setPrices(nextPrices)
-    } catch {
-      // fall back to showing positions without live prices
-    } finally {
-      setPricesLoading(false)
-    }
-  }, [positions, fetchPricesFromHook])
+  // Unique symbols in a stable-sorted form so the query key doesn't change
+  // between renders for the same set of positions.
+  const symbols = useMemo(() => [...new Set(positions.map(p => p.symbol))].sort(), [positions])
 
-  useEffect(() => {
-    fetchPrices()
-  }, [fetchPrices])
+  const {
+    data: pricing,
+    isPending: pricesPending,
+    refetch: refetchPrices,
+  } = useQuery<PricesAndRates, Error>({
+    queryKey: queryKeys.prices.quotes(symbols),
+    queryFn: async () => {
+      const [rates, prices] = await Promise.all([getExchangeRates(), fetchPrices(symbols)])
+      return { rates, prices }
+    },
+    enabled: symbols.length > 0,
+  })
 
-  // Derive positionsWithPrices during render — no effect, no state, no loops.
-  // Per-position math delegated to lib/portfolio so the broker-detail screen and
-  // useDashboardData stay in lock-step.
+  // Derive positionsWithPrices during render — no effect, no state.
+  // Per-position math delegated to lib/portfolio so broker detail and
+  // dashboard stay in lock-step.
   const positionsWithPrices = useMemo<PositionWithPrice[]>(() => {
-    if (!rates || positions.length === 0) return []
+    if (!pricing || positions.length === 0) return []
     return positions.map(pos => {
-      const pv = computePositionValueEur(pos, prices, rates)
-      const pnl = computePositionPnl(pv, displayCurrency, rates)
+      const pv = computePositionValueEur(pos, pricing.prices, pricing.rates)
+      const pnl = computePositionPnl(pv, displayCurrency, pricing.rates)
       return {
         id: pos.id,
         broker_id: pos.broker_id,
@@ -87,7 +88,7 @@ export default function BrokerDetailScreen() {
         gainLossPct: pnl.gainLossPct,
       }
     })
-  }, [positions, prices, rates, displayCurrency])
+  }, [positions, pricing, displayCurrency])
 
   const handleDeletePosition = useCallback(
     (posId: string, symbol: string) => {
@@ -98,7 +99,7 @@ export default function BrokerDetailScreen() {
           style: 'destructive',
           onPress: async () => {
             const { error } = await deletePosition(posId)
-            if (error) Alert.alert(_('error'), typeof error === 'string' ? error : error.message)
+            if (error) Alert.alert(_('error'), error.message)
           },
         },
       ])
@@ -121,11 +122,16 @@ export default function BrokerDetailScreen() {
     [addPosition, id]
   )
 
+  const onRefresh = useCallback(async () => {
+    await refetchPrices()
+  }, [refetchPrices])
+
   const totalValue = positionsWithPrices.reduce((s, p) => s + p.currentValue, 0)
   const totalInvested = positionsWithPrices.reduce((s, p) => s + p.invested, 0)
   const totalGL = totalValue - totalInvested
   const totalGLPct = totalInvested > 0 ? (totalGL / totalInvested) * 100 : 0
   const isGain = totalGL >= 0
+  const pricesLoading = pricesPending && symbols.length > 0
 
   if (!id || (!broker && !brokersLoading)) {
     return (
@@ -192,7 +198,7 @@ export default function BrokerDetailScreen() {
           keyExtractor={item => item.id}
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }}
           showsVerticalScrollIndicator={false}
-          refreshControl={<RefreshControl refreshing={pricesLoading} onRefresh={fetchPrices} />}
+          refreshControl={<RefreshControl refreshing={pricesLoading} onRefresh={onRefresh} />}
           renderItem={({ item }) => {
             const isItemGain = item.gainLoss >= 0
             return (

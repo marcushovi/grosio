@@ -5,19 +5,11 @@ import type { Session } from '@supabase/supabase-js'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { HeroUINativeProvider } from 'heroui-native/provider'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { SettingsProvider } from '../lib/settingsContext'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { queryClient } from '../lib/queryClient'
 import '../lib/i18n'
 import '../global.css'
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      staleTime: 1000 * 60 * 5, // 5 minutes
-    },
-  },
-})
 
 export default function RootLayout() {
   const [session, setSession] = useState<Session | null>(null)
@@ -25,6 +17,9 @@ export default function RootLayout() {
   const router = useRouter()
   const segments = useSegments()
 
+  // Subscribe to auth state once. This is a bridge to an external system
+  // (Supabase's session listener) — that's the one useEffect case that
+  // *does* belong, per the React "you might not need an effect" rules.
   useEffect(() => {
     supabase.auth
       .getSession()
@@ -53,15 +48,15 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <SettingsProvider>
-          <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <SafeAreaProvider>
+          <SettingsProvider>
             <HeroUINativeProvider>
               <Slot />
             </HeroUINativeProvider>
-          </QueryClientProvider>
-        </SettingsProvider>
-      </SafeAreaProvider>
+          </SettingsProvider>
+        </SafeAreaProvider>
+      </QueryClientProvider>
     </GestureHandlerRootView>
   )
 }

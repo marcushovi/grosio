@@ -1,28 +1,24 @@
 import { View, Text } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
-import { ListGroup } from 'heroui-native'
+import { useQuery } from '@tanstack/react-query'
+import { ListGroup, useThemeColor } from 'heroui-native'
 import { Button } from 'heroui-native/button'
-import { useThemeColor } from 'heroui-native'
 import { ArrowLeft } from 'lucide-react-native'
-import { useState, useEffect } from 'react'
-import { supabase } from '../../../lib/supabase'
+import { queryKeys } from '../../../lib/queryKeys'
+import { fetchSessionEmail } from '../../../lib/api/auth'
 import { useT } from '../../../lib/t'
 
 export default function ProfileScreen() {
   const { _ } = useT()
   const router = useRouter()
   const foreground = useThemeColor('foreground') as string
-  const [email, setEmail] = useState('')
 
-  useEffect(() => {
-    supabase.auth
-      .getSession()
-      .then(({ data: { session } }) => {
-        if (session?.user) setEmail(session.user.email || '')
-      })
-      .catch(() => {})
-  }, [])
+  const { data: email } = useQuery<string | null>({
+    queryKey: queryKeys.session.current(),
+    queryFn: fetchSessionEmail,
+    staleTime: Infinity, // session email doesn't change while the screen is open
+  })
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -37,7 +33,7 @@ export default function ProfileScreen() {
           <ListGroup.Item disabled>
             <ListGroup.ItemContent>
               <ListGroup.ItemTitle>{_('email')}</ListGroup.ItemTitle>
-              <ListGroup.ItemDescription>{email}</ListGroup.ItemDescription>
+              <ListGroup.ItemDescription>{email ?? ''}</ListGroup.ItemDescription>
             </ListGroup.ItemContent>
           </ListGroup.Item>
         </ListGroup>
