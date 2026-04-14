@@ -1,4 +1,5 @@
 import '@supabase/functions-js/edge-runtime.d.ts'
+import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,9 +8,33 @@ const corsHeaders = {
 
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
 
+// Function-scoped client used only to verify incoming session tokens. Uses
+// the new publishable-key secret (`SB_PUBLISHABLE_KEY`) so `auth.getClaims()`
+// can validate ES256-signed JWTs against the project's JWKS.
+const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SB_PUBLISHABLE_KEY')!)
+
 Deno.serve(async req => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
+  }
+
+  // Deployed with --no-verify-jwt because the gateway verifier doesn't
+  // handle this project's new JWT Signing Keys. Validate the bearer here
+  // using the official `auth.getClaims()` pattern instead.
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader) {
+    return new Response(JSON.stringify({ error: 'Missing Authorization header' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+  const token = authHeader.replace(/^Bearer\s+/i, '')
+  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token)
+  if (claimsError || !claimsData?.claims) {
+    return new Response(JSON.stringify({ error: 'Invalid JWT' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
   }
 
   try {
