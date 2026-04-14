@@ -48,7 +48,7 @@ Deno.serve(async req => {
       const res = await fetch(yahooUrl, { headers: { 'User-Agent': UA } })
       const data = await res.json()
       const rawQuotes = (data?.quotes ?? []) as any[]
-      const allowed = ['EQUITY', 'ETF', 'MUTUALFUND', 'CRYPTOCURRENCY', 'INDEX']
+      const allowed = ['EQUITY', 'ETF']
       const quotes = rawQuotes
         .filter(q => allowed.includes(q.quoteType))
         .map(q => ({
@@ -59,7 +59,7 @@ Deno.serve(async req => {
         }))
       const body: { quotes: typeof quotes; hint?: string } = { quotes }
       if (quotes.length === 0 && rawQuotes.length > 0) {
-        body.hint = 'Found results but none match equity/ETF/mutualfund/crypto/index types'
+        body.hint = 'Found results but none match equity/ETF types'
       }
       return new Response(JSON.stringify(body), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
