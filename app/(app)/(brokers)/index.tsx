@@ -132,6 +132,7 @@ export default function BrokersScreen() {
                 broker={item}
                 totalValue={bv?.value ?? 0}
                 gainLoss={bv?.gainLoss ?? 0}
+                gainLossPct={bv?.gainLossPct ?? 0}
                 positionCount={bv?.positionCount ?? 0}
                 onPress={() => router.push(`/(app)/(brokers)/${item.id}`)}
                 onLongPress={() => handleDelete(item.id, item.name)}
