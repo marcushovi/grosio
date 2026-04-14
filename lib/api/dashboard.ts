@@ -1,8 +1,23 @@
-import type { Broker, Position, BrokerValue } from '../../types'
+import type { Broker, Position, BrokerValue, Mover, MoversData } from '../../types'
 import type { ExchangeRates, DisplayCurrency } from '../currency'
-import { convertToDisplay } from '../currency'
+import { convertToDisplay, toEur } from '../currency'
 import { computePositionValueEur } from '../portfolio'
 import type { PriceMap } from '../portfolio'
+
+/** Intermediate mover shape — currency-invariant, produced by
+ *  `computeDashboardBase`. `valueEur` gets projected to display currency
+ *  (→ `Mover.currentValue`) by `projectDashboardToDisplay`. */
+interface MoverBase {
+  symbol: string
+  name: string
+  pnlPercent: number
+  valueEur: number
+}
+
+interface MoversBase {
+  topGainers: MoverBase[]
+  topLosers: MoverBase[]
+}
 
 /** Per-broker aggregates in the EUR base currency. */
 export interface BrokerValueEur {
@@ -18,7 +33,43 @@ export interface BrokerValueEur {
  *  underlying query doesn't need to refetch when the user switches currency. */
 export interface DashboardBase {
   brokerValues: BrokerValueEur[]
+  movers: MoversBase
   rates: ExchangeRates
+}
+
+/**
+ * Bucket held positions into top 3 gainers + top 3 losers by percentage P&L
+ * vs. their recorded buy price. Positions without a live quote are skipped —
+ * we can't classify them. Positions with `avg_buy_price <= 0` are included
+ * with `pnlPercent = 0` so a zero-cost share (e.g. a gifted position) still
+ * shows up on the list.
+ *
+ * Pure function. `valueEur` is currency-invariant; `projectMoversToDisplay`
+ * handles the display-currency conversion.
+ */
+function computeMoversBase(
+  positions: Position[],
+  priceMap: PriceMap,
+  rates: ExchangeRates
+): MoversBase {
+  const movers: MoverBase[] = []
+  for (const pos of positions) {
+    const quote = priceMap[pos.symbol]
+    if (!quote || !Number.isFinite(quote.price) || quote.price <= 0) continue
+    const pnlPercent =
+      pos.avg_buy_price > 0 ? ((quote.price - pos.avg_buy_price) / pos.avg_buy_price) * 100 : 0
+    movers.push({
+      symbol: pos.symbol,
+      name: pos.name,
+      pnlPercent,
+      valueEur: toEur(pos.shares * quote.price, quote.currency, rates),
+    })
+  }
+  const sorted = [...movers].sort((a, b) => b.pnlPercent - a.pnlPercent)
+  return {
+    topGainers: sorted.slice(0, 3),
+    topLosers: sorted.slice(-3).reverse(),
+  }
 }
 
 /**
@@ -61,12 +112,17 @@ export function computeDashboardBase(
     }
   })
 
-  return { brokerValues, rates }
+  return {
+    brokerValues,
+    movers: computeMoversBase(positions, priceMap, rates),
+    rates,
+  }
 }
 
 /** Aggregate P&L across all brokers in the display currency. */
 export interface DashboardTotals {
   brokerValues: BrokerValue[]
+  movers: MoversData
   totalValue: number
   totalInvested: number
   totalGainLoss: number
@@ -81,11 +137,23 @@ export function projectDashboardToDisplay(
   if (!base) {
     return {
       brokerValues: [],
+      movers: { topGainers: [], topLosers: [] },
       totalValue: 0,
       totalInvested: 0,
       totalGainLoss: 0,
       totalGainLossPct: 0,
     }
+  }
+
+  const projectMover = (m: MoverBase): Mover => ({
+    symbol: m.symbol,
+    name: m.name,
+    pnlPercent: m.pnlPercent,
+    currentValue: convertToDisplay(m.valueEur, displayCurrency, base.rates),
+  })
+  const movers: MoversData = {
+    topGainers: base.movers.topGainers.map(projectMover),
+    topLosers: base.movers.topLosers.map(projectMover),
   }
 
   let totalValue = 0
@@ -112,6 +180,7 @@ export function projectDashboardToDisplay(
   const totalGainLoss = totalValue - totalInvested
   return {
     brokerValues,
+    movers,
     totalValue,
     totalInvested,
     totalGainLoss,

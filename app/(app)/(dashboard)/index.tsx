@@ -1,10 +1,11 @@
 import { useCallback, useMemo, useState } from 'react'
-import { View, Text, ScrollView, RefreshControl } from 'react-native'
+import { View, Text, ScrollView, RefreshControl, Pressable } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { useRouter } from 'expo-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useThemeColor } from 'heroui-native'
 import { Card } from 'heroui-native/card'
-import { TrendingUp, TrendingDown } from 'lucide-react-native'
+import { TrendingUp, TrendingDown, ChevronRight } from 'lucide-react-native'
 import { useBrokers } from '../../../hooks/useBrokers'
 import { useT } from '../../../lib/t'
 import { useSettings } from '../../../lib/settingsContext'
@@ -23,8 +24,9 @@ import { useTaxSummary } from '../../../hooks/useTaxSummary'
 
 export default function DashboardScreen() {
   const { _ } = useT()
-  const [success, danger] = useThemeColor(['success', 'danger'])
+  const [success, danger, muted, border] = useThemeColor(['success', 'danger', 'muted', 'border'])
   const queryClient = useQueryClient()
+  const router = useRouter()
   const { brokers } = useBrokers()
   const { currency: displayCurrency } = useSettings()
 
@@ -49,7 +51,7 @@ export default function DashboardScreen() {
   })
 
   // Display-currency projection — pure, runs every render (cheap math).
-  const { brokerValues, totalValue, totalGainLoss, totalGainLossPct } = useMemo(
+  const { brokerValues, movers, totalValue, totalGainLoss, totalGainLossPct } = useMemo(
     () => projectDashboardToDisplay(dashboardBase, displayCurrency),
     [dashboardBase, displayCurrency]
   )
@@ -121,22 +123,66 @@ export default function DashboardScreen() {
           </Card.Body>
         </Card>
 
-        {/* Tax summary — brief overview; full breakdown lives on the tax tab */}
-        {taxSummary && (
-          <View className="flex-row gap-3 mb-4">
-            <Card className="flex-1 bg-surface p-4">
-              <Text className="text-muted text-xs mb-1">{_('taxFreeLabel')}</Text>
-              <Text className="text-success text-xl font-bold">
-                {fmt(taxSummary.totalTaxFreeValue)}
-              </Text>
-            </Card>
-            <Card className="flex-1 bg-surface p-4">
-              <Text className="text-muted text-xs mb-1">{_('taxableLabel')}</Text>
-              <Text className="text-danger text-xl font-bold">
-                {fmt(taxSummary.totalTaxableValue)}
-              </Text>
-            </Card>
+        {/* Movers — top 3 gainers / losers by pnlPercent (not daily change) */}
+        {(movers.topGainers.length > 0 || movers.topLosers.length > 0) && (
+          <View className="bg-surface rounded-2xl p-4 gap-3 mb-4">
+            <Text className="text-foreground font-semibold">{_('moversTitle')}</Text>
+            <View className="flex-row">
+              <View className="flex-1 pr-3">
+                <Text className="text-muted text-xs mb-2">{_('topGainers')}</Text>
+                {movers.topGainers.map(m => (
+                  <View key={m.symbol} className="flex-row justify-between items-center py-1">
+                    <Text className="text-foreground text-sm font-semibold">{m.symbol}</Text>
+                    <Text className="text-success text-sm font-semibold">
+                      {m.pnlPercent >= 0 ? '+' : ''}
+                      {m.pnlPercent.toFixed(1)}%
+                    </Text>
+                  </View>
+                ))}
+              </View>
+              <View className="my-1" style={{ width: 0.5, backgroundColor: border }} />
+              <View className="flex-1 pl-3">
+                <Text className="text-muted text-xs mb-2">{_('topLosers')}</Text>
+                {movers.topLosers.map(m => (
+                  <View key={m.symbol} className="flex-row justify-between items-center py-1">
+                    <Text className="text-foreground text-sm font-semibold">{m.symbol}</Text>
+                    <Text className="text-danger text-sm font-semibold">
+                      {m.pnlPercent >= 0 ? '+' : ''}
+                      {m.pnlPercent.toFixed(1)}%
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            </View>
           </View>
+        )}
+
+        {/* Tax summary — brief overview; tap to jump to the full tax breakdown */}
+        {taxSummary && (
+          <Pressable
+            className="bg-surface rounded-2xl p-4 gap-3 mb-4"
+            onPress={() => router.push('/(app)/(tax)')}
+          >
+            <View className="flex-row items-center justify-between">
+              <Text className="text-foreground font-semibold">{_('taxOverview')}</Text>
+              <ChevronRight size={16} color={muted} />
+            </View>
+            <View className="flex-row">
+              <View className="flex-1 pr-3 gap-1">
+                <Text className="text-muted text-xs">{_('taxFreeLabel')}</Text>
+                <Text className="text-success text-lg font-bold">
+                  {fmt(taxSummary.totalTaxFreeValue)}
+                </Text>
+              </View>
+              <View className="my-1" style={{ width: 0.5, backgroundColor: border }} />
+              <View className="flex-1 pl-3 gap-1">
+                <Text className="text-muted text-xs">{_('taxableLabel')}</Text>
+                <Text className="text-danger text-lg font-bold">
+                  {fmt(taxSummary.totalTaxableValue)}
+                </Text>
+              </View>
+            </View>
+          </Pressable>
         )}
 
         {/* Allocation */}

@@ -35,6 +35,22 @@ export interface MutationResult {
   error: { message: string } | null
 }
 
+/** A single gainer/loser entry surfaced on the dashboard. */
+export interface Mover {
+  symbol: string
+  name: string
+  /** (currentPrice - avgBuyPrice) / avgBuyPrice × 100 — currency-invariant. */
+  pnlPercent: number
+  /** shares × currentPrice projected into the user's display currency. */
+  currentValue: number
+}
+
+/** Top 3 gainers and top 3 losers across all held positions. */
+export interface MoversData {
+  topGainers: Mover[]
+  topLosers: Mover[]
+}
+
 export interface PositionWithPrice {
   id: string
   broker_id: string
