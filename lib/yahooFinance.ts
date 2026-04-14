@@ -32,12 +32,12 @@ function logError(context: string, error: unknown): void {
 }
 
 /** Narrow whatever currency string Yahoo returned to the app's supported set.
- *  EUR stays EUR; everything else (USD, GBP, GBp, JPY, ...) collapses to USD
- *  so downstream FX math stays exhaustive. A safe default: users almost always
- *  hold USD-denominated tickers, and a misclassified GBP position will at
- *  least land in a currency we can convert, not get quietly mis-valued. */
+ *  EUR / USD / CZK pass through; everything else (GBP, JPY, CHF, ...) collapses
+ *  to USD so downstream FX math stays exhaustive. A misclassified GBP position
+ *  lands in a currency we can convert, not get quietly mis-valued. */
 function narrowCurrency(raw: string | null | undefined): PositionCurrency {
-  return raw === 'EUR' ? 'EUR' : 'USD'
+  if (raw === 'EUR' || raw === 'USD' || raw === 'CZK') return raw
+  return 'USD'
 }
 
 export interface QuoteResult {

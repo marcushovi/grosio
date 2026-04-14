@@ -32,9 +32,11 @@ export interface InsertPositionInput {
   buy_date: string // 'YYYY-MM-DD'
 }
 
+const ALLOWED_CURRENCIES = ['EUR', 'USD', 'CZK'] as const
+
 /** Insert a new position owned by the current user. */
 export async function insertPosition(position: InsertPositionInput): Promise<void> {
-  if (position.currency !== 'EUR' && position.currency !== 'USD') {
+  if (!ALLOWED_CURRENCIES.includes(position.currency)) {
     throw new Error(`Unsupported currency: ${position.currency}`)
   }
   const userId = await getAuthUserId()

@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { View, Text, ScrollView, RefreshControl, Pressable } from 'react-native'
-import { useFocusEffect } from 'expo-router'
+import { useFocusEffect, useRouter } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Card } from 'heroui-native/card'
 import { useThemeColor } from 'heroui-native'
@@ -10,6 +10,7 @@ import {
   CircleDollarSign,
   ChevronDown,
   ChevronRight,
+  Wallet,
 } from 'lucide-react-native'
 import { useT } from '../../../lib/t'
 import { useSettings } from '../../../lib/settingsContext'
@@ -18,6 +19,7 @@ import { formatAmount } from '../../../lib/api/currency'
 import { projectTaxSummaryToDisplay, type PositionTaxStatus } from '../../../lib/tax'
 import type { DisplayCurrency } from '../../../lib/currency'
 import { useTaxSummary } from '../../../hooks/useTaxSummary'
+import { useBrokers } from '../../../hooks/useBrokers'
 import { EmptyState } from '../../../components/EmptyState'
 import { ErrorState } from '../../../components/ErrorState'
 import { LoadingState } from '../../../components/LoadingState'
@@ -70,8 +72,10 @@ function TaxRow({ item, displayCurrency, warningColor }: TaxRowProps) {
 
 export default function TaxScreen() {
   const { _ } = useT()
+  const router = useRouter()
   const { domicile, currency: displayCurrency } = useSettings()
   const queryClient = useQueryClient()
+  const { brokers } = useBrokers()
   const [success, warning, foreground] = useThemeColor(['success', 'warning', 'foreground'])
 
   // Broker position lists collapse by default — users with many holdings
@@ -112,6 +116,26 @@ export default function TaxScreen() {
       }
     }, [queryClient, domicile])
   )
+
+  // No brokers → useTaxSummary is disabled and isPending stays true forever.
+  // Show the onboarding CTA instead of a spinner that never resolves.
+  if (brokers.length === 0) {
+    return (
+      <Screen>
+        <View className="px-5 pt-5 pb-4 flex-row items-center justify-between">
+          <Text className="text-foreground text-3xl font-bold">{_('tax')}</Text>
+          <CurrencyPicker />
+        </View>
+        <EmptyState
+          icon={Wallet}
+          title={_('noBrokersYet')}
+          subtitle={_('addBrokersHint')}
+          actionLabel={_('createBroker')}
+          onAction={() => router.push('/(app)/(brokers)')}
+        />
+      </Screen>
+    )
+  }
 
   if (isPending && !summary) {
     return (

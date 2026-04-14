@@ -29,7 +29,7 @@ export default function BrokersScreen() {
   const accentFg = useThemeColor('accent-foreground') as string
   const router = useRouter()
   const queryClient = useQueryClient()
-  const { brokers, loading, error: brokersError, deleteBroker } = useBrokers()
+  const { brokers, error: brokersError, deleteBroker } = useBrokers()
   const { currency: displayCurrency } = useSettings()
   const [dialogOpen, setDialogOpen] = useState(false)
 
@@ -101,16 +101,6 @@ export default function BrokersScreen() {
   const onRefresh = useCallback(() => {
     refetchDashboard()
   }, [refetchDashboard])
-
-  if (loading && brokers.length === 0) {
-    return (
-      <Screen>
-        <View className="px-5 pt-5 pb-4 flex-row justify-between items-center">
-          <Text className="text-foreground text-3xl font-bold">{_('brokers')}</Text>
-        </View>
-      </Screen>
-    )
-  }
 
   if (brokersError) {
     return (

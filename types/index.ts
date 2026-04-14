@@ -6,11 +6,12 @@ export interface Broker {
   created_at: string
 }
 
-/** Currencies a stock/ETF can be priced in. Stocks/ETFs on Yahoo Finance are
- *  overwhelmingly quoted in USD or EUR; anything else is narrowed to USD at
- *  the Yahoo boundary so the FX rate table (EUR→{USD,CZK} from Frankfurter)
- *  stays exhaustive. Distinct from `DisplayCurrency`, which also includes CZK. */
-export type PositionCurrency = 'EUR' | 'USD'
+/** Currencies a stock/ETF can be priced in. Covers the EUR/USD majority on
+ *  Yahoo plus CZK (Prague Stock Exchange, PRA). Anything else is narrowed to
+ *  USD at the Yahoo boundary so the FX rate table (EUR→{USD,CZK} from
+ *  Frankfurter) stays exhaustive. Same literal set as `DisplayCurrency`, but
+ *  a distinct type because the two fields are semantically different. */
+export type PositionCurrency = 'EUR' | 'USD' | 'CZK'
 
 export interface Position {
   id: string

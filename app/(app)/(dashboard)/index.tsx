@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useThemeColor } from 'heroui-native'
 import { Card } from 'heroui-native/card'
-import { TrendingUp, TrendingDown, ChevronRight } from 'lucide-react-native'
+import { TrendingUp, TrendingDown, ChevronRight, Wallet } from 'lucide-react-native'
 import { useBrokers } from '../../../hooks/useBrokers'
 import { useT } from '../../../lib/t'
 import { useSettings } from '../../../lib/settingsContext'
@@ -26,6 +26,7 @@ import { CurrencyPicker } from '../../../components/CurrencyPicker'
 import { LastUpdated } from '../../../components/LastUpdated'
 import { Screen } from '../../../components/Screen'
 import { ErrorState } from '../../../components/ErrorState'
+import { EmptyState } from '../../../components/EmptyState'
 import { useTaxSummary } from '../../../hooks/useTaxSummary'
 import { projectTaxSummaryToDisplay } from '../../../lib/tax'
 
@@ -103,6 +104,27 @@ export default function DashboardScreen() {
           message={brokersError}
           onRetry={() => queryClient.invalidateQueries({ queryKey: queryKeys.brokers.all })}
           retryLabel={_('tryAgain')}
+        />
+      </Screen>
+    )
+  }
+
+  // Zero-broker onboarding path: the dashboard query is disabled when there
+  // are no brokers, so nothing else would ever load — show a focused CTA to
+  // the brokers tab instead of a screen full of empty cards.
+  if (brokers.length === 0) {
+    return (
+      <Screen>
+        <View className="px-5 pt-5 pb-4 flex-row items-center justify-between">
+          <Text className="text-foreground text-3xl font-bold">{_('dashboard')}</Text>
+          <CurrencyPicker />
+        </View>
+        <EmptyState
+          icon={Wallet}
+          title={_('noBrokersYet')}
+          subtitle={_('addBrokersHint')}
+          actionLabel={_('createBroker')}
+          onAction={() => router.push('/(app)/(brokers)')}
         />
       </Screen>
     )

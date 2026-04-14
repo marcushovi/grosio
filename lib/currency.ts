@@ -55,6 +55,8 @@ export function toEur(amount: number, currency: PositionCurrency, rates: Exchang
       return amount
     case 'USD':
       return amount / rates.eurUsd
+    case 'CZK':
+      return amount / rates.eurCzk
   }
 }
 

@@ -47,21 +47,6 @@ export default function SettingsScreen() {
     <Screen>
       <ScrollView contentContainerClassName="p-5">
         <Text className="text-foreground text-3xl font-bold mb-6">{_('settings')}</Text>
-
-        {/* Account */}
-        <Text className="text-muted text-xs mb-2 px-1">{_('profile')}</Text>
-        <ListGroup className="mb-6">
-          <ListGroup.Item onPress={() => navigate('/(app)/(settings)/profile')}>
-            <ListGroup.ItemPrefix>
-              <User size={20} color={foreground} />
-            </ListGroup.ItemPrefix>
-            <ListGroup.ItemContent>
-              <ListGroup.ItemTitle>{_('profile')}</ListGroup.ItemTitle>
-            </ListGroup.ItemContent>
-            <ListGroup.ItemSuffix />
-          </ListGroup.Item>
-        </ListGroup>
-
         {/* Preferences */}
         <Text className="text-muted text-xs mb-2 px-1">{_('settings')}</Text>
         <ListGroup className="mb-6">
@@ -115,6 +100,19 @@ export default function SettingsScreen() {
               <ListGroup.ItemDescription>
                 {domicile === 'SK' ? _('domicileSK') : _('domicileCZ')}
               </ListGroup.ItemDescription>
+            </ListGroup.ItemContent>
+            <ListGroup.ItemSuffix />
+          </ListGroup.Item>
+        </ListGroup>
+        {/* Account */}
+        <Text className="text-muted text-xs mb-2 px-1">{_('profile')}</Text>
+        <ListGroup className="mb-6">
+          <ListGroup.Item onPress={() => navigate('/(app)/(settings)/profile')}>
+            <ListGroup.ItemPrefix>
+              <User size={20} color={foreground} />
+            </ListGroup.ItemPrefix>
+            <ListGroup.ItemContent>
+              <ListGroup.ItemTitle>{_('profile')}</ListGroup.ItemTitle>
             </ListGroup.ItemContent>
             <ListGroup.ItemSuffix />
           </ListGroup.Item>
