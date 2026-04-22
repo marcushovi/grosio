@@ -5,9 +5,9 @@ import { useThemeColor } from 'heroui-native'
 import { TrendingUp, TrendingDown } from 'lucide-react-native'
 import * as Haptics from 'expo-haptics'
 import type { Broker } from '../types'
-import { formatAmount, formatGainLoss } from '../lib/currency'
 import { useSettings } from '../lib/settingsContext'
 import { useT } from '../lib/t'
+import { useFormat } from '../hooks/useFormat'
 
 interface BrokerCardProps {
   broker: Broker
@@ -28,6 +28,7 @@ export const BrokerCard = memo(function BrokerCard({
 }: BrokerCardProps) {
   const { currency } = useSettings()
   const { _ } = useT()
+  const f = useFormat()
   const [success, danger] = useThemeColor(['success', 'danger'])
   const isPositive = gainLoss >= 0
 
@@ -49,7 +50,7 @@ export const BrokerCard = memo(function BrokerCard({
             </Text>
           </View>
           <Text className="text-foreground text-3xl font-bold mb-1">
-            {formatAmount(totalValue, currency)}
+            {f.formatCurrency(totalValue, currency)}
           </Text>
           <View className="flex-row items-center gap-2">
             {isPositive ? (
@@ -64,7 +65,8 @@ export const BrokerCard = memo(function BrokerCard({
                   : 'text-danger text-sm font-semibold'
               }
             >
-              {formatGainLoss(gainLoss, gainLossPct, currency)}
+              {f.formatSignedCurrency(gainLoss, currency)} (
+              {f.formatPercent(gainLossPct, { asPercent: true })})
             </Text>
           </View>
         </Card.Body>

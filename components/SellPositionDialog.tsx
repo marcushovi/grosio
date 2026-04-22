@@ -7,8 +7,9 @@ import { Dialog } from 'heroui-native/dialog'
 import { useThemeColor } from 'heroui-native'
 import { Calendar } from 'lucide-react-native'
 import { useT } from '../lib/t'
+import { toYyyyMmDd } from '../lib/format'
+import { useFormat } from '../hooks/useFormat'
 import { useSellPosition } from '../hooks/usePositions'
-import { formatRaw } from '../lib/api/currency'
 import type { Position } from '../types'
 
 interface SellPositionDialogProps {
@@ -17,15 +18,9 @@ interface SellPositionDialogProps {
   position: Position
 }
 
-// Local-time YYYY-MM-DD; matches the helper in AddPositionDialog. Using
-// `toISOString().split('T')[0]` here would produce off-by-one-day bugs for
-// users in negative-UTC offsets.
-const pad = (n: number) => String(n).padStart(2, '0')
-const toYyyyMmDd = (d: Date): string =>
-  `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-
 export function SellPositionDialog({ isOpen, onOpenChange, position }: SellPositionDialogProps) {
   const { _ } = useT()
+  const f = useFormat()
   const foreground = useThemeColor('foreground') as string
   const sellPositionMutation = useSellPosition()
 
@@ -83,11 +78,7 @@ export function SellPositionDialog({ isOpen, onOpenChange, position }: SellPosit
     )
   }, [soldPrice, soldDateIso, position, sellPositionMutation, onOpenChange, _])
 
-  const dateLabel = soldDate.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
+  const dateLabel = f.formatDate(soldDate)
 
   const saving = sellPositionMutation.isPending
 
@@ -110,10 +101,10 @@ export function SellPositionDialog({ isOpen, onOpenChange, position }: SellPosit
               <Text className="text-muted text-xs">{position.name}</Text>
               <View className="flex-row justify-between mt-2">
                 <Text className="text-muted text-xs">
-                  {position.shares}× {formatRaw(position.buy_price, position.currency)}
+                  {position.shares}× {f.formatCurrency(position.buy_price, position.currency)}
                 </Text>
                 {position.buy_date && (
-                  <Text className="text-muted text-xs">{position.buy_date}</Text>
+                  <Text className="text-muted text-xs">{f.formatDate(position.buy_date)}</Text>
                 )}
               </View>
             </View>

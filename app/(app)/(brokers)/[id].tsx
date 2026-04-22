@@ -19,7 +19,8 @@ import { usePositions, useUnsellPosition } from '../../../hooks/usePositions'
 import { queryKeys } from '../../../lib/queryKeys'
 import { fetchBrokerById } from '../../../lib/api/brokers'
 import { fetchPrices, type PriceMap } from '../../../lib/api/prices'
-import { getExchangeRates, formatAmount, formatGainLoss } from '../../../lib/api/currency'
+import { getExchangeRates } from '../../../lib/api/currency'
+import { useFormat } from '../../../hooks/useFormat'
 import type { ExchangeRates } from '../../../lib/currency'
 import { computePositionValueEur, computePositionPnl } from '../../../lib/portfolio'
 import { useSettings } from '../../../lib/settingsContext'
@@ -42,6 +43,7 @@ interface PricesAndRates {
 
 export default function BrokerDetailScreen() {
   const { _ } = useT()
+  const f = useFormat()
   const { currency: displayCurrency } = useSettings()
   const [success, danger, foreground, accentFg, accent] = useThemeColor([
     'success',
@@ -237,7 +239,7 @@ export default function BrokerDetailScreen() {
         <Card className="bg-surface p-5">
           <Text className="text-muted text-sm mb-1">{_('totalValueLabel')}</Text>
           <Text className="text-foreground text-3xl font-bold mb-1">
-            {formatAmount(totalValue, displayCurrency)}
+            {f.formatCurrency(totalValue, displayCurrency)}
           </Text>
           <View className="flex-row items-center gap-2">
             {isGain ? (
@@ -250,7 +252,8 @@ export default function BrokerDetailScreen() {
                 isGain ? 'text-success text-sm font-semibold' : 'text-danger text-sm font-semibold'
               }
             >
-              {formatGainLoss(totalGL, totalGLPct, displayCurrency)}
+              {f.formatSignedCurrency(totalGL, displayCurrency)} (
+              {f.formatPercent(totalGLPct, { asPercent: true })})
             </Text>
           </View>
         </Card>

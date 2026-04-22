@@ -17,6 +17,8 @@ import { SearchField, Separator, useThemeColor } from 'heroui-native'
 import { Calendar } from 'lucide-react-native'
 import { getPriceOnDate, searchSymbols } from '../lib/yahooFinance'
 import { useT } from '../lib/t'
+import { toYyyyMmDd } from '../lib/format'
+import { useFormat } from '../hooks/useFormat'
 import { useUpdatePosition } from '../hooks/usePositions'
 import type { Position, PositionCurrency } from '../types'
 
@@ -26,12 +28,6 @@ interface SearchResult {
   exchange: string
   type: string
 }
-
-// Format a Date → 'YYYY-MM-DD' in local time (not UTC). Using toISOString()
-// here would produce off-by-one-day bugs for users in negative-UTC offsets.
-const pad = (n: number) => String(n).padStart(2, '0')
-const toYyyyMmDd = (d: Date): string =>
-  `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 
 interface AddPositionDialogProps {
   isOpen: boolean
@@ -61,6 +57,7 @@ export function AddPositionDialog({
   position,
 }: AddPositionDialogProps) {
   const { _ } = useT()
+  const f = useFormat()
   const [accent, foreground] = useThemeColor(['accent', 'foreground'])
   const updatePositionMutation = useUpdatePosition()
   const isEdit = mode === 'edit'
@@ -286,13 +283,9 @@ export function AddPositionDialog({
     [isEdit, reset, onOpenChange]
   )
 
-  // Locale-aware display formatting for the date picker trigger, e.g.
-  // "Jan 15, 2024" (en) or "15. 1. 2024" (cs/sk/de).
-  const dateLabel = buyDate.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
+  // App-language-aware display of the picked date. The underlying native
+  // DateTimePicker uses OS locale for its own wheel labels — that stays.
+  const dateLabel = f.formatDate(buyDate)
 
   const title = isEdit ? _('editPosition') : _('addPosition')
   const description = isEdit ? _('editPositionDesc') : _('addPositionDesc')

@@ -1,7 +1,7 @@
 import { memo } from 'react'
 import { View, Text } from 'react-native'
 import { Card } from 'heroui-native/card'
-import { formatAmount, formatRaw, formatGainLoss } from '../lib/api/currency'
+import { useFormat } from '../hooks/useFormat'
 import type { DisplayCurrency } from '../lib/currency'
 import type { PositionWithPrice } from '../types'
 
@@ -11,6 +11,7 @@ interface PositionRowProps {
 }
 
 export const PositionRow = memo(function PositionRow({ item, displayCurrency }: PositionRowProps) {
+  const f = useFormat()
   const isItemGain = item.gainLoss >= 0
   return (
     <Card className="bg-surface p-4 mb-2">
@@ -19,22 +20,27 @@ export const PositionRow = memo(function PositionRow({ item, displayCurrency }: 
           <Text className="text-foreground font-semibold text-base">{item.symbol}</Text>
           <Text className="text-muted text-xs">{item.name}</Text>
           <Text className="text-muted text-xs mt-1">
-            {item.shares}× {formatRaw(item.buy_price, item.currency)}
+            {item.shares}× {f.formatCurrency(item.buy_price, item.currency)}
           </Text>
-          {item.buy_date && <Text className="text-muted text-xs">{item.buy_date}</Text>}
+          {item.buy_date && (
+            <Text className="text-muted text-xs">{f.formatDate(item.buy_date)}</Text>
+          )}
         </View>
         <View className="items-end">
           <Text className="text-foreground font-semibold">
-            {formatAmount(item.currentValue, displayCurrency)}
+            {f.formatCurrency(item.currentValue, displayCurrency)}
           </Text>
           <Text
             className={
               isItemGain ? 'text-success text-xs font-medium' : 'text-danger text-xs font-medium'
             }
           >
-            {formatGainLoss(item.gainLoss, item.gainLossPct, displayCurrency)}
+            {f.formatSignedCurrency(item.gainLoss, displayCurrency)} (
+            {f.formatPercent(item.gainLossPct, { asPercent: true })})
           </Text>
-          <Text className="text-muted text-xs">{formatRaw(item.currentPrice, item.currency)}</Text>
+          <Text className="text-muted text-xs">
+            {f.formatCurrency(item.currentPrice, item.currency)}
+          </Text>
         </View>
       </View>
     </Card>

@@ -15,7 +15,7 @@ import {
 import { useT } from '../../../lib/t'
 import { useSettings } from '../../../lib/settingsContext'
 import { queryKeys } from '../../../lib/queryKeys'
-import { formatAmount } from '../../../lib/api/currency'
+import { useFormat } from '../../../hooks/useFormat'
 import { projectTaxSummaryToDisplay, type PositionTaxStatus } from '../../../lib/tax'
 import type { DisplayCurrency } from '../../../lib/currency'
 import { useTaxSummary } from '../../../hooks/useTaxSummary'
@@ -35,6 +35,7 @@ interface TaxRowProps {
 
 const TaxRow = memo(function TaxRow({ item, displayCurrency, warningColor }: TaxRowProps) {
   const { _ } = useT()
+  const f = useFormat()
   return (
     <View className="flex-row items-center justify-between py-3 border-b border-border">
       <View className="flex-1 gap-0.5 pr-3">
@@ -43,7 +44,7 @@ const TaxRow = memo(function TaxRow({ item, displayCurrency, warningColor }: Tax
           <Text className="text-muted text-xs">× {item.position.shares}</Text>
         </View>
         <Text className="text-muted text-xs">
-          {item.buyDate.toLocaleDateString()} · {item.daysHeld} {_('daysHeld')}
+          {f.formatDate(item.buyDate)} · {item.daysHeld} {_('daysHeld')}
         </Text>
         {!item.isTaxFree && (
           <View className="flex-row items-center gap-1">
@@ -56,7 +57,7 @@ const TaxRow = memo(function TaxRow({ item, displayCurrency, warningColor }: Tax
       </View>
       <View className="items-end gap-0.5">
         <Text className="text-foreground font-semibold text-sm">
-          {formatAmount(item.currentValueDisplay, displayCurrency)}
+          {f.formatCurrency(item.currentValueDisplay, displayCurrency)}
         </Text>
         <Text
           className={
@@ -72,6 +73,7 @@ const TaxRow = memo(function TaxRow({ item, displayCurrency, warningColor }: Tax
 
 export default function TaxScreen() {
   const { _ } = useT()
+  const f = useFormat()
   const router = useRouter()
   const { domicile, currency: displayCurrency } = useSettings()
   const queryClient = useQueryClient()
@@ -195,13 +197,13 @@ export default function TaxScreen() {
           <Card className="flex-1 bg-surface p-4">
             <Text className="text-muted text-xs mb-1">{_('taxFreeLabel')}</Text>
             <Text className="text-success text-xl font-bold">
-              {formatAmount(summary.totalTaxFreeValue, displayCurrency)}
+              {f.formatCurrency(summary.totalTaxFreeValue, displayCurrency)}
             </Text>
           </Card>
           <Card className="flex-1 bg-surface p-4">
             <Text className="text-muted text-xs mb-1">{_('taxableLabel')}</Text>
             <Text className="text-danger text-xl font-bold">
-              {formatAmount(summary.totalTaxableValue, displayCurrency)}
+              {f.formatCurrency(summary.totalTaxableValue, displayCurrency)}
             </Text>
           </Card>
         </View>
@@ -230,7 +232,7 @@ export default function TaxScreen() {
                 <Text className="text-foreground font-semibold flex-1">{broker.brokerName}</Text>
                 {broker.taxFreeValue > 0 && (
                   <Text className="text-success text-xs font-medium">
-                    {formatAmount(broker.taxFreeValue, displayCurrency)}
+                    {f.formatCurrency(broker.taxFreeValue, displayCurrency)}
                   </Text>
                 )}
               </Pressable>

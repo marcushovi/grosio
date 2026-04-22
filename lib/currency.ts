@@ -1,4 +1,3 @@
-import i18n from './i18n'
 import type { PositionCurrency } from '../types'
 
 export type DisplayCurrency = 'EUR' | 'USD' | 'CZK'
@@ -7,17 +6,6 @@ export interface ExchangeRates {
   eurUsd: number // 1 EUR = X USD
   eurCzk: number // 1 EUR = X CZK
   timestamp: number
-}
-
-const LOCALE_MAP: Record<string, string> = {
-  en: 'en-US',
-  sk: 'sk-SK',
-  cs: 'cs-CZ',
-  de: 'de-DE',
-}
-
-function getLocale(): string {
-  return LOCALE_MAP[i18n.language] ?? 'en-US'
 }
 
 /** Pure fetch — no internal caching. Callers wrap with TanStack Query
@@ -76,47 +64,8 @@ export function convertToDisplay(
   }
 }
 
-export function currencySymbol(currency: DisplayCurrency | string): string {
-  switch (currency) {
-    case 'EUR':
-      return '€'
-    case 'USD':
-      return '$'
-    case 'CZK':
-      return 'Kč'
-    default:
-      return currency
-  }
-}
-
-/** Format amount with locale-aware number formatting and currency symbol */
-export function formatAmount(amount: number, displayCurrency: DisplayCurrency): string {
-  return new Intl.NumberFormat(getLocale(), {
-    style: 'currency',
-    currency: displayCurrency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount)
-}
-
-/** Format gain/loss with sign prefix and percentage */
-export function formatGainLoss(
-  value: number,
-  pct: number,
-  displayCurrency: DisplayCurrency
-): string {
-  const sign = value >= 0 ? '+' : ''
-  return `${sign}${formatAmount(value, displayCurrency)} (${sign}${pct.toFixed(2)}%)`
-}
-
-/** Format a raw price in its original currency (not converted) */
-export function formatRaw(amount: number, originalCurrency: string): string {
-  const validCurrencies = ['EUR', 'USD', 'CZK', 'GBP', 'CHF', 'JPY', 'CAD', 'AUD']
-  const cur = validCurrencies.includes(originalCurrency) ? originalCurrency : 'USD'
-  return new Intl.NumberFormat(getLocale(), {
-    style: 'currency',
-    currency: cur,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount)
-}
+// Re-export from `lib/format` for backward compatibility with existing
+// importers (CurrencyPicker, settings screen). New code should import
+// directly from `lib/format`. Money amounts go through `formatCurrency`
+// which uses the ISO code for USD rather than `$`.
+export { currencySymbol } from './format'

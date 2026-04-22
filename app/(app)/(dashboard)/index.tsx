@@ -11,12 +11,8 @@ import { useSettings } from '../../../lib/settingsContext'
 import { queryKeys } from '../../../lib/queryKeys'
 import { fetchAllPositions } from '../../../lib/api/positions'
 import { fetchPrices } from '../../../lib/api/prices'
-import {
-  getExchangeRates,
-  areFallbackRates,
-  formatAmount,
-  formatGainLoss,
-} from '../../../lib/api/currency'
+import { getExchangeRates, areFallbackRates } from '../../../lib/api/currency'
+import { useFormat } from '../../../hooks/useFormat'
 import {
   computeDashboardBase,
   projectDashboardToDisplay,
@@ -32,6 +28,7 @@ import { projectTaxSummaryToDisplay } from '../../../lib/tax'
 
 export default function DashboardScreen() {
   const { _ } = useT()
+  const f = useFormat()
   const [success, danger, muted] = useThemeColor(['success', 'danger', 'muted'])
   const queryClient = useQueryClient()
   const router = useRouter()
@@ -94,7 +91,7 @@ export default function DashboardScreen() {
   }, [queryClient, refetchDashboard])
 
   const isPositive = totalGainLoss >= 0
-  const fmt = useCallback((n: number) => formatAmount(n, displayCurrency), [displayCurrency])
+  const fmt = useCallback((n: number) => f.formatCurrency(n, displayCurrency), [f, displayCurrency])
   const brokersWithValue = brokerValues.filter(b => b.value > 0)
 
   if (brokersError) {
@@ -180,7 +177,8 @@ export default function DashboardScreen() {
                 <TrendingDown size={16} color={danger} />
               )}
               <Text className={isPositive ? 'text-success text-sm' : 'text-danger text-sm'}>
-                {formatGainLoss(totalGainLoss, totalGainLossPct, displayCurrency)}
+                {f.formatSignedCurrency(totalGainLoss, displayCurrency)} (
+                {f.formatPercent(totalGainLossPct, { asPercent: true })})
               </Text>
             </View>
           </Card.Body>
@@ -200,8 +198,11 @@ export default function DashboardScreen() {
                   >
                     <Text className="text-foreground text-sm font-semibold">{m.symbol}</Text>
                     <Text className="text-success text-sm font-semibold">
-                      {m.pnlPercent >= 0 ? '+' : ''}
-                      {m.pnlPercent.toFixed(1)}%
+                      {f.formatPercent(m.pnlPercent, {
+                        asPercent: true,
+                        minimumFractionDigits: 1,
+                        maximumFractionDigits: 1,
+                      })}
                     </Text>
                   </View>
                 ))}
@@ -216,8 +217,11 @@ export default function DashboardScreen() {
                   >
                     <Text className="text-foreground text-sm font-semibold">{m.symbol}</Text>
                     <Text className="text-danger text-sm font-semibold">
-                      {m.pnlPercent >= 0 ? '+' : ''}
-                      {m.pnlPercent.toFixed(1)}%
+                      {f.formatPercent(m.pnlPercent, {
+                        asPercent: true,
+                        minimumFractionDigits: 1,
+                        maximumFractionDigits: 1,
+                      })}
                     </Text>
                   </View>
                 ))}
@@ -273,7 +277,7 @@ export default function DashboardScreen() {
               </View>
               <View className="mt-4 gap-2.5">
                 {brokersWithValue.map(b => {
-                  const pct = totalValue > 0 ? ((b.value / totalValue) * 100).toFixed(1) : '0'
+                  const ratio = totalValue > 0 ? b.value / totalValue : 0
                   return (
                     <View key={b.brokerId} className="flex-row items-center justify-between">
                       <View className="flex-row items-center gap-2 flex-1">
@@ -286,7 +290,11 @@ export default function DashboardScreen() {
                       <View className="flex-row items-center gap-3">
                         <Text className="text-muted text-xs">{fmt(b.value)}</Text>
                         <Text className="text-foreground text-sm font-semibold min-w-12 text-right">
-                          {pct}%
+                          {f.formatPercent(ratio, {
+                            signed: false,
+                            minimumFractionDigits: 1,
+                            maximumFractionDigits: 1,
+                          })}
                         </Text>
                       </View>
                     </View>
