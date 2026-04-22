@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { memo, useCallback, useMemo, useState } from 'react'
 import { View, Text, ScrollView, RefreshControl, Pressable } from 'react-native'
 import { useFocusEffect, useRouter } from 'expo-router'
 import { useQueryClient } from '@tanstack/react-query'
@@ -33,7 +33,7 @@ interface TaxRowProps {
   warningColor: string
 }
 
-function TaxRow({ item, displayCurrency, warningColor }: TaxRowProps) {
+const TaxRow = memo(function TaxRow({ item, displayCurrency, warningColor }: TaxRowProps) {
   const { _ } = useT()
   return (
     <View className="flex-row items-center justify-between py-3 border-b border-border">
@@ -68,7 +68,7 @@ function TaxRow({ item, displayCurrency, warningColor }: TaxRowProps) {
       </View>
     </View>
   )
-}
+})
 
 export default function TaxScreen() {
   const { _ } = useT()

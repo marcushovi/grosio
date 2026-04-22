@@ -25,7 +25,7 @@ export interface PositionValueEur {
   currentCurrency: PositionCurrency
   /** shares × currentPrice, converted to EUR. */
   valueEur: number
-  /** shares × avg_buy_price, converted to EUR. */
+  /** shares × buy_price, converted to EUR. */
   costEur: number
 }
 
@@ -36,6 +36,10 @@ export interface PositionValueEur {
  * ticker, pre-fetch render) we fall back to the buy price so the row still
  * displays *something*. Gain/loss will be 0 in that case — use
  * `positionValue.hasLivePrice` if you want to flag "no live price" in the UI.
+ *
+ * Scope: current portfolio. Sold positions don't have a meaningful "current
+ * value" (they're realized), so callers should only pass open positions —
+ * which is what `fetchAllPositions` returns.
  */
 export function computePositionValueEur(
   position: Position,
@@ -44,7 +48,7 @@ export function computePositionValueEur(
 ): PositionValueEur {
   const quote = priceMap[position.symbol]
   const hasLivePrice = quote != null && Number.isFinite(quote.price) && quote.price > 0
-  const currentPrice = hasLivePrice ? quote.price : position.avg_buy_price
+  const currentPrice = hasLivePrice ? quote.price : position.buy_price
   const currentCurrency = hasLivePrice ? quote.currency : position.currency
 
   return {
@@ -53,7 +57,7 @@ export function computePositionValueEur(
     currentPrice,
     currentCurrency,
     valueEur: toEur(position.shares * currentPrice, currentCurrency, rates),
-    costEur: toEur(position.shares * position.avg_buy_price, position.currency, rates),
+    costEur: toEur(position.shares * position.buy_price, position.currency, rates),
   }
 }
 

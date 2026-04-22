@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { View, Text, Pressable } from 'react-native'
 import { Card } from 'heroui-native/card'
 import { useThemeColor } from 'heroui-native'
@@ -18,7 +19,7 @@ interface BrokerCardProps {
   onLongPress: () => void
 }
 
-export function BrokerCard({
+export const BrokerCard = memo(function BrokerCard({
   broker,
   totalValue,
   gainLoss,
@@ -76,4 +77,4 @@ export function BrokerCard({
       </Card>
     </Pressable>
   )
-}
+})

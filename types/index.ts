@@ -20,10 +20,28 @@ export interface Position {
   symbol: string
   name: string
   shares: number
-  avg_buy_price: number
+  buy_price: number
   currency: PositionCurrency
   buy_date: string | null // 'YYYY-MM-DD' or null for legacy rows
   created_at: string
+  // Sale fields. DB constraint: all three NULL (open) or all three NOT NULL
+  // (sold). Partial sales are not supported — sold_shares = shares is enforced
+  // at the DB layer, so a sale always closes the position.
+  sold_at: string | null
+  sold_price: number | null
+  sold_shares: number | null
+}
+
+/** A position is "sold" when the sale fields are populated. */
+export function isSold(p: Position): boolean {
+  return p.sold_at !== null
+}
+
+/** Realized P&L in the position's native currency. `null` while the position
+ *  is still open. Currency conversion is a display-layer concern. */
+export function realizedPnl(p: Position): number | null {
+  if (p.sold_price === null || p.sold_shares === null) return null
+  return (p.sold_price - p.buy_price) * p.sold_shares
 }
 
 export interface BrokerValue {
@@ -46,7 +64,7 @@ export interface MutationResult {
 export interface Mover {
   symbol: string
   name: string
-  /** (currentPrice - avgBuyPrice) / avgBuyPrice × 100 — currency-invariant. */
+  /** (currentPrice - buyPrice) / buyPrice × 100 — currency-invariant. */
   pnlPercent: number
   /** shares × currentPrice projected into the user's display currency. */
   currentValue: number

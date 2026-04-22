@@ -92,6 +92,10 @@ export interface TaxSummary {
  * the query cache display-currency-invariant. Positions without a `buy_date`
  * can't be judged and fall into `unknownDatePositions` so the UI can surface
  * them.
+ *
+ * Scope: current portfolio (still-held positions only — the realized-tax view
+ * lives in a separate query against `getRealizedPositions`). Callers pass in
+ * the open subset via `fetchAllPositions`, which filters `sold_at IS NULL`.
  */
 export function computeTaxStatusBase(
   positions: Position[],
@@ -138,7 +142,7 @@ export function computeTaxStatusBase(
 
       const quote = priceMap[pos.symbol]
       const hasLivePrice = quote != null && Number.isFinite(quote.price) && quote.price > 0
-      const price = hasLivePrice ? quote.price : pos.avg_buy_price
+      const price = hasLivePrice ? quote.price : pos.buy_price
       const positionCurrency: PositionCurrency = hasLivePrice ? quote.currency : pos.currency
       const currentValueEur = toEur(pos.shares * price, positionCurrency, rates)
 

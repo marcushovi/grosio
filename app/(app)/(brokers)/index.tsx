@@ -63,21 +63,12 @@ export default function BrokersScreen() {
     [dashboardBase, displayCurrency]
   )
 
-  // Refresh on tab focus, but only when the cached data is actually stale.
-  // `staleTime: 15m` on the queryClient is a hint we should honour — invalidating
-  // unconditionally defeats that and forces a pointless refetch every nav.
+  // Refresh on tab focus, honouring the queryClient's 15m staleTime:
+  // `stale: true` means only queries past their staleTime actually refetch.
   useFocusEffect(
     useCallback(() => {
-      const STALE_MS = 1000 * 60 * 15
-      const now = Date.now()
-      const brokersState = queryClient.getQueryState(queryKeys.brokers.list())
-      const dashboardState = queryClient.getQueryState(queryKeys.dashboard.data())
-      if (!brokersState?.dataUpdatedAt || now - brokersState.dataUpdatedAt > STALE_MS) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.brokers.all })
-      }
-      if (!dashboardState?.dataUpdatedAt || now - dashboardState.dataUpdatedAt > STALE_MS) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all })
-      }
+      queryClient.refetchQueries({ queryKey: queryKeys.brokers.all, stale: true })
+      queryClient.refetchQueries({ queryKey: queryKeys.dashboard.all, stale: true })
     }, [queryClient])
   )
 

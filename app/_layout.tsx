@@ -1,5 +1,7 @@
 import { Slot, useRouter, useSegments } from 'expo-router'
+import type { ErrorBoundaryProps } from 'expo-router'
 import { useEffect, useState } from 'react'
+import { View, Text, Pressable } from 'react-native'
 import { supabase } from '../lib/supabase'
 import type { Session } from '@supabase/supabase-js'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
@@ -10,6 +12,24 @@ import { SettingsProvider, useSettings } from '../lib/settingsContext'
 import { queryClient } from '../lib/queryClient'
 import '../lib/i18n'
 import '../global.css'
+
+// Expo Router picks up this named export and uses it as the fallback when a
+// child route throws during render. `retry` remounts the subtree.
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  return (
+    <View className="flex-1 items-center justify-center bg-background px-6">
+      <Text className="text-foreground text-2xl font-bold mb-2">Something went wrong</Text>
+      <Text className="text-muted text-sm text-center mb-6">{error.message}</Text>
+      <Pressable
+        onPress={retry}
+        className="bg-accent rounded-xl px-5 py-3"
+        accessibilityRole="button"
+      >
+        <Text className="text-accent-foreground font-semibold">Try again</Text>
+      </Pressable>
+    </View>
+  )
+}
 
 /** Inner content — runs *inside* `SettingsProvider` so it can gate on
  *  `isLoaded`. Without this gate, the first paint uses the default locale

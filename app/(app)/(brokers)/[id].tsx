@@ -5,22 +5,18 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Card } from 'heroui-native/card'
 import { Button } from 'heroui-native/button'
 import { useThemeColor } from 'heroui-native'
-import { ArrowLeft, Plus, TrendingUp, TrendingDown, Trash2 } from 'lucide-react-native'
+import { ArrowLeft, Plus, TrendingUp, TrendingDown } from 'lucide-react-native'
 import { usePositions } from '../../../hooks/usePositions'
 import { queryKeys } from '../../../lib/queryKeys'
 import { fetchBrokerById } from '../../../lib/api/brokers'
 import { fetchPrices, type PriceMap } from '../../../lib/api/prices'
-import {
-  getExchangeRates,
-  formatAmount,
-  formatRaw,
-  formatGainLoss,
-} from '../../../lib/api/currency'
+import { getExchangeRates, formatAmount, formatGainLoss } from '../../../lib/api/currency'
 import type { ExchangeRates } from '../../../lib/currency'
 import { computePositionValueEur, computePositionPnl } from '../../../lib/portfolio'
 import { useSettings } from '../../../lib/settingsContext'
 import { useT } from '../../../lib/t'
 import { AddPositionDialog } from '../../../components/AddPositionDialog'
+import { PositionRow } from '../../../components/PositionRow'
 import { EmptyState } from '../../../components/EmptyState'
 import { LastUpdated } from '../../../components/LastUpdated'
 import { LoadingState } from '../../../components/LoadingState'
@@ -124,7 +120,7 @@ export default function BrokerDetailScreen() {
       symbol: string
       name: string
       shares: number
-      avg_buy_price: number
+      buy_price: number
       currency: PositionCurrency
       buy_date: string
     }) => {
@@ -221,49 +217,14 @@ export default function BrokerDetailScreen() {
           contentContainerClassName="px-5 pb-10"
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={pricesLoading} onRefresh={onRefresh} />}
-          renderItem={({ item }) => {
-            const isItemGain = item.gainLoss >= 0
-            return (
-              <Card className="bg-surface p-4 mb-2">
-                <View className="flex-row items-center">
-                  <View className="flex-1">
-                    <Text className="text-foreground font-semibold text-base">{item.symbol}</Text>
-                    <Text className="text-muted text-xs">{item.name}</Text>
-                    <Text className="text-muted text-xs mt-1">
-                      {item.shares}× {formatRaw(item.avg_buy_price, item.currency)}
-                    </Text>
-                    {item.buy_date && <Text className="text-muted text-xs">{item.buy_date}</Text>}
-                  </View>
-                  <View className="items-end mr-3">
-                    <Text className="text-foreground font-semibold">
-                      {formatAmount(item.currentValue, displayCurrency)}
-                    </Text>
-                    <Text
-                      className={
-                        isItemGain
-                          ? 'text-success text-xs font-medium'
-                          : 'text-danger text-xs font-medium'
-                      }
-                    >
-                      {formatGainLoss(item.gainLoss, item.gainLossPct, displayCurrency)}
-                    </Text>
-                    <Text className="text-muted text-xs">
-                      {formatRaw(item.currentPrice, item.currency)}
-                    </Text>
-                  </View>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    isIconOnly
-                    onPress={() => handleDeletePosition(item.id, item.symbol)}
-                    accessibilityLabel={_('deletePosition')}
-                  >
-                    <Trash2 color={danger} size={16} />
-                  </Button>
-                </View>
-              </Card>
-            )
-          }}
+          renderItem={({ item }) => (
+            <PositionRow
+              item={item}
+              displayCurrency={displayCurrency}
+              dangerColor={danger}
+              onDelete={handleDeletePosition}
+            />
+          )}
         />
       )}
 

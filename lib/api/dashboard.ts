@@ -40,9 +40,12 @@ export interface DashboardBase {
 /**
  * Bucket held positions into top 3 gainers + top 3 losers by percentage P&L
  * vs. their recorded buy price. Positions without a live quote are skipped —
- * we can't classify them. Positions with `avg_buy_price <= 0` are included
+ * we can't classify them. Positions with `buy_price <= 0` are included
  * with `pnlPercent = 0` so a zero-cost share (e.g. a gifted position) still
  * shows up on the list.
+ *
+ * Scope: current portfolio. Callers pass in only open positions (the dashboard
+ * fetches via `fetchAllPositions`, which already filters `sold_at IS NULL`).
  *
  * Pure function. `valueEur` is currency-invariant; `projectMoversToDisplay`
  * handles the display-currency conversion.
@@ -56,8 +59,7 @@ function computeMoversBase(
   for (const pos of positions) {
     const quote = priceMap[pos.symbol]
     if (!quote || !Number.isFinite(quote.price) || quote.price <= 0) continue
-    const pnlPercent =
-      pos.avg_buy_price > 0 ? ((quote.price - pos.avg_buy_price) / pos.avg_buy_price) * 100 : 0
+    const pnlPercent = pos.buy_price > 0 ? ((quote.price - pos.buy_price) / pos.buy_price) * 100 : 0
     movers.push({
       symbol: pos.symbol,
       name: pos.name,
@@ -79,6 +81,9 @@ function computeMoversBase(
  * Aggregate broker totals from the raw positions + price map + FX rates.
  * Pure function — no fetches, no React, no async.
  * Brokers with no positions show up with zero values (to render the empty state).
+ *
+ * Scope: current portfolio. Expects open positions only (sold ones are filtered
+ * out at the `fetchAllPositions` layer, so they never reach here).
  */
 export function computeDashboardBase(
   brokers: Broker[],

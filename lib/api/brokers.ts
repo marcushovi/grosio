@@ -38,3 +38,20 @@ export async function deleteBroker(id: string): Promise<void> {
   const { error } = await supabase.from('brokers').delete().eq('id', id).eq('user_id', userId)
   if (error) throw new Error(error.message)
 }
+
+export type UpdateBrokerInput = Partial<{
+  name: string
+  color: string
+}>
+
+/** Edit a broker's mutable fields (name, color). RLS enforces ownership. */
+export async function updateBroker(brokerId: string, input: UpdateBrokerInput): Promise<Broker> {
+  const { data, error } = await supabase
+    .from('brokers')
+    .update(input)
+    .eq('id', brokerId)
+    .select()
+    .single()
+  if (error) throw new Error(error.message)
+  return data as Broker
+}

@@ -39,7 +39,7 @@ interface AddPositionDialogProps {
     symbol: string
     name: string
     shares: number
-    avg_buy_price: number
+    buy_price: number
     currency: PositionCurrency
     buy_date: string
   }) => Promise<{ error: { message: string } | null }>
@@ -179,7 +179,7 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
       symbol: selectedSymbol,
       name: selectedName,
       shares: parseFloat(shares),
-      avg_buy_price: parseFloat(price),
+      buy_price: parseFloat(price),
       currency: selectedCurrency,
       buy_date: buyDateIso,
     })

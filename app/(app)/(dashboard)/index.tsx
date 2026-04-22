@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
-import { View, Text, ScrollView, RefreshControl, Pressable, StyleSheet } from 'react-native'
+import { View, Text, ScrollView, RefreshControl, Pressable } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useThemeColor } from 'heroui-native'
@@ -32,7 +32,7 @@ import { projectTaxSummaryToDisplay } from '../../../lib/tax'
 
 export default function DashboardScreen() {
   const { _ } = useT()
-  const [success, danger, muted, border] = useThemeColor(['success', 'danger', 'muted', 'border'])
+  const [success, danger, muted] = useThemeColor(['success', 'danger', 'muted'])
   const queryClient = useQueryClient()
   const router = useRouter()
   const { brokers, error: brokersError } = useBrokers()
@@ -206,10 +206,7 @@ export default function DashboardScreen() {
                   </View>
                 ))}
               </View>
-              <View
-                className="my-1"
-                style={{ width: StyleSheet.hairlineWidth, backgroundColor: border }}
-              />
+              <View className="w-px my-1 bg-border" />
               <View className="flex-1 pl-3">
                 <Text className="text-muted text-xs mb-2">{_('topLosers')}</Text>
                 {movers.topLosers.map((m, i) => (
@@ -246,10 +243,7 @@ export default function DashboardScreen() {
                   {fmt(taxSummary.totalTaxFreeValue)}
                 </Text>
               </View>
-              <View
-                className="my-1"
-                style={{ width: StyleSheet.hairlineWidth, backgroundColor: border }}
-              />
+              <View className="w-px my-1 bg-border" />
               <View className="flex-1 pl-3 gap-1">
                 <Text className="text-muted text-xs">{_('taxableLabel')}</Text>
                 <Text className="text-danger text-lg font-bold">
