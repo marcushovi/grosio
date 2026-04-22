@@ -28,6 +28,7 @@
   "deletePosition": "Position löschen",
   "deletePositionMsg": "Möchten Sie {{symbol}} wirklich löschen?",
   "displayCurrency": "Anzeigewährung",
+  "edit": "Bearbeiten",
   "domicile": "Steuerdomizil",
   "domicileCZ": "Tschechien (3-Jahres-Regel)",
   "domicileSK": "Slowakei (1-Jahres-Regel)",
@@ -66,6 +67,7 @@
   "save": "Speichern",
   "saving": "Speichern...",
   "searchPlaceholder": "AAPL, VWCE suchen...",
+  "sell": "Verkaufen",
   "selectSymbol": "Symbol auswählen",
   "settings": "Einstellungen",
   "shares": "Anzahl der Aktien",
@@ -90,5 +92,8 @@
   "totalValue": "Gesamtportfoliowert",
   "totalValueLabel": "Gesamtwert",
   "tryAgain": "Erneut versuchen",
-  "unexpectedError": "Ein unerwarteter Fehler ist aufgetreten"
+  "unexpectedError": "Ein unerwarteter Fehler ist aufgetreten",
+  "unsell": "Als offen markieren",
+  "unsellPosition": "Position wieder öffnen",
+  "unsellPositionMsg": "Verkaufsdaten für {{symbol}} löschen und die Position wieder öffnen?"
 }

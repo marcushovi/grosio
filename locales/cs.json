@@ -28,6 +28,7 @@
   "deletePosition": "Smazat pozici",
   "deletePositionMsg": "Opravdu chcete smazat {{symbol}}?",
   "displayCurrency": "Zobrazovací měna",
+  "edit": "Upravit",
   "domicile": "Daňová příslušnost",
   "domicileCZ": "Česká republika (3-letý test)",
   "domicileSK": "Slovensko (1-letý test)",
@@ -66,6 +67,7 @@
   "save": "Uložit",
   "saving": "Ukládám...",
   "searchPlaceholder": "Hledat AAPL, VWCE...",
+  "sell": "Prodat",
   "selectSymbol": "Vyberte symbol",
   "settings": "Nastavení",
   "shares": "Počet kusů",
@@ -90,5 +92,8 @@
   "totalValue": "Celková hodnota portfolia",
   "totalValueLabel": "Celková hodnota",
   "tryAgain": "Zkusit znovu",
-  "unexpectedError": "Nastala neočekávaná chyba"
+  "unexpectedError": "Nastala neočekávaná chyba",
+  "unsell": "Vrátit do otevřených",
+  "unsellPosition": "Vrátit pozici",
+  "unsellPositionMsg": "Zrušit údaje o prodeji pozice {{symbol}} a vrátit ji mezi otevřené?"
 }

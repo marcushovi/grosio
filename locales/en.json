@@ -28,6 +28,7 @@
   "deletePosition": "Delete Position",
   "deletePositionMsg": "Are you sure you want to delete {{symbol}}?",
   "displayCurrency": "Display Currency",
+  "edit": "Edit",
   "domicile": "Tax Domicile",
   "domicileCZ": "Czech Republic (3-year rule)",
   "domicileSK": "Slovakia (1-year rule)",
@@ -66,6 +67,7 @@
   "save": "Save",
   "saving": "Saving...",
   "searchPlaceholder": "Search AAPL, VWCE...",
+  "sell": "Sell",
   "selectSymbol": "Select a symbol",
   "settings": "Settings",
   "shares": "Number of shares",
@@ -90,5 +92,8 @@
   "totalValue": "Total Portfolio Value",
   "totalValueLabel": "Total Value",
   "tryAgain": "Try Again",
-  "unexpectedError": "An unexpected error occurred"
+  "unexpectedError": "An unexpected error occurred",
+  "unsell": "Mark as open",
+  "unsellPosition": "Reopen Position",
+  "unsellPositionMsg": "Clear the sale details for {{symbol}} and move it back to open positions?"
 }

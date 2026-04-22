@@ -4,7 +4,7 @@ import { useRouter, useFocusEffect } from 'expo-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Button } from 'heroui-native/button'
 import { useThemeColor } from 'heroui-native'
-import { Plus } from 'lucide-react-native'
+import { Pencil, Plus, Trash2 } from 'lucide-react-native'
 import { useBrokers } from '../../../hooks/useBrokers'
 import { queryKeys } from '../../../lib/queryKeys'
 import { fetchAllPositions } from '../../../lib/api/positions'
@@ -22,11 +22,16 @@ import { EmptyState } from '../../../components/EmptyState'
 import { ErrorState } from '../../../components/ErrorState'
 import { LastUpdated } from '../../../components/LastUpdated'
 import { Screen } from '../../../components/Screen'
+import { SwipeableRow, type SwipeableRowAction } from '../../../components/SwipeableRow'
 import { useT } from '../../../lib/t'
 
 export default function BrokersScreen() {
   const { _ } = useT()
-  const accentFg = useThemeColor('accent-foreground') as string
+  const [accentFg, accent, danger] = useThemeColor([
+    'accent-foreground',
+    'accent',
+    'danger',
+  ]) as string[]
   const router = useRouter()
   const queryClient = useQueryClient()
   const { brokers, error: brokersError, deleteBroker } = useBrokers()
@@ -89,6 +94,10 @@ export default function BrokersScreen() {
     [_, deleteBroker]
   )
 
+  const handleEdit = useCallback((_id: string) => {
+    // TODO (next prompt): open edit broker dialog.
+  }, [])
+
   const onRefresh = useCallback(() => {
     refetchDashboard()
   }, [refetchDashboard])
@@ -125,16 +134,31 @@ export default function BrokersScreen() {
           keyExtractor={item => item.id}
           renderItem={({ item }) => {
             const bv = brokerValues.find(v => v.brokerId === item.id)
+            const actions: SwipeableRowAction[] = [
+              {
+                label: _('edit'),
+                icon: Pencil,
+                backgroundColor: accent,
+                onPress: () => handleEdit(item.id),
+              },
+              {
+                label: _('delete'),
+                icon: Trash2,
+                backgroundColor: danger,
+                onPress: () => handleDelete(item.id, item.name),
+              },
+            ]
             return (
-              <BrokerCard
-                broker={item}
-                totalValue={bv?.value ?? 0}
-                gainLoss={bv?.gainLoss ?? 0}
-                gainLossPct={bv?.gainLossPct ?? 0}
-                positionCount={bv?.positionCount ?? 0}
-                onPress={() => router.push(`/(app)/(brokers)/${item.id}`)}
-                onLongPress={() => handleDelete(item.id, item.name)}
-              />
+              <SwipeableRow actions={actions}>
+                <BrokerCard
+                  broker={item}
+                  totalValue={bv?.value ?? 0}
+                  gainLoss={bv?.gainLoss ?? 0}
+                  gainLossPct={bv?.gainLossPct ?? 0}
+                  positionCount={bv?.positionCount ?? 0}
+                  onPress={() => router.push(`/(app)/(brokers)/${item.id}`)}
+                />
+              </SwipeableRow>
             )
           }}
           contentContainerClassName="px-5 pb-10"

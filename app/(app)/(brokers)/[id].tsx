@@ -5,8 +5,17 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Card } from 'heroui-native/card'
 import { Button } from 'heroui-native/button'
 import { useThemeColor } from 'heroui-native'
-import { ArrowLeft, Plus, TrendingUp, TrendingDown } from 'lucide-react-native'
-import { usePositions } from '../../../hooks/usePositions'
+import {
+  ArrowLeft,
+  DollarSign,
+  Pencil,
+  Plus,
+  RotateCcw,
+  Trash2,
+  TrendingUp,
+  TrendingDown,
+} from 'lucide-react-native'
+import { usePositions, useUnsellPosition } from '../../../hooks/usePositions'
 import { queryKeys } from '../../../lib/queryKeys'
 import { fetchBrokerById } from '../../../lib/api/brokers'
 import { fetchPrices, type PriceMap } from '../../../lib/api/prices'
@@ -21,6 +30,8 @@ import { EmptyState } from '../../../components/EmptyState'
 import { LastUpdated } from '../../../components/LastUpdated'
 import { LoadingState } from '../../../components/LoadingState'
 import { Screen } from '../../../components/Screen'
+import { SwipeableRow, type SwipeableRowAction } from '../../../components/SwipeableRow'
+import { isSold } from '../../../types'
 import type { PositionWithPrice, PositionCurrency } from '../../../types'
 
 interface PricesAndRates {
@@ -31,16 +42,18 @@ interface PricesAndRates {
 export default function BrokerDetailScreen() {
   const { _ } = useT()
   const { currency: displayCurrency } = useSettings()
-  const [success, danger, foreground, accentFg] = useThemeColor([
+  const [success, danger, foreground, accentFg, accent] = useThemeColor([
     'success',
     'danger',
     'foreground',
     'accent-foreground',
+    'accent',
   ])
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
   const queryClient = useQueryClient()
   const { positions, loading, addPosition, deletePosition } = usePositions(id)
+  const unsellPositionMutation = useUnsellPosition()
 
   // Targeted single-row fetch instead of pulling the entire brokers list and
   // `.find()`-ing. The deletion cascade on the brokers list query already
@@ -113,6 +126,33 @@ export default function BrokerDetailScreen() {
       ])
     },
     [_, deletePosition]
+  )
+
+  const handleEditPosition = useCallback((_posId: string) => {
+    // TODO (next prompt): open edit position dialog.
+  }, [])
+
+  const handleSellPosition = useCallback((_posId: string) => {
+    // TODO (next prompt): open sell position dialog.
+  }, [])
+
+  const handleUnsellPosition = useCallback(
+    (posId: string, symbol: string) => {
+      Alert.alert(_('unsellPosition'), _('unsellPositionMsg', { symbol }), [
+        { text: _('cancel'), style: 'cancel' },
+        {
+          text: _('unsell'),
+          onPress: async () => {
+            try {
+              await unsellPositionMutation.mutateAsync(posId)
+            } catch (e) {
+              Alert.alert(_('error'), e instanceof Error ? e.message : String(e))
+            }
+          },
+        },
+      ])
+    },
+    [_, unsellPositionMutation]
   )
 
   const handleAddPosition = useCallback(
@@ -217,14 +257,48 @@ export default function BrokerDetailScreen() {
           contentContainerClassName="px-5 pb-10"
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={pricesLoading} onRefresh={onRefresh} />}
-          renderItem={({ item }) => (
-            <PositionRow
-              item={item}
-              displayCurrency={displayCurrency}
-              dangerColor={danger}
-              onDelete={handleDeletePosition}
-            />
-          )}
+          renderItem={({ item }) => {
+            const actions: SwipeableRowAction[] = isSold(item)
+              ? [
+                  {
+                    label: _('unsell'),
+                    icon: RotateCcw,
+                    backgroundColor: accent,
+                    onPress: () => handleUnsellPosition(item.id, item.symbol),
+                  },
+                  {
+                    label: _('delete'),
+                    icon: Trash2,
+                    backgroundColor: danger,
+                    onPress: () => handleDeletePosition(item.id, item.symbol),
+                  },
+                ]
+              : [
+                  {
+                    label: _('edit'),
+                    icon: Pencil,
+                    backgroundColor: accent,
+                    onPress: () => handleEditPosition(item.id),
+                  },
+                  {
+                    label: _('sell'),
+                    icon: DollarSign,
+                    backgroundColor: success,
+                    onPress: () => handleSellPosition(item.id),
+                  },
+                  {
+                    label: _('delete'),
+                    icon: Trash2,
+                    backgroundColor: danger,
+                    onPress: () => handleDeletePosition(item.id, item.symbol),
+                  },
+                ]
+            return (
+              <SwipeableRow actions={actions}>
+                <PositionRow item={item} displayCurrency={displayCurrency} />
+              </SwipeableRow>
+            )
+          }}
         />
       )}
 

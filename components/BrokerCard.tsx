@@ -16,7 +16,6 @@ interface BrokerCardProps {
   gainLossPct: number
   positionCount: number
   onPress: () => void
-  onLongPress: () => void
 }
 
 export const BrokerCard = memo(function BrokerCard({
@@ -26,7 +25,6 @@ export const BrokerCard = memo(function BrokerCard({
   gainLossPct,
   positionCount,
   onPress,
-  onLongPress,
 }: BrokerCardProps) {
   const { currency } = useSettings()
   const { _ } = useT()
@@ -38,10 +36,6 @@ export const BrokerCard = memo(function BrokerCard({
       onPress={() => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
         onPress()
-      }}
-      onLongPress={() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)
-        onLongPress()
       }}
       className="mb-3"
     >
