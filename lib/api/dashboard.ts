@@ -2,7 +2,7 @@ import type { Broker, Position, BrokerValue, Mover, MoversData } from '@/types'
 import type { ExchangeRates, DisplayCurrency } from '@/lib/currency'
 import { convertToDisplay, toEur } from '@/lib/currency'
 import { computePositionValueEur } from '@/lib/portfolio'
-import type { PriceMap } from '@/lib/portfolio'
+import type { PriceMap } from '@/lib/api/yahoo'
 
 // Currency-invariant intermediate. `valueEur` becomes `Mover.currentValue`
 // after the display projection.

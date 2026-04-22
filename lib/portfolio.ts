@@ -3,9 +3,7 @@
 import type { Position, PositionCurrency } from '@/types'
 import type { ExchangeRates, DisplayCurrency } from '@/lib/currency'
 import { toEur, convertToDisplay } from '@/lib/currency'
-import type { QuoteResult } from '@/lib/yahooFinance'
-
-export type PriceMap = Record<string, QuoteResult>
+import type { PriceMap } from '@/lib/api/yahoo'
 
 export interface PositionValueEur {
   position: Position

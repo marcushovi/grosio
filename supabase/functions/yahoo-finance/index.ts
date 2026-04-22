@@ -1,52 +1,55 @@
 import '@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
 
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
 
 // Function-scoped client used only to verify incoming session tokens. Uses
-// the new publishable-key secret (`SB_PUBLISHABLE_KEY`) so `auth.getClaims()`
-// can validate ES256-signed JWTs against the project's JWKS.
+// the publishable key secret so `auth.getClaims()` can validate ES256 JWTs
+// against the project JWKS.
 const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SB_PUBLISHABLE_KEY')!)
 
-Deno.serve(async req => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
+}
 
-  // Deployed with --no-verify-jwt because the gateway verifier doesn't
-  // handle this project's new JWT Signing Keys. Validate the bearer here
-  // using the official `auth.getClaims()` pattern instead.
+interface RequestBody {
+  action?: 'search' | 'quotes' | 'priceOnDate'
+  query?: string
+  symbol?: string
+  symbols?: string[]
+  date?: string
+}
+
+Deno.serve(async req => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+
+  // Deployed with --no-verify-jwt because the gateway verifier does not
+  // handle this project's new JWT Signing Keys. Validate the bearer here.
   const authHeader = req.headers.get('Authorization')
-  if (!authHeader) {
-    return new Response(JSON.stringify({ error: 'Missing Authorization header' }), {
-      status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
-  }
+  if (!authHeader) return json({ error: 'Missing Authorization header' }, 401)
   const token = authHeader.replace(/^Bearer\s+/i, '')
   const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token)
-  if (claimsError || !claimsData?.claims) {
-    return new Response(JSON.stringify({ error: 'Invalid JWT' }), {
-      status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+  if (claimsError || !claimsData?.claims) return json({ error: 'Invalid JWT' }, 401)
+
+  let body: RequestBody
+  try {
+    body = await req.json()
+  } catch {
+    return json({ error: 'Invalid JSON body' }, 400)
   }
 
-  try {
-    const url = new URL(req.url)
-    const action = url.searchParams.get('action')
-    const query = url.searchParams.get('q')
-    const symbol = url.searchParams.get('symbol')
+  const { action, query, symbol, symbols, date } = body
 
+  try {
     if (action === 'search' && query) {
       const yahooUrl = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=8&newsCount=0`
       const res = await fetch(yahooUrl, { headers: { 'User-Agent': UA } })
       const data = await res.json()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rawQuotes = (data?.quotes ?? []) as any[]
       const allowed = ['EQUITY', 'ETF']
       const quotes = rawQuotes
@@ -57,64 +60,18 @@ Deno.serve(async req => {
           exchange: q.exchange ?? '',
           type: q.quoteType ?? '',
         }))
-      const body: { quotes: typeof quotes; hint?: string } = { quotes }
-      if (quotes.length === 0 && rawQuotes.length > 0) {
-        body.hint = 'Found results but none match equity/ETF types'
-      }
-      return new Response(JSON.stringify(body), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return json({ quotes })
     }
 
-    if (action === 'quote' && symbol) {
-      const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=1d`
-      const res = await fetch(yahooUrl, { headers: { 'User-Agent': UA } })
-      const data = await res.json()
-      const meta = data?.chart?.result?.[0]?.meta
-      if (!meta) {
-        return new Response(JSON.stringify({ error: 'Symbol not found' }), {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
+    if (action === 'priceOnDate' && symbol && date) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return json({ error: 'date (YYYY-MM-DD) required' }, 400)
       }
-      const prevClose =
-        meta.chartPreviousClose ?? meta.previousClose ?? meta.regularMarketPrice ?? 0
-      const price = meta.regularMarketPrice ?? 0
-      return new Response(
-        JSON.stringify({
-          quote: {
-            symbol,
-            price,
-            currency: meta.currency ?? 'USD',
-            change: price - prevClose,
-            changePercent: prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0,
-            name: meta.shortName ?? symbol,
-          },
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    if (action === 'priceOnDate' && symbol) {
-      const date = url.searchParams.get('date')
-      if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-        return new Response(JSON.stringify({ error: 'date (YYYY-MM-DD) required' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
-
       try {
         const target = new Date(`${date}T00:00:00Z`).getTime()
-        if (Number.isNaN(target)) {
-          return new Response(JSON.stringify({ error: 'invalid date' }), {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          })
-        }
+        if (Number.isNaN(target)) return json({ error: 'invalid date' }, 400)
 
-        // Fetch a ±7-day daily window so weekends/holidays and the target day
-        // itself are covered. Yahoo returns a 1d series of timestamp+close.
+        // ±7-day window so weekends/holidays around the target are covered.
         const period1 = Math.floor((target - 7 * 86400 * 1000) / 1000)
         const period2 = Math.floor((target + 2 * 86400 * 1000) / 1000)
         const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&period1=${period1}&period2=${period2}`
@@ -128,8 +85,8 @@ Deno.serve(async req => {
         const closes: (number | null)[] = result.indicators?.quote?.[0]?.close ?? []
         const currency = result.meta?.currency ?? 'USD'
 
-        // Prefer the trading day ≤ target (end of that day in UTC). Falls back
-        // to the earliest available close if target is before the first data point.
+        // Prefer the trading day ≤ target. Falls back to the earliest
+        // available close if target is before the first data point.
         const targetSec = Math.floor(target / 1000) + 86400
         let bestClose: number | null = null
         let bestTs: number | null = null
@@ -154,44 +111,26 @@ Deno.serve(async req => {
         }
 
         if (bestClose === null || bestTs === null) {
-          return new Response(JSON.stringify({ error: 'No price data for that date' }), {
-            status: 404,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          })
+          return json({ error: 'No price data for that date' }, 404)
         }
 
-        return new Response(
-          JSON.stringify({
-            symbol,
-            date: new Date(bestTs * 1000).toISOString().split('T')[0],
-            close: bestClose,
-            currency,
-          }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+        return json({
+          symbol,
+          date: new Date(bestTs * 1000).toISOString().split('T')[0],
+          close: bestClose,
+          currency,
+        })
       } catch (err) {
         console.error(`[priceOnDate] failed for ${symbol} ${date}:`, err)
-        return new Response(JSON.stringify({ error: 'Price fetch failed' }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
+        return json({ error: 'Price fetch failed' }, 500)
       }
     }
 
-    if (action === 'quotes' && query) {
-      const symbols = query.split(',').filter(Boolean)
-      if (symbols.length === 0) {
-        return new Response(JSON.stringify({ error: 'symbols required' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        })
-      }
+    if (action === 'quotes' && Array.isArray(symbols)) {
+      if (symbols.length === 0) return json({ error: 'symbols required' }, 400)
 
-      // Raw fetch against Yahoo's chart endpoint for each symbol in parallel.
-      // yahoo-finance2's quoteCombine was tried here previously but silently
-      // fails inside Deno's npm-compat layer (crumb/cookie handling issues).
-      // Chart endpoint is cookie-free and identical to what the 'quote' action
-      // already uses — proven reliable in this runtime.
+      // Raw chart endpoint is cookie-free and proven reliable in this runtime.
+      // yahoo-finance2's quoteCombine fails inside Deno's npm-compat layer.
       const results = await Promise.all(
         symbols.map(async sym => {
           try {
@@ -215,33 +154,17 @@ Deno.serve(async req => {
               name: meta.shortName ?? meta.longName ?? sym,
             }
           } catch (err) {
-            // Log so failures surface in Supabase Function logs instead of being
-            // swallowed as "no data" on the client.
             console.error(`[quotes] failed for ${sym}:`, err)
             return null
           }
         })
       )
 
-      return new Response(JSON.stringify(results.filter(Boolean)), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      return json(results.filter(Boolean))
     }
 
-    return new Response(
-      JSON.stringify({
-        error: 'Invalid action. Use action=search|quote|quotes|priceOnDate',
-      }),
-      {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    )
+    return json({ error: 'Invalid action. Use action=search|quotes|priceOnDate' }, 400)
   } catch (error) {
-    return new Response(JSON.stringify({ error: String(error) }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    return json({ error: String(error) }, 500)
   }
 })

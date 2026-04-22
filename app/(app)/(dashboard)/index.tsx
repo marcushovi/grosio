@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next'
 import { useSettings } from '@/lib/settingsContext'
 import { queryKeys } from '@/lib/queryKeys'
 import { fetchAllPositions } from '@/lib/api/positions'
-import { fetchPrices } from '@/lib/api/prices'
+import { fetchPrices } from '@/lib/api/yahoo'
 import { getExchangeRates, areFallbackRates } from '@/lib/currency'
 import { useFormat } from '@/hooks/useFormat'
 import {

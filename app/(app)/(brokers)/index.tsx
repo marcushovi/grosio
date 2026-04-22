@@ -8,7 +8,7 @@ import { Pencil, Plus, Trash2 } from 'lucide-react-native'
 import { useBrokers } from '@/hooks/useBrokers'
 import { queryKeys } from '@/lib/queryKeys'
 import { fetchAllPositions } from '@/lib/api/positions'
-import { fetchPrices } from '@/lib/api/prices'
+import { fetchPrices } from '@/lib/api/yahoo'
 import { getExchangeRates } from '@/lib/currency'
 import {
   computeDashboardBase,

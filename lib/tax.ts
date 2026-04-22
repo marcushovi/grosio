@@ -5,7 +5,7 @@
 import type { Position, PositionCurrency } from '@/types'
 import type { ExchangeRates, DisplayCurrency } from '@/lib/currency'
 import { toEur, convertToDisplay } from '@/lib/currency'
-import type { PriceMap } from '@/lib/portfolio'
+import type { PriceMap } from '@/lib/api/yahoo'
 
 export type Domicile = 'SK' | 'CZ'
 export type { DisplayCurrency }
