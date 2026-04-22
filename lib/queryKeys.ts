@@ -39,4 +39,8 @@ export const queryKeys = {
     all: ['tax'] as const,
     data: (domicile: string) => [...queryKeys.tax.all, domicile] as const,
   },
+  realized: {
+    all: ['realized'] as const,
+    byYear: (year: number) => [...queryKeys.realized.all, year] as const,
+  },
 } as const

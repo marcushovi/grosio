@@ -1,6 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { queryKeys } from '../lib/queryKeys'
-import { fetchBrokers, insertBroker, deleteBroker as deleteBrokerApi } from '../lib/api/brokers'
+import {
+  fetchBrokers,
+  insertBroker,
+  deleteBroker as deleteBrokerApi,
+  updateBroker,
+  type UpdateBrokerInput,
+} from '../lib/api/brokers'
 import type { Broker, MutationResult } from '../types'
 
 /**
@@ -72,4 +78,26 @@ export function useBrokers() {
     },
     refetch,
   }
+}
+
+/**
+ * Edit a broker's name and/or color. Invalidates the broker list (the list
+ * itself renders both fields), the dashboard (allocation legend shows broker
+ * name + color swatch) and the tax summary (groups its rows by broker name
+ * and color). Position lists don't render broker name/color directly, so
+ * `positions.all` is intentionally NOT invalidated here.
+ */
+export function useUpdateBroker() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ brokerId, input }: { brokerId: string; input: UpdateBrokerInput }) =>
+      updateBroker(brokerId, input),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.brokers.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.tax.all }),
+      ])
+    },
+  })
 }
