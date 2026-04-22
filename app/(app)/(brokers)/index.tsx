@@ -24,6 +24,7 @@ import { LastUpdated } from '../../../components/LastUpdated'
 import { Screen } from '../../../components/Screen'
 import { SwipeableRow, type SwipeableRowAction } from '../../../components/SwipeableRow'
 import { useT } from '../../../lib/t'
+import type { Broker } from '../../../types'
 
 export default function BrokersScreen() {
   const { _ } = useT()
@@ -37,6 +38,7 @@ export default function BrokersScreen() {
   const { brokers, error: brokersError, deleteBroker } = useBrokers()
   const { currency: displayCurrency } = useSettings()
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [editingBroker, setEditingBroker] = useState<Broker | null>(null)
 
   // Shares the same cache entry as the dashboard screen — queryKey identity
   // is what makes that work. No separate fetch when both screens are warm.
@@ -94,9 +96,13 @@ export default function BrokersScreen() {
     [_, deleteBroker]
   )
 
-  const handleEdit = useCallback((_id: string) => {
-    // TODO (next prompt): open edit broker dialog.
-  }, [])
+  const handleEdit = useCallback(
+    (id: string) => {
+      const broker = brokers.find(b => b.id === id)
+      if (broker) setEditingBroker(broker)
+    },
+    [brokers]
+  )
 
   const onRefresh = useCallback(() => {
     refetchDashboard()
@@ -168,6 +174,16 @@ export default function BrokersScreen() {
       )}
 
       <AddBrokerDialog isOpen={dialogOpen} onOpenChange={setDialogOpen} />
+      {editingBroker && (
+        <AddBrokerDialog
+          isOpen={!!editingBroker}
+          onOpenChange={open => {
+            if (!open) setEditingBroker(null)
+          }}
+          mode="edit"
+          broker={editingBroker}
+        />
+      )}
     </Screen>
   )
 }

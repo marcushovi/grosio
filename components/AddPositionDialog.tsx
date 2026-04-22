@@ -17,7 +17,8 @@ import { SearchField, Separator, useThemeColor } from 'heroui-native'
 import { Calendar } from 'lucide-react-native'
 import { getPriceOnDate, searchSymbols } from '../lib/yahooFinance'
 import { useT } from '../lib/t'
-import type { PositionCurrency } from '../types'
+import { useUpdatePosition } from '../hooks/usePositions'
+import type { Position, PositionCurrency } from '../types'
 
 interface SearchResult {
   symbol: string
@@ -35,7 +36,12 @@ const toYyyyMmDd = (d: Date): string =>
 interface AddPositionDialogProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
-  onAdd: (position: {
+  mode?: 'create' | 'edit'
+  /** Create mode: parent wires the mutation (kept as a callback for
+   *  compatibility with the existing broker-detail `usePositions().addPosition`
+   *  wrapper). Edit mode: not used — the dialog calls `useUpdatePosition`
+   *  internally. */
+  onAdd?: (position: {
     symbol: string
     name: string
     shares: number
@@ -43,27 +49,57 @@ interface AddPositionDialogProps {
     currency: PositionCurrency
     buy_date: string
   }) => Promise<{ error: { message: string } | null }>
+  /** Required when `mode === 'edit'`. */
+  position?: Position
 }
 
-export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDialogProps) {
+export function AddPositionDialog({
+  isOpen,
+  onOpenChange,
+  mode = 'create',
+  onAdd,
+  position,
+}: AddPositionDialogProps) {
   const { _ } = useT()
   const [accent, foreground] = useThemeColor(['accent', 'foreground'])
+  const updatePositionMutation = useUpdatePosition()
+  const isEdit = mode === 'edit'
 
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [searching, setSearching] = useState(false)
-  const [selectedSymbol, setSelectedSymbol] = useState('')
-  const [selectedName, setSelectedName] = useState('')
-  const [selectedCurrency, setSelectedCurrency] = useState<PositionCurrency>('USD')
-  const [shares, setShares] = useState('')
-  const [price, setPrice] = useState('')
-  const [isPriceManuallyEdited, setIsPriceManuallyEdited] = useState(false)
-  const [buyDate, setBuyDate] = useState<Date>(() => new Date())
+  const [selectedSymbol, setSelectedSymbol] = useState(position?.symbol ?? '')
+  const [selectedName, setSelectedName] = useState(position?.name ?? '')
+  const [selectedCurrency, setSelectedCurrency] = useState<PositionCurrency>(
+    position?.currency ?? 'USD'
+  )
+  const [shares, setShares] = useState(position ? String(position.shares) : '')
+  const [price, setPrice] = useState(position ? String(position.buy_price) : '')
+  const [isPriceManuallyEdited, setIsPriceManuallyEdited] = useState(isEdit)
+  const [buyDate, setBuyDate] = useState<Date>(() =>
+    position?.buy_date ? new Date(`${position.buy_date}T00:00:00`) : new Date()
+  )
   const [iosPickerVisible, setIosPickerVisible] = useState(false)
   const [pricingLoading, setPricingLoading] = useState(false)
   const [saving, setSaving] = useState(false)
 
   const buyDateIso = useMemo(() => toYyyyMmDd(buyDate), [buyDate])
+
+  // Re-seed form when the dialog is (re)opened for a different position.
+  useEffect(() => {
+    if (!isOpen) return
+    if (isEdit && position) {
+      setSelectedSymbol(position.symbol)
+      setSelectedName(position.name)
+      setSelectedCurrency(position.currency)
+      setShares(String(position.shares))
+      setPrice(String(position.buy_price))
+      setIsPriceManuallyEdited(true) // don't auto-fetch in edit mode
+      setBuyDate(position.buy_date ? new Date(`${position.buy_date}T00:00:00`) : new Date())
+      setSearchQuery(position.name)
+      setSearchResults([])
+    }
+  }, [isOpen, isEdit, position])
 
   // Debounce the ticker search + track the latest request id so an earlier
   // (slower) response can't overwrite the result of a newer query. Without
@@ -84,29 +120,36 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
     setIosPickerVisible(false)
   }, [])
 
-  const handleSearch = useCallback((query: string) => {
-    setSearchQuery(query)
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
-    if (query.length < 2) {
-      setSearchResults([])
-      setSearching(false)
-      return
-    }
-    setSearching(true)
-    searchTimeoutRef.current = setTimeout(async () => {
-      const reqId = ++searchRequestIdRef.current
-      try {
-        const results = await searchSymbols(query)
-        if (reqId !== searchRequestIdRef.current) return
-        setSearchResults(results)
-      } catch {
-        if (reqId !== searchRequestIdRef.current) return
+  const handleSearch = useCallback(
+    (query: string) => {
+      // Symbol search is disabled in edit mode — a position's symbol is
+      // immutable from the UI (see dialog-level flag). If the user wants a
+      // different ticker, they delete and create anew.
+      if (isEdit) return
+      setSearchQuery(query)
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+      if (query.length < 2) {
         setSearchResults([])
-      } finally {
-        if (reqId === searchRequestIdRef.current) setSearching(false)
+        setSearching(false)
+        return
       }
-    }, 300)
-  }, [])
+      setSearching(true)
+      searchTimeoutRef.current = setTimeout(async () => {
+        const reqId = ++searchRequestIdRef.current
+        try {
+          const results = await searchSymbols(query)
+          if (reqId !== searchRequestIdRef.current) return
+          setSearchResults(results)
+        } catch {
+          if (reqId !== searchRequestIdRef.current) return
+          setSearchResults([])
+        } finally {
+          if (reqId === searchRequestIdRef.current) setSearching(false)
+        }
+      }, 300)
+    },
+    [isEdit]
+  )
 
   useEffect(() => {
     return () => {
@@ -129,8 +172,10 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
 
   // Auto-fetch the historical close price whenever the symbol or the buy date
   // changes, so the user rarely needs to touch the price field. Debounced so
-  // rapid date changes don't spam the Edge Function.
+  // rapid date changes don't spam the Edge Function. Disabled in edit mode —
+  // the stored buy price is what the user chose and must not be overwritten.
   useEffect(() => {
+    if (isEdit) return
     if (!selectedSymbol) return
     let cancelled = false
     const timer = setTimeout(async () => {
@@ -150,7 +195,7 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
       cancelled = true
       clearTimeout(timer)
     }
-  }, [selectedSymbol, buyDateIso, isPriceManuallyEdited])
+  }, [selectedSymbol, buyDateIso, isPriceManuallyEdited, isEdit])
 
   // Android: imperative native date dialog (Material calendar). iOS uses the
   // inline `<DateTimePicker display="compact">` below — doesn't need this.
@@ -165,7 +210,7 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
     })
   }, [buyDate])
 
-  const handleAdd = useCallback(async () => {
+  const handleSubmit = useCallback(async () => {
     if (!selectedSymbol) return Alert.alert(_('error'), _('selectSymbol'))
     if (!shares || parseFloat(shares) <= 0) return Alert.alert(_('error'), _('enterShares'))
     if (!price || parseFloat(price) <= 0) return Alert.alert(_('error'), _('enterPrice'))
@@ -174,6 +219,36 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
     if (Number.isNaN(parsedDate.getTime()) || parsedDate > new Date()) {
       return Alert.alert(_('error'), _('invalidBuyDate'))
     }
+
+    if (isEdit && position) {
+      setSaving(true)
+      updatePositionMutation.mutate(
+        {
+          positionId: position.id,
+          input: {
+            symbol: selectedSymbol,
+            name: selectedName,
+            shares: parseFloat(shares),
+            buy_price: parseFloat(price),
+            currency: selectedCurrency,
+            buy_date: buyDateIso,
+          },
+        },
+        {
+          onSuccess: () => {
+            setSaving(false)
+            onOpenChange(false)
+          },
+          onError: e => {
+            setSaving(false)
+            Alert.alert(_('error'), e instanceof Error ? e.message : String(e))
+          },
+        }
+      )
+      return
+    }
+
+    if (!onAdd) return
     setSaving(true)
     const { error } = await onAdd({
       symbol: selectedSymbol,
@@ -197,15 +272,18 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
     onAdd,
     reset,
     onOpenChange,
+    isEdit,
+    position,
+    updatePositionMutation,
     _,
   ])
 
   const handleOpenChange = useCallback(
     (open: boolean) => {
-      if (!open) reset()
+      if (!open && !isEdit) reset()
       onOpenChange(open)
     },
-    [reset, onOpenChange]
+    [isEdit, reset, onOpenChange]
   )
 
   // Locale-aware display formatting for the date picker trigger, e.g.
@@ -215,6 +293,9 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
     month: 'short',
     day: 'numeric',
   })
+
+  const title = isEdit ? _('editPosition') : _('addPosition')
+  const description = isEdit ? _('editPositionDesc') : _('addPositionDesc')
 
   return (
     <Dialog isOpen={isOpen} onOpenChange={handleOpenChange}>
@@ -226,63 +307,72 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
         >
           <Dialog.Content>
             <Dialog.Close className="self-end" />
-            <Dialog.Title>{_('addPosition')}</Dialog.Title>
-            <Dialog.Description>{_('addPositionDesc')}</Dialog.Description>
+            <Dialog.Title>{title}</Dialog.Title>
+            <Dialog.Description>{description}</Dialog.Description>
 
             <View className="mt-4">
               <Text className="text-muted text-sm mb-2">{_('symbol')}</Text>
-              {/* Relative anchor so the results list can float over fields below */}
-              <View className="relative z-10">
-                <SearchField value={searchQuery} onChange={handleSearch}>
-                  <SearchField.Group>
-                    <SearchField.SearchIcon />
-                    <SearchField.Input
-                      placeholder={_('searchPlaceholder')}
-                      autoCapitalize="characters"
-                    />
-                    <SearchField.ClearButton />
-                  </SearchField.Group>
-                </SearchField>
+              {isEdit ? (
+                <View className="bg-background rounded-xl p-3">
+                  <Text className="text-accent font-semibold">{selectedSymbol}</Text>
+                  <Text className="text-muted text-xs">{selectedName}</Text>
+                </View>
+              ) : (
+                <>
+                  {/* Relative anchor so the results list can float over fields below */}
+                  <View className="relative z-10">
+                    <SearchField value={searchQuery} onChange={handleSearch}>
+                      <SearchField.Group>
+                        <SearchField.SearchIcon />
+                        <SearchField.Input
+                          placeholder={_('searchPlaceholder')}
+                          autoCapitalize="characters"
+                        />
+                        <SearchField.ClearButton />
+                      </SearchField.Group>
+                    </SearchField>
 
-                {searching && (
-                  <View
-                    pointerEvents="none"
-                    className="absolute right-10 top-0 bottom-0 justify-center"
-                  >
-                    <ActivityIndicator size="small" color={accent} />
-                  </View>
-                )}
-
-                {searchResults.length > 0 && (
-                  <View
-                    className="absolute top-full left-0 right-0 mt-1 z-20 bg-surface rounded-xl border border-border shadow-lg"
-                    style={styles.searchDropdown}
-                  >
-                    {searchResults.slice(0, 5).map((r, i) => (
-                      <View key={r.symbol}>
-                        {i > 0 && <Separator />}
-                        <Pressable
-                          onPress={() => handleSelectSymbol(r.symbol, r.name)}
-                          className="px-4 py-3"
-                        >
-                          <Text className="text-foreground font-semibold">{r.symbol}</Text>
-                          <Text className="text-muted text-xs" numberOfLines={1}>
-                            {r.name}
-                          </Text>
-                        </Pressable>
+                    {searching && (
+                      <View
+                        pointerEvents="none"
+                        className="absolute right-10 top-0 bottom-0 justify-center"
+                      >
+                        <ActivityIndicator size="small" color={accent} />
                       </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-            </View>
+                    )}
 
-            {selectedSymbol ? (
-              <View className="mt-3 bg-background rounded-xl p-3">
-                <Text className="text-accent font-semibold">{selectedSymbol}</Text>
-                <Text className="text-muted text-xs">{selectedName}</Text>
-              </View>
-            ) : null}
+                    {searchResults.length > 0 && (
+                      <View
+                        className="absolute top-full left-0 right-0 mt-1 z-20 bg-surface rounded-xl border border-border shadow-lg"
+                        style={styles.searchDropdown}
+                      >
+                        {searchResults.slice(0, 5).map((r, i) => (
+                          <View key={r.symbol}>
+                            {i > 0 && <Separator />}
+                            <Pressable
+                              onPress={() => handleSelectSymbol(r.symbol, r.name)}
+                              className="px-4 py-3"
+                            >
+                              <Text className="text-foreground font-semibold">{r.symbol}</Text>
+                              <Text className="text-muted text-xs" numberOfLines={1}>
+                                {r.name}
+                              </Text>
+                            </Pressable>
+                          </View>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+
+                  {selectedSymbol ? (
+                    <View className="mt-3 bg-background rounded-xl p-3">
+                      <Text className="text-accent font-semibold">{selectedSymbol}</Text>
+                      <Text className="text-muted text-xs">{selectedName}</Text>
+                    </View>
+                  ) : null}
+                </>
+              )}
+            </View>
 
             <View className="mt-4">
               <Text className="text-muted text-sm mb-2">{_('buyDate')}</Text>
@@ -360,7 +450,7 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
                   variant="outline"
                   size="lg"
                   onPress={() => {
-                    reset()
+                    if (!isEdit) reset()
                     onOpenChange(false)
                   }}
                 >
@@ -371,10 +461,12 @@ export function AddPositionDialog({ isOpen, onOpenChange, onAdd }: AddPositionDi
                 <Button
                   variant="primary"
                   size="lg"
-                  onPress={handleAdd}
+                  onPress={handleSubmit}
                   isDisabled={saving || !selectedSymbol}
                 >
-                  <Button.Label>{saving ? _('adding') : _('add')}</Button.Label>
+                  <Button.Label>
+                    {saving ? (isEdit ? _('saving') : _('adding')) : isEdit ? _('save') : _('add')}
+                  </Button.Label>
                 </Button>
               </View>
             </View>

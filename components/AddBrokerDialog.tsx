@@ -1,32 +1,65 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { View, Text, Alert, KeyboardAvoidingView, Platform } from 'react-native'
 import { Button } from 'heroui-native/button'
 import { Input } from 'heroui-native/input'
 import { Dialog } from 'heroui-native/dialog'
 import { ColorPicker, COLORS } from './ColorPicker'
 import { useT } from '../lib/t'
-import { useBrokers } from '../hooks/useBrokers'
+import { useBrokers, useUpdateBroker } from '../hooks/useBrokers'
+import type { Broker } from '../types'
 
 interface AddBrokerDialogProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
+  mode?: 'create' | 'edit'
+  /** Required when `mode === 'edit'`. The dialog prefills from this and
+   *  calls `useUpdateBroker` on submit instead of `useAddBroker`. */
+  broker?: Broker
 }
 
-export function AddBrokerDialog({ isOpen, onOpenChange }: AddBrokerDialogProps) {
+export function AddBrokerDialog({
+  isOpen,
+  onOpenChange,
+  mode = 'create',
+  broker,
+}: AddBrokerDialogProps) {
   const { _ } = useT()
   const { addBrokerMutation } = useBrokers()
-  const [name, setName] = useState('')
-  const [color, setColor] = useState(COLORS[0])
+  const updateBrokerMutation = useUpdateBroker()
+  const isEdit = mode === 'edit'
+
+  const [name, setName] = useState(broker?.name ?? '')
+  const [color, setColor] = useState(broker?.color ?? COLORS[0])
+
+  // Re-sync form state when the dialog is (re)opened for a different broker.
+  // Without this, reopening the edit dialog would show the previous broker's
+  // values until the user typed into the field.
+  useEffect(() => {
+    if (isOpen && isEdit && broker) {
+      setName(broker.name)
+      setColor(broker.color)
+    }
+  }, [isOpen, isEdit, broker])
 
   const reset = useCallback(() => {
     setName('')
     setColor(COLORS[0])
   }, [])
 
-  const handleAdd = useCallback(() => {
+  const handleSubmit = useCallback(() => {
     const trimmed = name.trim()
     if (!trimmed) {
       Alert.alert(_('error'), _('enterBrokerName'))
+      return
+    }
+    if (isEdit && broker) {
+      updateBrokerMutation.mutate(
+        { brokerId: broker.id, input: { name: trimmed, color } },
+        {
+          onSuccess: () => onOpenChange(false),
+          onError: e => Alert.alert(_('error'), e instanceof Error ? e.message : String(e)),
+        }
+      )
       return
     }
     addBrokerMutation.mutate(
@@ -36,22 +69,22 @@ export function AddBrokerDialog({ isOpen, onOpenChange }: AddBrokerDialogProps) 
           reset()
           onOpenChange(false)
         },
-        onError: e => {
-          Alert.alert(_('error'), e instanceof Error ? e.message : String(e))
-        },
+        onError: e => Alert.alert(_('error'), e instanceof Error ? e.message : String(e)),
       }
     )
-  }, [name, color, addBrokerMutation, reset, onOpenChange, _])
+  }, [name, color, isEdit, broker, addBrokerMutation, updateBrokerMutation, reset, onOpenChange, _])
 
   const handleOpenChange = useCallback(
     (open: boolean) => {
-      if (!open) reset()
+      if (!open && !isEdit) reset()
       onOpenChange(open)
     },
-    [reset, onOpenChange]
+    [isEdit, reset, onOpenChange]
   )
 
-  const saving = addBrokerMutation.isPending
+  const saving = isEdit ? updateBrokerMutation.isPending : addBrokerMutation.isPending
+  const title = isEdit ? _('editBroker') : _('newBroker')
+  const description = isEdit ? _('editBrokerDesc') : _('newBrokerDesc')
 
   return (
     <Dialog isOpen={isOpen} onOpenChange={handleOpenChange}>
@@ -63,8 +96,8 @@ export function AddBrokerDialog({ isOpen, onOpenChange }: AddBrokerDialogProps) 
         >
           <Dialog.Content>
             <Dialog.Close className="self-end" />
-            <Dialog.Title>{_('newBroker')}</Dialog.Title>
-            <Dialog.Description>{_('newBrokerDesc')}</Dialog.Description>
+            <Dialog.Title>{title}</Dialog.Title>
+            <Dialog.Description>{description}</Dialog.Description>
 
             <View className="mt-4">
               <Text className="text-muted text-sm mb-2">{_('brokerName')}</Text>
@@ -82,7 +115,7 @@ export function AddBrokerDialog({ isOpen, onOpenChange }: AddBrokerDialogProps) 
                   variant="outline"
                   size="lg"
                   onPress={() => {
-                    reset()
+                    if (!isEdit) reset()
                     onOpenChange(false)
                   }}
                 >
@@ -90,7 +123,7 @@ export function AddBrokerDialog({ isOpen, onOpenChange }: AddBrokerDialogProps) 
                 </Button>
               </View>
               <View className="flex-1">
-                <Button variant="primary" size="lg" onPress={handleAdd} isDisabled={saving}>
+                <Button variant="primary" size="lg" onPress={handleSubmit} isDisabled={saving}>
                   <Button.Label>{saving ? _('saving') : _('save')}</Button.Label>
                 </Button>
               </View>

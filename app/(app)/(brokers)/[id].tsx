@@ -25,6 +25,7 @@ import { computePositionValueEur, computePositionPnl } from '../../../lib/portfo
 import { useSettings } from '../../../lib/settingsContext'
 import { useT } from '../../../lib/t'
 import { AddPositionDialog } from '../../../components/AddPositionDialog'
+import { SellPositionDialog } from '../../../components/SellPositionDialog'
 import { PositionRow } from '../../../components/PositionRow'
 import { EmptyState } from '../../../components/EmptyState'
 import { LastUpdated } from '../../../components/LastUpdated'
@@ -32,7 +33,7 @@ import { LoadingState } from '../../../components/LoadingState'
 import { Screen } from '../../../components/Screen'
 import { SwipeableRow, type SwipeableRowAction } from '../../../components/SwipeableRow'
 import { isSold } from '../../../types'
-import type { PositionWithPrice, PositionCurrency } from '../../../types'
+import type { Position, PositionWithPrice, PositionCurrency } from '../../../types'
 
 interface PricesAndRates {
   prices: PriceMap
@@ -65,6 +66,8 @@ export default function BrokerDetailScreen() {
   })
 
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [editingPosition, setEditingPosition] = useState<Position | null>(null)
+  const [sellingPosition, setSellingPosition] = useState<Position | null>(null)
 
   // Unique symbols in a stable-sorted form so the query key doesn't change
   // between renders for the same set of positions.
@@ -128,13 +131,21 @@ export default function BrokerDetailScreen() {
     [_, deletePosition]
   )
 
-  const handleEditPosition = useCallback((_posId: string) => {
-    // TODO (next prompt): open edit position dialog.
-  }, [])
+  const handleEditPosition = useCallback(
+    (posId: string) => {
+      const pos = positions.find(p => p.id === posId)
+      if (pos) setEditingPosition(pos)
+    },
+    [positions]
+  )
 
-  const handleSellPosition = useCallback((_posId: string) => {
-    // TODO (next prompt): open sell position dialog.
-  }, [])
+  const handleSellPosition = useCallback(
+    (posId: string) => {
+      const pos = positions.find(p => p.id === posId)
+      if (pos) setSellingPosition(pos)
+    },
+    [positions]
+  )
 
   const handleUnsellPosition = useCallback(
     (posId: string, symbol: string) => {
@@ -307,6 +318,25 @@ export default function BrokerDetailScreen() {
         onOpenChange={setDialogOpen}
         onAdd={handleAddPosition}
       />
+      {editingPosition && (
+        <AddPositionDialog
+          isOpen={!!editingPosition}
+          onOpenChange={open => {
+            if (!open) setEditingPosition(null)
+          }}
+          mode="edit"
+          position={editingPosition}
+        />
+      )}
+      {sellingPosition && (
+        <SellPositionDialog
+          isOpen={!!sellingPosition}
+          onOpenChange={open => {
+            if (!open) setSellingPosition(null)
+          }}
+          position={sellingPosition}
+        />
+      )}
     </Screen>
   )
 }
