@@ -191,6 +191,57 @@ export function computeTaxStatusBase(
   }
 }
 
+/**
+ * Realized (closed) position: evaluate the holding-period test at the moment
+ * of sale. Open positions use `today - buy_date` (see `computeTaxStatusBase`);
+ * realized positions freeze the window at `sold_at - buy_date`, so the
+ * classification is stable once the trade is booked and doesn't drift as
+ * time passes. Returns `null` for both fields when either date is missing
+ * (legacy rows, partially-populated data) so the UI can surface that.
+ */
+export function computeRealizedTaxStatus(
+  position: Position,
+  domicile: Domicile
+): { isTaxFree: boolean | null; daysHeld: number | null } {
+  if (!position.buy_date || !position.sold_at) return { isTaxFree: null, daysHeld: null }
+  const buy = new Date(`${position.buy_date}T00:00:00`)
+  const sold = new Date(`${position.sold_at}T00:00:00`)
+  const daysHeld = Math.floor((sold.getTime() - buy.getTime()) / (1000 * 60 * 60 * 24))
+  return { isTaxFree: daysHeld >= TAX_THRESHOLD_DAYS[domicile], daysHeld }
+}
+
+/** Realized P&L in the position's native currency: `(sold - buy) * shares`. */
+export function realizedPnlNative(position: Position): number | null {
+  if (position.sold_price === null || position.sold_shares === null) return null
+  return (position.sold_price - position.buy_price) * position.sold_shares
+}
+
+/**
+ * Sum realized P&L across a list of positions, split by tax classification,
+ * in the user's display currency. Each position's P&L is computed in its
+ * own native currency, then converted via EUR-base rates. Positions with
+ * incomplete data (missing buy_date / sold_at / sold_price) are skipped.
+ */
+export function aggregateRealizedTax(
+  positions: Position[],
+  domicile: Domicile,
+  rates: ExchangeRates,
+  displayCurrency: DisplayCurrency
+): { taxFreeTotal: number; taxableTotal: number } {
+  let taxFreeTotal = 0
+  let taxableTotal = 0
+  for (const pos of positions) {
+    const pnl = realizedPnlNative(pos)
+    if (pnl === null) continue
+    const { isTaxFree } = computeRealizedTaxStatus(pos, domicile)
+    if (isTaxFree === null) continue
+    const pnlDisplay = convertToDisplay(toEur(pnl, pos.currency, rates), displayCurrency, rates)
+    if (isTaxFree) taxFreeTotal += pnlDisplay
+    else taxableTotal += pnlDisplay
+  }
+  return { taxFreeTotal, taxableTotal }
+}
+
 /** Project an EUR-base `TaxSummaryBase` into the requested display currency.
  *  Pure — no fetches, no React; safe to call from a `useMemo` on every render. */
 export function projectTaxSummaryToDisplay(

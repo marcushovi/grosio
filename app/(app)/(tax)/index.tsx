@@ -26,6 +26,7 @@ import { LoadingState } from '../../../components/LoadingState'
 import { CurrencyPicker } from '../../../components/CurrencyPicker'
 import { LastUpdated } from '../../../components/LastUpdated'
 import { Screen } from '../../../components/Screen'
+import { RealizedPositionsSection } from '../../../components/tax/RealizedPositionsSection'
 
 interface TaxRowProps {
   item: PositionTaxStatus
@@ -84,6 +85,7 @@ export default function TaxScreen() {
   // would otherwise face a very long scroll. Tapping the broker header
   // toggles its section.
   const [expandedBrokers, setExpandedBrokers] = useState<Set<string>>(new Set())
+  const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear())
   const toggleBroker = useCallback((brokerId: string) => {
     setExpandedBrokers(prev => {
       const next = new Set(prev)
@@ -208,6 +210,10 @@ export default function TaxScreen() {
           </Card>
         </View>
 
+        {/* Section label for open positions — introduced alongside the new
+            realized section so the two are visually distinguishable. */}
+        <Text className="text-foreground text-lg font-semibold mb-3">{_('openPositions')}</Text>
+
         {/* Per-broker breakdown */}
         {summary.brokers.map(broker => {
           if (broker.positions.length === 0 && broker.unknownDatePositions.length === 0) return null
@@ -262,6 +268,12 @@ export default function TaxScreen() {
             </Card>
           )
         })}
+
+        {/* Realized positions — closed trades for the selected tax year. */}
+        <RealizedPositionsSection year={selectedYear} onYearChange={setSelectedYear} />
+
+        {/* Disclaimer — orientačné údaje, nie daňové poradenstvo. */}
+        <Text className="text-muted text-xs mt-4">{_('taxDisclaimer')}</Text>
       </ScrollView>
     </Screen>
   )
