@@ -1,6 +1,6 @@
-import { supabase, getAuthUserId } from '../supabase'
-import { isSold } from '../../types'
-import type { Position, PositionCurrency } from '../../types'
+import { supabase, getAuthUserId } from '@/lib/supabase'
+import { isSold } from '@/types'
+import type { Position, PositionCurrency } from '@/types'
 
 /**
  * Fetch every OPEN position the user owns, oldest first.

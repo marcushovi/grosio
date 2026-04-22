@@ -1,6 +1,6 @@
-import { getQuotes } from '../yahooFinance'
-import type { QuoteResult } from '../yahooFinance'
-import type { PriceMap } from '../portfolio'
+import { getQuotes } from '@/lib/yahooFinance'
+import type { QuoteResult } from '@/lib/yahooFinance'
+import type { PriceMap } from '@/lib/portfolio'
 
 export type { PriceMap }
 

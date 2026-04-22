@@ -1,12 +1,12 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useBrokers } from './useBrokers'
-import { useSettings } from '../lib/settingsContext'
-import { queryKeys } from '../lib/queryKeys'
-import { fetchAllPositions } from '../lib/api/positions'
-import { fetchPrices } from '../lib/api/prices'
-import { getExchangeRates } from '../lib/api/currency'
-import { computeTaxStatusBase, type TaxSummaryBase } from '../lib/tax'
-import type { ExchangeRates } from '../lib/currency'
+import { useBrokers } from '@/hooks/useBrokers'
+import { useSettings } from '@/lib/settingsContext'
+import { queryKeys } from '@/lib/queryKeys'
+import { fetchAllPositions } from '@/lib/api/positions'
+import { fetchPrices } from '@/lib/api/prices'
+import { getExchangeRates } from '@/lib/api/currency'
+import { computeTaxStatusBase, type TaxSummaryBase } from '@/lib/tax'
+import type { ExchangeRates } from '@/lib/currency'
 
 /**
  * Fetch positions + rates + live prices and fold them into a tax summary for

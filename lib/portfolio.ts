@@ -7,10 +7,10 @@
  * that's how the "profit always shows 0" bug hid in plain sight. Everything
  * goes through these helpers now.
  */
-import type { Position, PositionCurrency } from '../types'
-import type { ExchangeRates, DisplayCurrency } from './currency'
-import { toEur, convertToDisplay } from './currency'
-import type { QuoteResult } from './yahooFinance'
+import type { Position, PositionCurrency } from '@/types'
+import type { ExchangeRates, DisplayCurrency } from '@/lib/currency'
+import { toEur, convertToDisplay } from '@/lib/currency'
+import type { QuoteResult } from '@/lib/yahooFinance'
 
 export type PriceMap = Record<string, QuoteResult>
 

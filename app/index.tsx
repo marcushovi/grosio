@@ -1,6 +1,6 @@
 import { Redirect } from 'expo-router'
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase } from '@/lib/supabase'
 
 export default function Index() {
   const [target, setTarget] = useState<string | null>(null)

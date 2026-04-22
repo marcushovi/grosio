@@ -6,11 +6,11 @@ import { useCallback } from 'react'
 import { User, Globe, Palette, Coins, ShieldCheck } from 'lucide-react-native'
 import * as Haptics from 'expo-haptics'
 import { useMutation } from '@tanstack/react-query'
-import { signOut } from '../../../lib/api/auth'
-import { useT } from '../../../lib/t'
-import { useSettings } from '../../../lib/settingsContext'
-import { currencySymbol } from '../../../lib/currency'
-import { Screen } from '../../../components/Screen'
+import { signOut } from '@/lib/api/auth'
+import { useT } from '@/lib/t'
+import { useSettings } from '@/lib/settingsContext'
+import { currencySymbol } from '@/lib/currency'
+import { Screen } from '@/components/Screen'
 
 const LANGUAGE_LABELS: Record<string, string> = {
   en: 'English',

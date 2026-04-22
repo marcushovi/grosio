@@ -1,8 +1,8 @@
-import type { Broker, Position, BrokerValue, Mover, MoversData } from '../../types'
-import type { ExchangeRates, DisplayCurrency } from '../currency'
-import { convertToDisplay, toEur } from '../currency'
-import { computePositionValueEur } from '../portfolio'
-import type { PriceMap } from '../portfolio'
+import type { Broker, Position, BrokerValue, Mover, MoversData } from '@/types'
+import type { ExchangeRates, DisplayCurrency } from '@/lib/currency'
+import { convertToDisplay, toEur } from '@/lib/currency'
+import { computePositionValueEur } from '@/lib/portfolio'
+import type { PriceMap } from '@/lib/portfolio'
 
 /** Intermediate mover shape — currency-invariant, produced by
  *  `computeDashboardBase`. `valueEur` gets projected to display currency

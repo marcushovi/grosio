@@ -2,7 +2,7 @@ import { Tabs } from 'expo-router'
 import { LayoutDashboard, Briefcase, Settings, ShieldCheck } from 'lucide-react-native'
 import { useThemeColor } from 'heroui-native'
 import * as Haptics from 'expo-haptics'
-import { useT } from '../../lib/t'
+import { useT } from '@/lib/t'
 
 export default function AppLayout() {
   const { _ } = useT()

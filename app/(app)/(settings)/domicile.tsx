@@ -1,14 +1,14 @@
 import { Fragment } from 'react'
 import { View, Text } from 'react-native'
-import { Screen } from '../../../components/Screen'
+import { Screen } from '@/components/Screen'
 import { useRouter } from 'expo-router'
 import { RadioGroup, Radio, Label, Separator, Surface, useThemeColor } from 'heroui-native'
 import { Button } from 'heroui-native/button'
 import { ArrowLeft } from 'lucide-react-native'
 import * as Haptics from 'expo-haptics'
-import { useT } from '../../../lib/t'
-import { useSettings } from '../../../lib/settingsContext'
-import type { Domicile } from '../../../lib/settingsContext'
+import { useT } from '@/lib/t'
+import { useSettings } from '@/lib/settingsContext'
+import type { Domicile } from '@/lib/settingsContext'
 
 const DOMICILES: { value: Domicile; label: string }[] = [
   { value: 'SK', label: '🇸🇰  Slovenská republika' },

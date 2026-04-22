@@ -11,7 +11,7 @@ import {
   type AppCurrency,
   type NumberFormatOptions,
   type PercentFormatOptions,
-} from '../lib/format'
+} from '@/lib/format'
 
 /**
  * Reactive language-bound bundle of every formatter in `lib/format.ts`.

@@ -1,9 +1,9 @@
 import { memo } from 'react'
 import { View, Text } from 'react-native'
 import { Card } from 'heroui-native/card'
-import { useFormat } from '../hooks/useFormat'
-import type { DisplayCurrency } from '../lib/currency'
-import type { PositionWithPrice } from '../types'
+import { useFormat } from '@/hooks/useFormat'
+import type { DisplayCurrency } from '@/lib/currency'
+import type { PositionWithPrice } from '@/types'
 
 interface PositionRowProps {
   item: PositionWithPrice

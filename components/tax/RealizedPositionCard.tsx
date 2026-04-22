@@ -2,16 +2,11 @@ import { useCallback, useState } from 'react'
 import { View, Text, Pressable, LayoutAnimation, Platform, UIManager } from 'react-native'
 import { Card } from 'heroui-native/card'
 import { Chip } from 'heroui-native/chip'
-import { useT } from '../../lib/t'
-import { useFormat } from '../../hooks/useFormat'
-import { computeRealizedTaxStatus, realizedPnlNative, type Domicile } from '../../lib/tax'
-import {
-  toEur,
-  convertToDisplay,
-  type ExchangeRates,
-  type DisplayCurrency,
-} from '../../lib/currency'
-import type { Position } from '../../types'
+import { useT } from '@/lib/t'
+import { useFormat } from '@/hooks/useFormat'
+import { computeRealizedTaxStatus, realizedPnlNative, type Domicile } from '@/lib/tax'
+import { toEur, convertToDisplay, type ExchangeRates, type DisplayCurrency } from '@/lib/currency'
+import type { Position } from '@/types'
 
 // LayoutAnimation on Android requires this opt-in. Safe to call at module
 // load — no-op if already enabled. iOS enables it by default.

@@ -1,5 +1,5 @@
-import { supabase } from './supabase'
-import type { PositionCurrency } from '../types'
+import { supabase } from '@/lib/supabase'
+import type { PositionCurrency } from '@/types'
 
 const EDGE_FUNCTION_URL = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/yahoo-finance`
 const ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_KEY ?? ''

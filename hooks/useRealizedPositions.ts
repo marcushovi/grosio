@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import { queryKeys } from '../lib/queryKeys'
-import { getRealizedPositions } from '../lib/api/tax'
-import type { Position } from '../types'
+import { queryKeys } from '@/lib/queryKeys'
+import { getRealizedPositions } from '@/lib/api/tax'
+import type { Position } from '@/types'
 
 /**
  * Realized (sold) positions for a given calendar year. Backs the realized-tax

@@ -6,11 +6,11 @@ import { Input } from 'heroui-native/input'
 import { Dialog } from 'heroui-native/dialog'
 import { useThemeColor } from 'heroui-native'
 import { Calendar } from 'lucide-react-native'
-import { useT } from '../lib/t'
-import { toYyyyMmDd } from '../lib/format'
-import { useFormat } from '../hooks/useFormat'
-import { useSellPosition } from '../hooks/usePositions'
-import type { Position } from '../types'
+import { useT } from '@/lib/t'
+import { toYyyyMmDd } from '@/lib/format'
+import { useFormat } from '@/hooks/useFormat'
+import { useSellPosition } from '@/hooks/usePositions'
+import type { Position } from '@/types'
 
 interface SellPositionDialogProps {
   isOpen: boolean

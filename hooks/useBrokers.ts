@@ -1,13 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { queryKeys } from '../lib/queryKeys'
+import { queryKeys } from '@/lib/queryKeys'
 import {
   fetchBrokers,
   insertBroker,
   deleteBroker as deleteBrokerApi,
   updateBroker,
   type UpdateBrokerInput,
-} from '../lib/api/brokers'
-import type { Broker, MutationResult } from '../types'
+} from '@/lib/api/brokers'
+import type { Broker, MutationResult } from '@/types'
 
 /**
  * Brokers query + add/delete mutations.

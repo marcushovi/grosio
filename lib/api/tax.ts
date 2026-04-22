@@ -1,5 +1,5 @@
-import { supabase } from '../supabase'
-import type { Position } from '../../types'
+import { supabase } from '@/lib/supabase'
+import type { Position } from '@/types'
 
 /**
  * Fetch positions whose sale date falls in a given calendar year. The year is

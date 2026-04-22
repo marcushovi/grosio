@@ -1,5 +1,5 @@
 import { View, Text } from 'react-native'
-import { useT } from '../lib/t'
+import { useT } from '@/lib/t'
 
 interface ErrorStateProps {
   message: string

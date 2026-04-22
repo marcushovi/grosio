@@ -1,4 +1,4 @@
-import type { PositionCurrency } from '../types'
+import type { PositionCurrency } from '@/types'
 
 export type DisplayCurrency = 'EUR' | 'USD' | 'CZK'
 
@@ -68,4 +68,4 @@ export function convertToDisplay(
 // importers (CurrencyPicker, settings screen). New code should import
 // directly from `lib/format`. Money amounts go through `formatCurrency`
 // which uses the ISO code for USD rather than `$`.
-export { currencySymbol } from './format'
+export { currencySymbol } from '@/lib/format'

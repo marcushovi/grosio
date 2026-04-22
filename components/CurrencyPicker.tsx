@@ -2,11 +2,11 @@ import { useState, useRef, useCallback } from 'react'
 import { View, Text, Pressable, Modal, StyleSheet } from 'react-native'
 import { useThemeColor } from 'heroui-native'
 import * as Haptics from 'expo-haptics'
-import { currencySymbol } from '../lib/currency'
-import { useSettings } from '../lib/settingsContext'
-import { CURRENCIES } from '../lib/constants'
-import type { DisplayCurrency } from '../lib/currency'
-import { useT } from '../lib/t'
+import { currencySymbol } from '@/lib/currency'
+import { useSettings } from '@/lib/settingsContext'
+import { CURRENCIES } from '@/lib/constants'
+import type { DisplayCurrency } from '@/lib/currency'
+import { useT } from '@/lib/t'
 
 export function CurrencyPicker() {
   const { _ } = useT()

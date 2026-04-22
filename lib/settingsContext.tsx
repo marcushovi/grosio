@@ -2,9 +2,9 @@ import { createContext, useContext, useEffect, useLayoutEffect, useState } from 
 import type { ReactNode } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { Uniwind, useUniwind } from 'uniwind'
-import i18n from './i18n'
-import type { DisplayCurrency } from './currency'
-import type { Language } from './i18n'
+import i18n from '@/lib/i18n'
+import type { DisplayCurrency } from '@/lib/currency'
+import type { Language } from '@/lib/i18n'
 
 export type { DisplayCurrency, Language }
 export type ThemePreference = 'light' | 'dark' | 'system'

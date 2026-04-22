@@ -4,10 +4,10 @@ import { Card } from 'heroui-native/card'
 import { useThemeColor } from 'heroui-native'
 import { TrendingUp, TrendingDown } from 'lucide-react-native'
 import * as Haptics from 'expo-haptics'
-import type { Broker } from '../types'
-import { useSettings } from '../lib/settingsContext'
-import { useT } from '../lib/t'
-import { useFormat } from '../hooks/useFormat'
+import type { Broker } from '@/types'
+import { useSettings } from '@/lib/settingsContext'
+import { useT } from '@/lib/t'
+import { useFormat } from '@/hooks/useFormat'
 
 interface BrokerCardProps {
   broker: Broker

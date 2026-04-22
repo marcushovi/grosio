@@ -3,10 +3,10 @@ import { View, Text, Alert, KeyboardAvoidingView, Platform } from 'react-native'
 import { Button } from 'heroui-native/button'
 import { Input } from 'heroui-native/input'
 import { Dialog } from 'heroui-native/dialog'
-import { ColorPicker, COLORS } from './ColorPicker'
-import { useT } from '../lib/t'
-import { useBrokers, useUpdateBroker } from '../hooks/useBrokers'
-import type { Broker } from '../types'
+import { ColorPicker, COLORS } from '@/components/ColorPicker'
+import { useT } from '@/lib/t'
+import { useBrokers, useUpdateBroker } from '@/hooks/useBrokers'
+import type { Broker } from '@/types'
 
 interface AddBrokerDialogProps {
   isOpen: boolean

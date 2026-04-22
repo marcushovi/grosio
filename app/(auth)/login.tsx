@@ -4,9 +4,9 @@ import { Link } from 'expo-router'
 import { useMutation } from '@tanstack/react-query'
 import { Button } from 'heroui-native/button'
 import { Input } from 'heroui-native/input'
-import { signInWithPassword } from '../../lib/api/auth'
-import { useT } from '../../lib/t'
-import { APP_NAME } from '../../lib/constants'
+import { signInWithPassword } from '@/lib/api/auth'
+import { useT } from '@/lib/t'
+import { APP_NAME } from '@/lib/constants'
 
 export default function LoginScreen() {
   const { _ } = useT()

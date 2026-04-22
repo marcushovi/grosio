@@ -8,10 +8,10 @@
  * FX rates. All math is pure — callers fetch positions/prices/rates via
  * TanStack Query and pass them in.
  */
-import type { Position, PositionCurrency } from '../types'
-import type { ExchangeRates, DisplayCurrency } from './currency'
-import { toEur, convertToDisplay } from './currency'
-import type { PriceMap } from './portfolio'
+import type { Position, PositionCurrency } from '@/types'
+import type { ExchangeRates, DisplayCurrency } from '@/lib/currency'
+import { toEur, convertToDisplay } from '@/lib/currency'
+import type { PriceMap } from '@/lib/portfolio'
 
 export type Domicile = 'SK' | 'CZ'
 export type { DisplayCurrency }

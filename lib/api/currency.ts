@@ -9,5 +9,5 @@ export {
   toEur,
   convertToDisplay,
   currencySymbol,
-} from '../currency'
-export type { ExchangeRates, DisplayCurrency } from '../currency'
+} from '@/lib/currency'
+export type { ExchangeRates, DisplayCurrency } from '@/lib/currency'

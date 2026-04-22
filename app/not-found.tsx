@@ -1,6 +1,6 @@
 import { Link, Stack } from 'expo-router'
 import { View, Text } from 'react-native'
-import { useT } from '../lib/t'
+import { useT } from '@/lib/t'
 
 export default function NotFoundScreen() {
   const { _ } = useT()

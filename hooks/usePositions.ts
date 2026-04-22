@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { queryKeys } from '../lib/queryKeys'
+import { queryKeys } from '@/lib/queryKeys'
 import {
   fetchAllPositions,
   fetchPositionsByBroker,
@@ -10,8 +10,8 @@ import {
   updatePosition,
   type InsertPositionInput,
   type UpdatePositionInput,
-} from '../lib/api/positions'
-import type { Position, MutationResult } from '../types'
+} from '@/lib/api/positions'
+import type { Position, MutationResult } from '@/types'
 
 /**
  * Positions query + add/delete mutations, scoped to a single broker.

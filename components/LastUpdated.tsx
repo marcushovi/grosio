@@ -1,6 +1,6 @@
 import { Text } from 'react-native'
-import { useT } from '../lib/t'
-import { useFormat } from '../hooks/useFormat'
+import { useT } from '@/lib/t'
+import { useFormat } from '@/hooks/useFormat'
 
 interface LastUpdatedProps {
   /** Epoch ms of the last successful fetch. 0 or undefined renders nothing. */

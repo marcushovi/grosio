@@ -1,13 +1,13 @@
 import { View, Text } from 'react-native'
-import { Screen } from '../../../components/Screen'
+import { Screen } from '@/components/Screen'
 import { useRouter } from 'expo-router'
 import { useQuery } from '@tanstack/react-query'
 import { ListGroup, useThemeColor } from 'heroui-native'
 import { Button } from 'heroui-native/button'
 import { ArrowLeft } from 'lucide-react-native'
-import { queryKeys } from '../../../lib/queryKeys'
-import { fetchSessionEmail } from '../../../lib/api/auth'
-import { useT } from '../../../lib/t'
+import { queryKeys } from '@/lib/queryKeys'
+import { fetchSessionEmail } from '@/lib/api/auth'
+import { useT } from '@/lib/t'
 
 export default function ProfileScreen() {
   const { _ } = useT()

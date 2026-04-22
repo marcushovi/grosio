@@ -1,4 +1,4 @@
-import type { DisplayCurrency } from './currency'
+import type { DisplayCurrency } from '@/lib/currency'
 
 export const APP_NAME = 'Grosio'
 

@@ -1,5 +1,5 @@
-import { supabase, getAuthUserId } from '../supabase'
-import type { Broker } from '../../types'
+import { supabase, getAuthUserId } from '@/lib/supabase'
+import type { Broker } from '@/types'
 
 /** Fetch all brokers for the current user, oldest first. */
 export async function fetchBrokers(): Promise<Broker[]> {

@@ -15,12 +15,12 @@ import { Input } from 'heroui-native/input'
 import { Dialog } from 'heroui-native/dialog'
 import { SearchField, Separator, useThemeColor } from 'heroui-native'
 import { Calendar } from 'lucide-react-native'
-import { getPriceOnDate, searchSymbols } from '../lib/yahooFinance'
-import { useT } from '../lib/t'
-import { toYyyyMmDd } from '../lib/format'
-import { useFormat } from '../hooks/useFormat'
-import { useUpdatePosition } from '../hooks/usePositions'
-import type { Position, PositionCurrency } from '../types'
+import { getPriceOnDate, searchSymbols } from '@/lib/yahooFinance'
+import { useT } from '@/lib/t'
+import { toYyyyMmDd } from '@/lib/format'
+import { useFormat } from '@/hooks/useFormat'
+import { useUpdatePosition } from '@/hooks/usePositions'
+import type { Position, PositionCurrency } from '@/types'
 
 interface SearchResult {
   symbol: string
