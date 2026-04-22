@@ -16,7 +16,7 @@ import { Dialog } from 'heroui-native/dialog'
 import { SearchField, Separator, useThemeColor } from 'heroui-native'
 import { Calendar } from 'lucide-react-native'
 import { getPriceOnDate, searchSymbols } from '@/lib/yahooFinance'
-import { useT } from '@/lib/t'
+import { useTranslation } from 'react-i18next'
 import { toYyyyMmDd } from '@/lib/format'
 import { useFormat } from '@/hooks/useFormat'
 import { useUpdatePosition } from '@/hooks/usePositions'
@@ -53,7 +53,7 @@ export function AddPositionDialog({
   onAdd,
   position,
 }: AddPositionDialogProps) {
-  const { _ } = useT()
+  const { t: _ } = useTranslation()
   const f = useFormat()
   const [accent, foreground] = useThemeColor(['accent', 'foreground'])
   const updatePositionMutation = useUpdatePosition()

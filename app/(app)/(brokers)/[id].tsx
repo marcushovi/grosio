@@ -24,7 +24,7 @@ import { useFormat } from '@/hooks/useFormat'
 import type { ExchangeRates } from '@/lib/currency'
 import { computePositionValueEur, computePositionPnl } from '@/lib/portfolio'
 import { useSettings } from '@/lib/settingsContext'
-import { useT } from '@/lib/t'
+import { useTranslation } from 'react-i18next'
 import { AddPositionDialog } from '@/components/AddPositionDialog'
 import { SellPositionDialog } from '@/components/SellPositionDialog'
 import { PositionRow } from '@/components/PositionRow'
@@ -42,7 +42,7 @@ interface PricesAndRates {
 }
 
 export default function BrokerDetailScreen() {
-  const { _ } = useT()
+  const { t: _ } = useTranslation()
   const f = useFormat()
   const { currency: displayCurrency } = useSettings()
   const [success, danger, foreground, accentFg, accent] = useThemeColor([

@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import { View, Text, Pressable, LayoutAnimation, Platform, UIManager } from 'react-native'
 import { Card } from 'heroui-native/card'
 import { Chip } from 'heroui-native/chip'
-import { useT } from '@/lib/t'
+import { useTranslation } from 'react-i18next'
 import { useFormat } from '@/hooks/useFormat'
 import { computeRealizedTaxStatus, realizedPnlNative, type Domicile } from '@/lib/tax'
 import { toEur, convertToDisplay, type ExchangeRates, type DisplayCurrency } from '@/lib/currency'
@@ -26,7 +26,7 @@ export function RealizedPositionCard({
   rates,
   displayCurrency,
 }: RealizedPositionCardProps) {
-  const { _ } = useT()
+  const { t: _ } = useTranslation()
   const f = useFormat()
   const [expanded, setExpanded] = useState(false)
 

@@ -6,7 +6,7 @@ import { RadioGroup, Radio, Label, Separator, Surface, useThemeColor } from 'her
 import { Button } from 'heroui-native/button'
 import { ArrowLeft } from 'lucide-react-native'
 import * as Haptics from 'expo-haptics'
-import { useT } from '@/lib/t'
+import { useTranslation } from 'react-i18next'
 import { useSettings } from '@/lib/settingsContext'
 import type { Language } from '@/lib/settingsContext'
 
@@ -18,7 +18,7 @@ const LANGUAGES: { value: Language; label: string }[] = [
 ]
 
 export default function LanguageScreen() {
-  const { _ } = useT()
+  const { t: _ } = useTranslation()
   const router = useRouter()
   const foreground = useThemeColor('foreground') as string
   const { language, setLanguage } = useSettings()

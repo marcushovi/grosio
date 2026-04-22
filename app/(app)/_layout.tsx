@@ -2,10 +2,10 @@ import { Tabs } from 'expo-router'
 import { LayoutDashboard, Briefcase, Settings, ShieldCheck } from 'lucide-react-native'
 import { useThemeColor } from 'heroui-native'
 import * as Haptics from 'expo-haptics'
-import { useT } from '@/lib/t'
+import { useTranslation } from 'react-i18next'
 
 export default function AppLayout() {
-  const { _ } = useT()
+  const { t: _ } = useTranslation()
   const [bg, border, accent, muted] = useThemeColor(['background', 'border', 'accent', 'muted'])
 
   return (

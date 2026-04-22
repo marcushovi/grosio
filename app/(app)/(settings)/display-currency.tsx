@@ -6,13 +6,13 @@ import { RadioGroup, Radio, Label, Separator, Surface, useThemeColor } from 'her
 import { Button } from 'heroui-native/button'
 import { ArrowLeft } from 'lucide-react-native'
 import * as Haptics from 'expo-haptics'
-import { useT } from '@/lib/t'
+import { useTranslation } from 'react-i18next'
 import { useSettings } from '@/lib/settingsContext'
 import { CURRENCIES } from '@/lib/constants'
 import type { DisplayCurrency } from '@/lib/settingsContext'
 
 export default function DisplayCurrencyScreen() {
-  const { _ } = useT()
+  const { t: _ } = useTranslation()
   const router = useRouter()
   const foreground = useThemeColor('foreground') as string
   const { currency, setCurrency } = useSettings()

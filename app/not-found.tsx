@@ -1,9 +1,9 @@
 import { Link, Stack } from 'expo-router'
 import { View, Text } from 'react-native'
-import { useT } from '@/lib/t'
+import { useTranslation } from 'react-i18next'
 
 export default function NotFoundScreen() {
-  const { _ } = useT()
+  const { t: _ } = useTranslation()
 
   return (
     <>

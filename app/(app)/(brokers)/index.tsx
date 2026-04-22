@@ -23,11 +23,11 @@ import { ErrorState } from '@/components/ErrorState'
 import { LastUpdated } from '@/components/LastUpdated'
 import { Screen } from '@/components/Screen'
 import { SwipeableRow, type SwipeableRowAction } from '@/components/SwipeableRow'
-import { useT } from '@/lib/t'
+import { useTranslation } from 'react-i18next'
 import type { Broker } from '@/types'
 
 export default function BrokersScreen() {
-  const { _ } = useT()
+  const { t: _ } = useTranslation()
   const [accentFg, accent, danger] = useThemeColor([
     'accent-foreground',
     'accent',

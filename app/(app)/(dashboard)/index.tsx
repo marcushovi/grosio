@@ -6,7 +6,7 @@ import { useThemeColor } from 'heroui-native'
 import { Card } from 'heroui-native/card'
 import { TrendingUp, TrendingDown, ChevronRight, Wallet } from 'lucide-react-native'
 import { useBrokers } from '@/hooks/useBrokers'
-import { useT } from '@/lib/t'
+import { useTranslation } from 'react-i18next'
 import { useSettings } from '@/lib/settingsContext'
 import { queryKeys } from '@/lib/queryKeys'
 import { fetchAllPositions } from '@/lib/api/positions'
@@ -27,7 +27,7 @@ import { useTaxSummary } from '@/hooks/useTaxSummary'
 import { projectTaxSummaryToDisplay } from '@/lib/tax'
 
 export default function DashboardScreen() {
-  const { _ } = useT()
+  const { t: _ } = useTranslation()
   const f = useFormat()
   const [success, danger, muted] = useThemeColor(['success', 'danger', 'muted'])
   const queryClient = useQueryClient()

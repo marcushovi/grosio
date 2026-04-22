@@ -1,5 +1,5 @@
 import { View, Text } from 'react-native'
-import { useT } from '@/lib/t'
+import { useTranslation } from 'react-i18next'
 
 interface ErrorStateProps {
   message: string
@@ -8,7 +8,7 @@ interface ErrorStateProps {
 }
 
 export function ErrorState({ message, onRetry, retryLabel }: ErrorStateProps) {
-  const { _ } = useT()
+  const { t: _ } = useTranslation()
   return (
     <View className="flex-1 items-center justify-center px-6 gap-3">
       <Text className="text-danger text-center">{message}</Text>

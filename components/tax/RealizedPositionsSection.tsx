@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Card } from 'heroui-native/card'
 import { Select } from 'heroui-native/select'
 import { Inbox } from 'lucide-react-native'
-import { useT } from '@/lib/t'
+import { useTranslation } from 'react-i18next'
 import { useFormat } from '@/hooks/useFormat'
 import { useSettings } from '@/lib/settingsContext'
 import { useRealizedPositions } from '@/hooks/useRealizedPositions'
@@ -24,7 +24,7 @@ interface RealizedPositionsSectionProps {
 const YEARS_BACK = 5
 
 export function RealizedPositionsSection({ year, onYearChange }: RealizedPositionsSectionProps) {
-  const { _ } = useT()
+  const { t: _ } = useTranslation()
   const f = useFormat()
   const { domicile, currency: displayCurrency } = useSettings()
 

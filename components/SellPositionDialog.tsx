@@ -6,7 +6,7 @@ import { Input } from 'heroui-native/input'
 import { Dialog } from 'heroui-native/dialog'
 import { useThemeColor } from 'heroui-native'
 import { Calendar } from 'lucide-react-native'
-import { useT } from '@/lib/t'
+import { useTranslation } from 'react-i18next'
 import { toYyyyMmDd } from '@/lib/format'
 import { useFormat } from '@/hooks/useFormat'
 import { useSellPosition } from '@/hooks/usePositions'
@@ -19,7 +19,7 @@ interface SellPositionDialogProps {
 }
 
 export function SellPositionDialog({ isOpen, onOpenChange, position }: SellPositionDialogProps) {
-  const { _ } = useT()
+  const { t: _ } = useTranslation()
   const f = useFormat()
   const foreground = useThemeColor('foreground') as string
   const sellPositionMutation = useSellPosition()

@@ -5,10 +5,10 @@ import { ListGroup, useThemeColor } from 'heroui-native'
 import { Button } from 'heroui-native/button'
 import { ArrowLeft } from 'lucide-react-native'
 import { useSession } from '@/lib/sessionContext'
-import { useT } from '@/lib/t'
+import { useTranslation } from 'react-i18next'
 
 export default function ProfileScreen() {
-  const { _ } = useT()
+  const { t: _ } = useTranslation()
   const router = useRouter()
   const foreground = useThemeColor('foreground') as string
   const { session } = useSession()

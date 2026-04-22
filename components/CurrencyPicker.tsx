@@ -6,10 +6,10 @@ import { currencySymbol } from '@/lib/currency'
 import { useSettings } from '@/lib/settingsContext'
 import { CURRENCIES } from '@/lib/constants'
 import type { DisplayCurrency } from '@/lib/currency'
-import { useT } from '@/lib/t'
+import { useTranslation } from 'react-i18next'
 
 export function CurrencyPicker() {
-  const { _ } = useT()
+  const { t: _ } = useTranslation()
   const { currency, setCurrency } = useSettings()
   const [accent, surface, foreground] = useThemeColor(['accent', 'surface', 'foreground'])
   const [menuOpen, setMenuOpen] = useState(false)

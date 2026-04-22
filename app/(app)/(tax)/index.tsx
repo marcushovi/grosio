@@ -12,7 +12,7 @@ import {
   ChevronRight,
   Wallet,
 } from 'lucide-react-native'
-import { useT } from '@/lib/t'
+import { useTranslation } from 'react-i18next'
 import { useSettings } from '@/lib/settingsContext'
 import { queryKeys } from '@/lib/queryKeys'
 import { useFormat } from '@/hooks/useFormat'
@@ -35,7 +35,7 @@ interface TaxRowProps {
 }
 
 const TaxRow = memo(function TaxRow({ item, displayCurrency, warningColor }: TaxRowProps) {
-  const { _ } = useT()
+  const { t: _ } = useTranslation()
   const f = useFormat()
   return (
     <View className="flex-row items-center justify-between py-3 border-b border-border">
@@ -73,7 +73,7 @@ const TaxRow = memo(function TaxRow({ item, displayCurrency, warningColor }: Tax
 })
 
 export default function TaxScreen() {
-  const { _ } = useT()
+  const { t: _ } = useTranslation()
   const f = useFormat()
   const router = useRouter()
   const { domicile, currency: displayCurrency } = useSettings()

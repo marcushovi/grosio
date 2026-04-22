@@ -1,5 +1,5 @@
 import { Text } from 'react-native'
-import { useT } from '@/lib/t'
+import { useTranslation } from 'react-i18next'
 import { useFormat } from '@/hooks/useFormat'
 
 interface LastUpdatedProps {
@@ -11,7 +11,7 @@ interface LastUpdatedProps {
 // Same-day fetches show only HH:MM. Older ones use the combined date+time
 // form so stale data reads obviously stale.
 export function LastUpdated({ timestamp, className }: LastUpdatedProps) {
-  const { _ } = useT()
+  const { t: _ } = useTranslation()
   const f = useFormat()
   if (!timestamp) return null
   const d = new Date(timestamp)

@@ -5,11 +5,11 @@ import { useMutation } from '@tanstack/react-query'
 import { Button } from 'heroui-native/button'
 import { Input } from 'heroui-native/input'
 import { useSession } from '@/lib/sessionContext'
-import { useT } from '@/lib/t'
+import { useTranslation } from 'react-i18next'
 import { APP_NAME } from '@/lib/constants'
 
 export default function RegisterScreen() {
-  const { _ } = useT()
+  const { t: _ } = useTranslation()
   const router = useRouter()
   const { signUp } = useSession()
   const [email, setEmail] = useState('')

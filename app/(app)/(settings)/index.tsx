@@ -7,7 +7,7 @@ import { User, Globe, Palette, Coins, ShieldCheck } from 'lucide-react-native'
 import * as Haptics from 'expo-haptics'
 import { useMutation } from '@tanstack/react-query'
 import { useSession } from '@/lib/sessionContext'
-import { useT } from '@/lib/t'
+import { useTranslation } from 'react-i18next'
 import { useSettings } from '@/lib/settingsContext'
 import { currencySymbol } from '@/lib/currency'
 import { Screen } from '@/components/Screen'
@@ -20,7 +20,7 @@ const LANGUAGE_LABELS: Record<string, string> = {
 }
 
 export default function SettingsScreen() {
-  const { _ } = useT()
+  const { t: _ } = useTranslation()
   const router = useRouter()
   const foreground = useThemeColor('foreground') as string
   const { language, themePreference, currency, domicile } = useSettings()

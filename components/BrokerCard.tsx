@@ -6,7 +6,7 @@ import { TrendingUp, TrendingDown } from 'lucide-react-native'
 import * as Haptics from 'expo-haptics'
 import type { Broker } from '@/types'
 import { useSettings } from '@/lib/settingsContext'
-import { useT } from '@/lib/t'
+import { useTranslation } from 'react-i18next'
 import { useFormat } from '@/hooks/useFormat'
 
 interface BrokerCardProps {
@@ -27,7 +27,7 @@ export const BrokerCard = memo(function BrokerCard({
   onPress,
 }: BrokerCardProps) {
   const { currency } = useSettings()
-  const { _ } = useT()
+  const { t: _ } = useTranslation()
   const f = useFormat()
   const [success, danger] = useThemeColor(['success', 'danger'])
   const isPositive = gainLoss >= 0

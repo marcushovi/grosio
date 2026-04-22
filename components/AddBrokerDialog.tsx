@@ -4,7 +4,7 @@ import { Button } from 'heroui-native/button'
 import { Input } from 'heroui-native/input'
 import { Dialog } from 'heroui-native/dialog'
 import { ColorPicker, COLORS } from '@/components/ColorPicker'
-import { useT } from '@/lib/t'
+import { useTranslation } from 'react-i18next'
 import { useBrokers, useUpdateBroker } from '@/hooks/useBrokers'
 import type { Broker } from '@/types'
 
@@ -21,7 +21,7 @@ export function AddBrokerDialog({
   mode = 'create',
   broker,
 }: AddBrokerDialogProps) {
-  const { _ } = useT()
+  const { t: _ } = useTranslation()
   const { addBrokerMutation } = useBrokers()
   const updateBrokerMutation = useUpdateBroker()
   const isEdit = mode === 'edit'
