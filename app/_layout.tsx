@@ -1,15 +1,14 @@
-import { Slot, useRouter, useSegments } from 'expo-router'
+import { Stack } from 'expo-router'
 import type { ErrorBoundaryProps } from 'expo-router'
-import { useEffect, useState } from 'react'
 import { View, Text, Pressable } from 'react-native'
-import { supabase } from '@/lib/supabase'
-import type { Session } from '@supabase/supabase-js'
 import { GestureHandlerRootView } from 'react-native-gesture-handler'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
 import { HeroUINativeProvider } from 'heroui-native/provider'
 import { QueryClientProvider } from '@tanstack/react-query'
-import { SettingsProvider, useSettings } from '@/lib/settingsContext'
+import { SettingsProvider } from '@/lib/settingsContext'
+import { SessionProvider, useSession } from '@/lib/sessionContext'
 import { queryClient } from '@/lib/queryClient'
+import { SplashScreenController } from '@/components/SplashScreenController'
 import '../lib/i18n'
 import '../global.css'
 
@@ -30,62 +29,33 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   )
 }
 
-// Inner content runs inside SettingsProvider so it can gate on `isLoaded`.
-// Without the gate the first paint uses default locale/theme before
-// AsyncStorage resolves, causing a visible flash.
-function AppContent({ initialized, session }: { initialized: boolean; session: Session | null }) {
-  const { isLoaded } = useSettings()
-  const router = useRouter()
-  const segments = useSegments()
-
-  useEffect(() => {
-    if (!initialized) return
-    const inAuth = segments[0] === '(auth)'
-    if (!session && !inAuth) router.replace('/(auth)/login')
-    else if (session && inAuth) router.replace('/(app)/(dashboard)')
-  }, [session, initialized, segments, router])
-
-  if (!initialized || !isLoaded) return null
-
+function RootNavigator() {
+  const { session } = useSession()
   return (
-    <HeroUINativeProvider>
-      <Slot />
-    </HeroUINativeProvider>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Protected guard={!!session}>
+        <Stack.Screen name="(app)" />
+      </Stack.Protected>
+      <Stack.Protected guard={!session}>
+        <Stack.Screen name="(auth)" />
+      </Stack.Protected>
+    </Stack>
   )
 }
 
 export default function RootLayout() {
-  const [session, setSession] = useState<Session | null>(null)
-  const [initialized, setInitialized] = useState(false)
-
-  useEffect(() => {
-    supabase.auth
-      .getSession()
-      .then(({ data, error }) => {
-        if (error) console.error('[_layout] getSession error:', error.message)
-        setSession(data.session)
-        setInitialized(true)
-      })
-      .catch(e => {
-        console.error('[_layout] getSession threw:', e)
-        setInitialized(true)
-      })
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-    })
-    return () => subscription.unsubscribe()
-  }, [])
-
   return (
     <GestureHandlerRootView className="flex-1">
       <QueryClientProvider client={queryClient}>
         <SafeAreaProvider>
-          <SettingsProvider>
-            <AppContent initialized={initialized} session={session} />
-          </SettingsProvider>
+          <SessionProvider>
+            <SettingsProvider>
+              <HeroUINativeProvider>
+                <SplashScreenController />
+                <RootNavigator />
+              </HeroUINativeProvider>
+            </SettingsProvider>
+          </SessionProvider>
         </SafeAreaProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>

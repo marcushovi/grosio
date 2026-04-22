@@ -4,17 +4,19 @@ import { Link } from 'expo-router'
 import { useMutation } from '@tanstack/react-query'
 import { Button } from 'heroui-native/button'
 import { Input } from 'heroui-native/input'
-import { signInWithPassword } from '@/lib/api/auth'
+import { useSession } from '@/lib/sessionContext'
 import { useT } from '@/lib/t'
 import { APP_NAME } from '@/lib/constants'
 
 export default function LoginScreen() {
   const { _ } = useT()
+  const { signIn } = useSession()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
   const login = useMutation({
-    mutationFn: signInWithPassword,
+    mutationFn: ({ email, password }: { email: string; password: string }) =>
+      signIn(email, password),
     onError: (err: Error) => Alert.alert(_('error'), err.message || _('unexpectedError')),
   })
 

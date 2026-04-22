@@ -4,18 +4,20 @@ import { Link, useRouter } from 'expo-router'
 import { useMutation } from '@tanstack/react-query'
 import { Button } from 'heroui-native/button'
 import { Input } from 'heroui-native/input'
-import { signUp } from '@/lib/api/auth'
+import { useSession } from '@/lib/sessionContext'
 import { useT } from '@/lib/t'
 import { APP_NAME } from '@/lib/constants'
 
 export default function RegisterScreen() {
   const { _ } = useT()
   const router = useRouter()
+  const { signUp } = useSession()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
   const register = useMutation({
-    mutationFn: signUp,
+    mutationFn: ({ email, password }: { email: string; password: string }) =>
+      signUp(email, password),
     onSuccess: () => {
       Alert.alert(_('registerSuccess'), _('registerSuccessMsg'), [
         { text: _('ok'), onPress: () => router.replace('/(auth)/login') },

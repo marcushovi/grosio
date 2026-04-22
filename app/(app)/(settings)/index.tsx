@@ -6,7 +6,7 @@ import { useCallback } from 'react'
 import { User, Globe, Palette, Coins, ShieldCheck } from 'lucide-react-native'
 import * as Haptics from 'expo-haptics'
 import { useMutation } from '@tanstack/react-query'
-import { signOut } from '@/lib/api/auth'
+import { useSession } from '@/lib/sessionContext'
 import { useT } from '@/lib/t'
 import { useSettings } from '@/lib/settingsContext'
 import { currencySymbol } from '@/lib/currency'
@@ -24,6 +24,7 @@ export default function SettingsScreen() {
   const router = useRouter()
   const foreground = useThemeColor('foreground') as string
   const { language, themePreference, currency, domicile } = useSettings()
+  const { signOut } = useSession()
 
   const logout = useMutation({
     mutationFn: signOut,

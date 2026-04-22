@@ -1,24 +1,18 @@
 import { View, Text } from 'react-native'
 import { Screen } from '@/components/Screen'
 import { useRouter } from 'expo-router'
-import { useQuery } from '@tanstack/react-query'
 import { ListGroup, useThemeColor } from 'heroui-native'
 import { Button } from 'heroui-native/button'
 import { ArrowLeft } from 'lucide-react-native'
-import { queryKeys } from '@/lib/queryKeys'
-import { fetchSessionEmail } from '@/lib/api/auth'
+import { useSession } from '@/lib/sessionContext'
 import { useT } from '@/lib/t'
 
 export default function ProfileScreen() {
   const { _ } = useT()
   const router = useRouter()
   const foreground = useThemeColor('foreground') as string
-
-  const { data: email } = useQuery<string | null>({
-    queryKey: queryKeys.session.current(),
-    queryFn: fetchSessionEmail,
-    staleTime: Infinity, // session email doesn't change while the screen is open
-  })
+  const { session } = useSession()
+  const email = session?.user?.email ?? ''
 
   return (
     <Screen>
@@ -33,7 +27,7 @@ export default function ProfileScreen() {
           <ListGroup.Item disabled>
             <ListGroup.ItemContent>
               <ListGroup.ItemTitle>{_('email')}</ListGroup.ItemTitle>
-              <ListGroup.ItemDescription>{email ?? ''}</ListGroup.ItemDescription>
+              <ListGroup.ItemDescription>{email}</ListGroup.ItemDescription>
             </ListGroup.ItemContent>
           </ListGroup.Item>
         </ListGroup>

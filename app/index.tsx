@@ -1,17 +1,12 @@
 import { Redirect } from 'expo-router'
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { useSession } from '@/lib/sessionContext'
 
+// Entry route picks the right initial destination so the user lands inside
+// the active group (Stack.Protected only mounts one of `(app)` / `(auth)`,
+// and `(auth)` has no index — so blind redirect to `(app)` would blank out
+// while signed out).
 export default function Index() {
-  const [target, setTarget] = useState<string | null>(null)
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setTarget(data.session ? '/(app)/(dashboard)' : '/(auth)/login')
-    })
-  }, [])
-
-  if (!target) return null
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return <Redirect href={target as any} />
+  const { session, isLoading } = useSession()
+  if (isLoading) return null
+  return <Redirect href={session ? '/(app)/(dashboard)' : '/(auth)/login'} />
 }

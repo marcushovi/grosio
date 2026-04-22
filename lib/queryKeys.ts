@@ -1,10 +1,6 @@
 // Query key factory. Hierarchical so `invalidateQueries({ queryKey: X.all })`
 // wipes every nested entry in one call.
 export const queryKeys = {
-  session: {
-    all: ['session'] as const,
-    current: () => [...queryKeys.session.all, 'current'] as const,
-  },
   brokers: {
     all: ['brokers'] as const,
     list: () => [...queryKeys.brokers.all, 'list'] as const,
