@@ -13,8 +13,7 @@ import { queryClient } from '@/lib/queryClient'
 import '../lib/i18n'
 import '../global.css'
 
-// Expo Router picks up this named export and uses it as the fallback when a
-// child route throws during render. `retry` remounts the subtree.
+// Expo Router fallback when a child route throws during render.
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   return (
     <View className="flex-1 items-center justify-center bg-background px-6">
@@ -31,10 +30,9 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   )
 }
 
-/** Inner content — runs *inside* `SettingsProvider` so it can gate on
- *  `isLoaded`. Without this gate, the first paint uses the default locale
- *  and theme before AsyncStorage resolves, producing a visible flash for
- *  users who've pinned a non-default preference. */
+// Inner content runs inside SettingsProvider so it can gate on `isLoaded`.
+// Without the gate the first paint uses default locale/theme before
+// AsyncStorage resolves, causing a visible flash.
 function AppContent({ initialized, session }: { initialized: boolean; session: Session | null }) {
   const { isLoaded } = useSettings()
   const router = useRouter()
@@ -60,9 +58,6 @@ export default function RootLayout() {
   const [session, setSession] = useState<Session | null>(null)
   const [initialized, setInitialized] = useState(false)
 
-  // Subscribe to auth state once. This is a bridge to an external system
-  // (Supabase's session listener) — that's the one useEffect case that
-  // *does* belong, per the React "you might not need an effect" rules.
   useEffect(() => {
     supabase.auth
       .getSession()

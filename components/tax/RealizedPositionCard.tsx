@@ -8,8 +8,7 @@ import { computeRealizedTaxStatus, realizedPnlNative, type Domicile } from '@/li
 import { toEur, convertToDisplay, type ExchangeRates, type DisplayCurrency } from '@/lib/currency'
 import type { Position } from '@/types'
 
-// LayoutAnimation on Android requires this opt-in. Safe to call at module
-// load — no-op if already enabled. iOS enables it by default.
+// LayoutAnimation on Android needs this opt-in. iOS has it on by default.
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true)
 }
@@ -38,8 +37,6 @@ export function RealizedPositionCard({
 
   const { isTaxFree, daysHeld } = computeRealizedTaxStatus(position, domicile)
   const pnlNative = realizedPnlNative(position)
-  // P&L in display currency — EUR hop keeps the same math path as the open
-  // section, so cross-currency totals agree.
   const pnlDisplay =
     pnlNative === null
       ? 0
@@ -48,7 +45,6 @@ export function RealizedPositionCard({
   return (
     <Pressable onPress={toggle}>
       <Card className="bg-surface p-4 mb-2">
-        {/* Header row */}
         <View className="flex-row items-center gap-2">
           <Text className="text-foreground font-semibold">{position.symbol}</Text>
           <Text className="text-muted text-xs flex-1" numberOfLines={1}>
@@ -62,7 +58,6 @@ export function RealizedPositionCard({
           </Text>
         )}
 
-        {/* P&L + chip */}
         <View className="flex-row items-center justify-between mt-2">
           <Text
             className={
@@ -80,7 +75,6 @@ export function RealizedPositionCard({
           )}
         </View>
 
-        {/* Expanded detail — native currency for the trade lines */}
         {expanded && (
           <View className="mt-3 pt-3 border-t border-border gap-1">
             {position.buy_date && (

@@ -6,14 +6,11 @@ import type { LucideIcon } from 'lucide-react-native'
 interface EmptyStateProps {
   title: string
   subtitle?: string
-  /** Optional illustration — rendered at 48px above the title. */
   icon?: LucideIcon
-  /** Optional CTA button label. Renders a primary button under the subtitle. */
   actionLabel?: string
   onAction?: () => void
 }
 
-/** Centred empty-state message with an optional icon and CTA. Fills its parent. */
 export function EmptyState({
   title,
   subtitle,

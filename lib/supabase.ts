@@ -25,7 +25,6 @@ export const supabase = createClient(url, key, {
   },
 })
 
-/** Get authenticated user ID from cached session. Returns null if not authenticated. */
 export async function getAuthUserId(): Promise<string | null> {
   const {
     data: { session },
@@ -33,9 +32,8 @@ export async function getAuthUserId(): Promise<string | null> {
   return session?.user?.id ?? null
 }
 
-// Supabase requires the auto-refresh loop to be paused when the app is
-// backgrounded and restarted on foreground — otherwise a long background
-// period lets the access token expire and the next API call 401s.
+// Pause the auto-refresh loop while backgrounded so the access token does not
+// expire silently while the app is asleep.
 AppState.addEventListener('change', state => {
   if (state === 'active') {
     supabase.auth.startAutoRefresh()

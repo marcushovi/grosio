@@ -1,7 +1,6 @@
 import { supabase, getAuthUserId } from '@/lib/supabase'
 import type { Broker } from '@/types'
 
-/** Fetch all brokers for the current user, oldest first. */
 export async function fetchBrokers(): Promise<Broker[]> {
   const { data, error } = await supabase
     .from('brokers')
@@ -11,18 +10,16 @@ export async function fetchBrokers(): Promise<Broker[]> {
   return (data ?? []) as Broker[]
 }
 
-/** Fetch a single broker by id. Returns `null` when the row doesn't exist
- *  (RLS-filtered-out or deleted) — other errors still throw. */
+// Returns null when the row does not exist (RLS-filtered or deleted).
 export async function fetchBrokerById(id: string): Promise<Broker | null> {
   const { data, error } = await supabase.from('brokers').select('*').eq('id', id).single()
   if (error) {
-    if (error.code === 'PGRST116') return null // no rows
+    if (error.code === 'PGRST116') return null
     throw new Error(error.message)
   }
   return data as Broker
 }
 
-/** Insert a broker owned by the current user. */
 export async function insertBroker(name: string, color: string): Promise<void> {
   const userId = await getAuthUserId()
   if (!userId) throw new Error('Not authenticated')
@@ -30,8 +27,7 @@ export async function insertBroker(name: string, color: string): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
-/** Delete a broker by id. RLS enforces ownership; the user_id filter is
- *  a belt-and-braces check in case RLS is ever loosened. */
+// RLS enforces ownership; the user_id filter is belt-and-braces.
 export async function deleteBroker(id: string): Promise<void> {
   const userId = await getAuthUserId()
   if (!userId) throw new Error('Not authenticated')
@@ -44,7 +40,6 @@ export type UpdateBrokerInput = Partial<{
   color: string
 }>
 
-/** Edit a broker's mutable fields (name, color). RLS enforces ownership. */
 export async function updateBroker(brokerId: string, input: UpdateBrokerInput): Promise<Broker> {
   const { data, error } = await supabase
     .from('brokers')

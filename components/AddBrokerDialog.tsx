@@ -12,8 +12,6 @@ interface AddBrokerDialogProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   mode?: 'create' | 'edit'
-  /** Required when `mode === 'edit'`. The dialog prefills from this and
-   *  calls `useUpdateBroker` on submit instead of `useAddBroker`. */
   broker?: Broker
 }
 
@@ -31,9 +29,7 @@ export function AddBrokerDialog({
   const [name, setName] = useState(broker?.name ?? '')
   const [color, setColor] = useState(broker?.color ?? COLORS[0])
 
-  // Re-sync form state when the dialog is (re)opened for a different broker.
-  // Without this, reopening the edit dialog would show the previous broker's
-  // values until the user typed into the field.
+  // Reseed form when reopened for a different broker.
   useEffect(() => {
     if (isOpen && isEdit && broker) {
       setName(broker.name)

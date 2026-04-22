@@ -1,12 +1,5 @@
-/**
- * Centralised query key factory.
- *
- * All `useQuery` / `invalidateQueries` calls must source their keys from
- * here — typos in inline key arrays silently break invalidation, and
- * hierarchical keys let us invalidate a whole family in one call
- * (e.g. `invalidateQueries({ queryKey: queryKeys.positions.all })`
- * wipes every positions-by-broker entry too).
- */
+// Query key factory. Hierarchical so `invalidateQueries({ queryKey: X.all })`
+// wipes every nested entry in one call.
 export const queryKeys = {
   session: {
     all: ['session'] as const,

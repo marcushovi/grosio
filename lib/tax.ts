@@ -1,13 +1,7 @@
-/**
- * Tax-status computation for long-held positions.
- *
- * Slovakia and Czechia each exempt capital gains on securities after a
- * holding period — 365 days (SK) and 1095 days (CZ). This module maps a
- * list of positions onto that timeline and returns, per broker, how much
- * is already tax-free vs still taxable, using live prices and the current
- * FX rates. All math is pure — callers fetch positions/prices/rates via
- * TanStack Query and pass them in.
- */
+// Tax-status math for SK / CZ holding-period exemption.
+//   SK = 365 days, CZ = 1095 days.
+// Open positions evaluate the test against today; realized positions freeze
+// it at the moment of sale. All math is pure.
 import type { Position, PositionCurrency } from '@/types'
 import type { ExchangeRates, DisplayCurrency } from '@/lib/currency'
 import { toEur, convertToDisplay } from '@/lib/currency'
@@ -16,15 +10,13 @@ import type { PriceMap } from '@/lib/portfolio'
 export type Domicile = 'SK' | 'CZ'
 export type { DisplayCurrency }
 
-/** Holding-period thresholds (days) for the long-term tax exemption. */
 export const TAX_THRESHOLD_DAYS: Record<Domicile, number> = {
   SK: 365,
   CZ: 1095,
 }
 
-/** EUR-base per-position tax status. Currency-invariant — the tax screen
- *  projects `currentValueEur` into the display currency in a `useMemo` so
- *  switching EUR/USD/CZK doesn't refetch prices or FX. */
+// EUR-base shapes — UI projects to display currency in a useMemo so switching
+// EUR/USD/CZK does not refetch.
 export interface PositionTaxStatusBase {
   position: Position
   buyDate: Date
@@ -53,9 +45,6 @@ export interface TaxSummaryBase {
   rates: ExchangeRates
 }
 
-/** Display-currency projection of `PositionTaxStatusBase`. Shape kept
- *  structurally compatible with the previous `PositionTaxStatus` so the
- *  tax screen didn't need a prop rename. */
 export interface PositionTaxStatus {
   position: Position
   buyDate: Date
@@ -84,19 +73,8 @@ export interface TaxSummary {
   displayCurrency: DisplayCurrency
 }
 
-/**
- * Pure computation. Given fetched positions, brokers, a live-price map and
- * FX rates, bucket each position into tax-free / still-taxable for the
- * selected domicile. Produces values in the EUR base currency — the caller
- * projects to display currency via `projectTaxSummaryToDisplay`, keeping
- * the query cache display-currency-invariant. Positions without a `buy_date`
- * can't be judged and fall into `unknownDatePositions` so the UI can surface
- * them.
- *
- * Scope: current portfolio (still-held positions only — the realized-tax view
- * lives in a separate query against `getRealizedPositions`). Callers pass in
- * the open subset via `fetchAllPositions`, which filters `sold_at IS NULL`.
- */
+// Bucket open positions into tax free / taxable per broker. Positions without
+// a buy_date land in `unknownDatePositions` so the UI can flag them.
 export function computeTaxStatusBase(
   positions: Position[],
   brokers: { id: string; name: string; color: string }[],
@@ -191,14 +169,8 @@ export function computeTaxStatusBase(
   }
 }
 
-/**
- * Realized (closed) position: evaluate the holding-period test at the moment
- * of sale. Open positions use `today - buy_date` (see `computeTaxStatusBase`);
- * realized positions freeze the window at `sold_at - buy_date`, so the
- * classification is stable once the trade is booked and doesn't drift as
- * time passes. Returns `null` for both fields when either date is missing
- * (legacy rows, partially-populated data) so the UI can surface that.
- */
+// Tax status frozen at sale time: sold_at − buy_date vs threshold. Returns
+// null fields when either date is missing (legacy / partial rows).
 export function computeRealizedTaxStatus(
   position: Position,
   domicile: Domicile
@@ -210,18 +182,14 @@ export function computeRealizedTaxStatus(
   return { isTaxFree: daysHeld >= TAX_THRESHOLD_DAYS[domicile], daysHeld }
 }
 
-/** Realized P&L in the position's native currency: `(sold - buy) * shares`. */
+// Realized P&L in the position's native currency.
 export function realizedPnlNative(position: Position): number | null {
   if (position.sold_price === null || position.sold_shares === null) return null
   return (position.sold_price - position.buy_price) * position.sold_shares
 }
 
-/**
- * Sum realized P&L across a list of positions, split by tax classification,
- * in the user's display currency. Each position's P&L is computed in its
- * own native currency, then converted via EUR-base rates. Positions with
- * incomplete data (missing buy_date / sold_at / sold_price) are skipped.
- */
+// Sum realized P&L across positions, split by tax classification, in display
+// currency. Per-position P&L is converted via EUR base. Incomplete rows skip.
 export function aggregateRealizedTax(
   positions: Position[],
   domicile: Domicile,
@@ -242,8 +210,7 @@ export function aggregateRealizedTax(
   return { taxFreeTotal, taxableTotal }
 }
 
-/** Project an EUR-base `TaxSummaryBase` into the requested display currency.
- *  Pure — no fetches, no React; safe to call from a `useMemo` on every render. */
+// Project EUR-base summary into display currency. Pure — safe in useMemo.
 export function projectTaxSummaryToDisplay(
   base: TaxSummaryBase | undefined,
   displayCurrency: DisplayCurrency

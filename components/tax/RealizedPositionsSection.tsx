@@ -36,17 +36,14 @@ export function RealizedPositionsSection({ year, onYearChange }: RealizedPositio
 
   const { data: positions, isPending, error, refetch } = useRealizedPositions(year)
 
-  // FX rates shared with the open section via the same queryKey — cached for
-  // an hour, so switching years doesn't trigger a Frankfurter fetch.
+  // Shares the latest-rates query with open-section. 1h staleTime.
   const { data: rates } = useQuery<ExchangeRates, Error>({
     queryKey: queryKeys.exchangeRates.latest(),
     queryFn: getExchangeRates,
     staleTime: 1000 * 60 * 60,
   })
 
-  // Totals re-compute when positions, domicile, rates, or displayCurrency
-  // change — `domicile` covers the SK/CZ time-test switch, `displayCurrency`
-  // covers EUR/USD/CZK switch.
+  // Recompute on domicile (SK/CZ threshold) and displayCurrency changes.
   const totals = useMemo(() => {
     if (!positions || !rates) return { taxFreeTotal: 0, taxableTotal: 0 }
     return aggregateRealizedTax(positions, domicile, rates, displayCurrency)
@@ -54,10 +51,8 @@ export function RealizedPositionsSection({ year, onYearChange }: RealizedPositio
 
   return (
     <View className="mt-2">
-      {/* Section header with year picker. The Select trigger needs an
-          explicit width — `Select.Value` has `flex-1` in HeroUI's base
-          styles, and without a bounded parent the trigger collapses to
-          the minimum and wraps "2026" onto two lines. */}
+      {/* Select.Value has `flex-1` in HeroUI's base style — without an
+          explicit width the trigger collapses and wraps "2026" onto two lines. */}
       <View className="flex-row items-center justify-between mb-3">
         <Text className="text-foreground text-lg font-semibold flex-1">{_('realizedInYear')}</Text>
         <View style={{ width: 110 }}>
@@ -103,7 +98,6 @@ export function RealizedPositionsSection({ year, onYearChange }: RealizedPositio
         />
       ) : (
         <>
-          {/* Summary totals */}
           <View className="flex-row gap-3 mb-3">
             <Card className="flex-1 bg-surface p-4">
               <Text className="text-muted text-xs mb-1">{_('taxFreeProfit')}</Text>
@@ -119,7 +113,6 @@ export function RealizedPositionsSection({ year, onYearChange }: RealizedPositio
             </Card>
           </View>
 
-          {/* List */}
           {positions.map(pos => (
             <RealizedPositionCard
               key={pos.id}

@@ -1,17 +1,8 @@
-/**
- * Centralized date, time, number, currency, and percent formatting.
- *
- * All formatters accept the app's i18n language code (`en` | `sk` | `cs` | `de`)
- * and internally map to an Intl locale. Two deliberate deviations from Intl
- * defaults apply across all locales for visual consistency:
- *
- * 1. Currency symbol/code always follows the number (e.g. `1,234.56 USD`,
- *    not `$1,234.56`). We use `Intl.NumberFormat` with `style: 'decimal'`
- *    and append the symbol ourselves.
- * 2. Percent sign is spaced in sk/cs/de (`44,80 %`) and unspaced in en
- *    (`44.80%`). Intl's native percent style is inconsistent about this
- *    across locales, so we format a decimal and append the sign manually.
- */
+// Centralised date / number / currency / percent formatting bound to the app
+// language. Two intentional deviations from Intl defaults across all locales:
+//   1. Currency code/symbol always follows the number (`1,234.56 USD`, never
+//      `$1,234.56`) so EUR/USD/CZK columns line up.
+//   2. Percent has a NBSP before `%` in sk/cs/de but no space in en.
 
 export type AppCurrency = 'EUR' | 'USD' | 'CZK'
 
@@ -22,11 +13,9 @@ const INTL_LOCALE: Record<string, string> = {
   de: 'de-DE',
 }
 
-// Single source of truth for currency display. Two views:
-//  - `symbol`: used in pickers / selectors ("$ US Dollar") — visually rich.
-//  - `code`:   used in money amounts ("1,234.56 USD") — deliberately the ISO
-//    code for USD so amounts stack visually with `€` / `Kč` in a column, for
-//    an app whose primary audience is SK/CZ.
+// Single source of truth for currency display.
+//   `symbol` — picker labels ("$ US Dollar"), visually rich.
+//   `code`   — money amounts ("1,234.56 USD"), aligned across currencies.
 export const CURRENCY_DISPLAY: Record<AppCurrency, { symbol: string; code: string }> = {
   EUR: { symbol: '€', code: 'EUR' },
   USD: { symbol: '$', code: 'USD' },
@@ -41,8 +30,8 @@ export function currencyCode(currency: AppCurrency): string {
   return CURRENCY_DISPLAY[currency].code
 }
 
-// U+00A0 non-breaking space so the amount and its symbol never wrap apart.
-const NBSP = ' '
+// U+00A0 — keep number and symbol on the same line.
+const NBSP = ' '
 
 function getLocale(lang: string): string {
   return INTL_LOCALE[lang] ?? 'en-US'
@@ -50,9 +39,8 @@ function getLocale(lang: string): string {
 
 function toDate(d: Date | string): Date {
   if (d instanceof Date) return d
-  // Parse bare 'YYYY-MM-DD' as local midnight (not UTC) so dates don't shift
-  // by a day for users in negative-UTC offsets. Anything else falls through
-  // to Date's native parser.
+  // Bare YYYY-MM-DD parses as local midnight (not UTC) to avoid day shifts
+  // for users in negative-UTC offsets.
   if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return new Date(`${d}T00:00:00`)
   return new Date(d)
 }
@@ -63,11 +51,10 @@ export interface NumberFormatOptions {
 }
 
 export interface PercentFormatOptions extends NumberFormatOptions {
-  /** Prepend `+` for non-negative values. Default true (PnL convention). Set
-   *  false for non-signed percent displays like allocation. */
+  // Prepend `+` for non-negative values. Default true (PnL convention).
   signed?: boolean
-  /** If `true`, `value` is already in percent units (44.8 → "+44,80 %").
-   *  Default `false` — `value` is a ratio (0.448 → "+44,80 %"). */
+  // If true, value is already in percent units (44.8 → "+44,80 %").
+  // Default false — value is a ratio (0.448 → "+44,80 %").
   asPercent?: boolean
 }
 
@@ -117,15 +104,6 @@ export function formatPercent(value: number, lang: string, options?: PercentForm
   return lang === 'en' ? `${sign}${formatted}%` : `${sign}${formatted}${NBSP}%`
 }
 
-export function formatSignedNumber(
-  value: number,
-  lang: string,
-  options?: NumberFormatOptions
-): string {
-  const sign = value >= 0 ? '+' : ''
-  return `${sign}${formatNumber(value, lang, options)}`
-}
-
 export function formatSignedCurrency(
   value: number,
   currency: AppCurrency,
@@ -136,9 +114,8 @@ export function formatSignedCurrency(
   return `${sign}${formatCurrency(value, currency, lang, options)}`
 }
 
-/** Wire-format date converter — used when writing to DB or calling the API.
- *  Produces a local-timezone YYYY-MM-DD string. Do NOT use for display;
- *  use `formatDate` instead. */
+// Local-time YYYY-MM-DD for wire format (DB / API). Do NOT use for display —
+// `formatDate` handles locale-aware presentation.
 export function toYyyyMmDd(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`

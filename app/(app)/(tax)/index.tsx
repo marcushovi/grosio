@@ -81,9 +81,7 @@ export default function TaxScreen() {
   const { brokers } = useBrokers()
   const [success, warning, foreground] = useThemeColor(['success', 'warning', 'foreground'])
 
-  // Broker position lists collapse by default — users with many holdings
-  // would otherwise face a very long scroll. Tapping the broker header
-  // toggles its section.
+  // Broker sections collapse by default to keep the scroll short.
   const [expandedBrokers, setExpandedBrokers] = useState<Set<string>>(new Set())
   const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear())
   const toggleBroker = useCallback((brokerId: string) => {
@@ -104,8 +102,6 @@ export default function TaxScreen() {
     dataUpdatedAt,
   } = useTaxSummary()
 
-  // Project EUR-base tax numbers into the user's display currency. Pure,
-  // cheap math — no refetch when switching EUR/USD/CZK.
   const summary = useMemo(
     () => projectTaxSummaryToDisplay(summaryBase, displayCurrency),
     [summaryBase, displayCurrency]
@@ -121,8 +117,8 @@ export default function TaxScreen() {
     }, [queryClient, domicile])
   )
 
-  // No brokers → useTaxSummary is disabled and isPending stays true forever.
-  // Show the onboarding CTA instead of a spinner that never resolves.
+  // No brokers → useTaxSummary stays disabled and isPending never resolves.
+  // Show the onboarding CTA instead of a permanent spinner.
   if (brokers.length === 0) {
     return (
       <Screen>
@@ -188,13 +184,11 @@ export default function TaxScreen() {
           <LastUpdated timestamp={dataUpdatedAt} />
         </View>
 
-        {/* Rule banner */}
         <Card className="bg-surface p-4 mb-3 flex-row items-start gap-3">
           <ShieldCheck size={18} color={success} />
           <Text className="text-muted text-sm flex-1">{_(`taxFreeExplain_${domicile}`)}</Text>
         </Card>
 
-        {/* Summary totals */}
         <View className="flex-row gap-3 mb-3">
           <Card className="flex-1 bg-surface p-4">
             <Text className="text-muted text-xs mb-1">{_('taxFreeLabel')}</Text>
@@ -210,11 +204,8 @@ export default function TaxScreen() {
           </Card>
         </View>
 
-        {/* Section label for open positions — introduced alongside the new
-            realized section so the two are visually distinguishable. */}
         <Text className="text-foreground text-lg font-semibold mb-3">{_('openPositions')}</Text>
 
-        {/* Per-broker breakdown */}
         {summary.brokers.map(broker => {
           if (broker.positions.length === 0 && broker.unknownDatePositions.length === 0) return null
 
@@ -269,10 +260,8 @@ export default function TaxScreen() {
           )
         })}
 
-        {/* Realized positions — closed trades for the selected tax year. */}
         <RealizedPositionsSection year={selectedYear} onYearChange={setSelectedYear} />
 
-        {/* Disclaimer — orientačné údaje, nie daňové poradenstvo. */}
         <Text className="text-muted text-xs mt-4">{_('taxDisclaimer')}</Text>
       </ScrollView>
     </Screen>

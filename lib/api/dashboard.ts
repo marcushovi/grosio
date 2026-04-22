@@ -4,9 +4,8 @@ import { convertToDisplay, toEur } from '@/lib/currency'
 import { computePositionValueEur } from '@/lib/portfolio'
 import type { PriceMap } from '@/lib/portfolio'
 
-/** Intermediate mover shape — currency-invariant, produced by
- *  `computeDashboardBase`. `valueEur` gets projected to display currency
- *  (→ `Mover.currentValue`) by `projectDashboardToDisplay`. */
+// Currency-invariant intermediate. `valueEur` becomes `Mover.currentValue`
+// after the display projection.
 interface MoverBase {
   symbol: string
   name: string
@@ -19,7 +18,6 @@ interface MoversBase {
   topLosers: MoverBase[]
 }
 
-/** Per-broker aggregates in the EUR base currency. */
 export interface BrokerValueEur {
   brokerId: string
   name: string
@@ -29,27 +27,16 @@ export interface BrokerValueEur {
   positionCount: number
 }
 
-/** Dashboard data in EUR base — invariant to display currency so the
- *  underlying query doesn't need to refetch when the user switches currency. */
+// EUR base — switching display currency does not refetch.
 export interface DashboardBase {
   brokerValues: BrokerValueEur[]
   movers: MoversBase
   rates: ExchangeRates
 }
 
-/**
- * Bucket held positions into top 3 gainers + top 3 losers by percentage P&L
- * vs. their recorded buy price. Positions without a live quote are skipped —
- * we can't classify them. Positions with `buy_price <= 0` are included
- * with `pnlPercent = 0` so a zero-cost share (e.g. a gifted position) still
- * shows up on the list.
- *
- * Scope: current portfolio. Callers pass in only open positions (the dashboard
- * fetches via `fetchAllPositions`, which already filters `sold_at IS NULL`).
- *
- * Pure function. `valueEur` is currency-invariant; `projectMoversToDisplay`
- * handles the display-currency conversion.
- */
+// Top 3 gainers and losers by % P&L. Positions without a live quote are
+// skipped — we cannot classify them. `buy_price <= 0` keeps the row with
+// `pnlPercent = 0` so a gifted share still appears.
 function computeMoversBase(
   positions: Position[],
   priceMap: PriceMap,
@@ -77,14 +64,8 @@ function computeMoversBase(
   }
 }
 
-/**
- * Aggregate broker totals from the raw positions + price map + FX rates.
- * Pure function — no fetches, no React, no async.
- * Brokers with no positions show up with zero values (to render the empty state).
- *
- * Scope: current portfolio. Expects open positions only (sold ones are filtered
- * out at the `fetchAllPositions` layer, so they never reach here).
- */
+// Per-broker totals + movers in EUR base. Pure — caller passes positions /
+// prices / rates and projects into display currency separately.
 export function computeDashboardBase(
   brokers: Broker[],
   positions: Position[],
@@ -127,7 +108,6 @@ export function computeDashboardBase(
   }
 }
 
-/** Aggregate P&L across all brokers in the display currency. */
 export interface DashboardTotals {
   brokerValues: BrokerValue[]
   movers: MoversData
@@ -137,7 +117,6 @@ export interface DashboardTotals {
   totalGainLossPct: number
 }
 
-/** Project EUR-base broker values into the display currency. Pure function. */
 export function projectDashboardToDisplay(
   base: DashboardBase | undefined,
   displayCurrency: DisplayCurrency

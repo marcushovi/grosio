@@ -9,14 +9,8 @@ import {
 } from '@/lib/api/brokers'
 import type { Broker, MutationResult } from '@/types'
 
-/**
- * Brokers query + add/delete mutations.
- *
- * Used by the dashboard, brokers list and broker-detail screens. Each
- * mutation awaits `invalidateQueries`, so by the time `mutateAsync` resolves
- * the dashboard / positions caches have been refreshed — the UI (e.g. a
- * closing dialog) sees the new state immediately.
- */
+// Brokers list + add/delete. Each mutation awaits invalidation so by the time
+// mutateAsync resolves, the dashboard / positions caches have refreshed.
 export function useBrokers() {
   const queryClient = useQueryClient()
 
@@ -36,12 +30,10 @@ export function useBrokers() {
     },
   })
 
+  // ON DELETE CASCADE on the DB removes the broker's positions server-side.
   const deleteBrokerMutation = useMutation({
     mutationFn: (id: string) => deleteBrokerApi(id),
     onSuccess: async () => {
-      // ON DELETE CASCADE on positions.broker_id removes the broker's positions
-      // server-side. Invalidate every query that reads positions or derived
-      // portfolio data so they refetch against the new state.
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.brokers.all }),
         queryClient.invalidateQueries({ queryKey: queryKeys.positions.all }),
@@ -55,11 +47,10 @@ export function useBrokers() {
     brokers: data ?? [],
     loading: isPending,
     error: error?.message ?? null,
-    /** Raw TanStack mutations — prefer these for new call sites so the
-     *  caller controls error handling via `onSuccess`/`onError` callbacks. */
+    // Raw mutations for new call sites (preferred).
     addBrokerMutation,
     deleteBrokerMutation,
-    /** Wrapper form kept for callers that still use the bespoke shape. */
+    // Legacy wrappers returning MutationResult.
     addBroker: async (name: string, color: string): Promise<MutationResult> => {
       try {
         await addBrokerMutation.mutateAsync({ name, color })
@@ -80,13 +71,8 @@ export function useBrokers() {
   }
 }
 
-/**
- * Edit a broker's name and/or color. Invalidates the broker list (the list
- * itself renders both fields), the dashboard (allocation legend shows broker
- * name + color swatch) and the tax summary (groups its rows by broker name
- * and color). Position lists don't render broker name/color directly, so
- * `positions.all` is intentionally NOT invalidated here.
- */
+// Edit name/color. Positions queries are not invalidated — position rows
+// don't render broker fields directly, they come from the brokers query.
 export function useUpdateBroker() {
   const queryClient = useQueryClient()
   return useMutation({

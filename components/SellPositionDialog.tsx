@@ -30,7 +30,7 @@ export function SellPositionDialog({ isOpen, onOpenChange, position }: SellPosit
 
   const soldDateIso = useMemo(() => toYyyyMmDd(soldDate), [soldDate])
 
-  // Reset on open so a previous failed attempt doesn't pre-fill stale values.
+  // Reset on open so a previous failed attempt does not pre-fill stale values.
   useEffect(() => {
     if (isOpen) {
       setSoldDate(new Date())
@@ -40,7 +40,6 @@ export function SellPositionDialog({ isOpen, onOpenChange, position }: SellPosit
   }, [isOpen])
 
   // Min sale date = buy date (DB constraint `positions_sold_after_buy`).
-  // Legacy positions without a buy_date have no lower bound.
   const minDate = useMemo(
     () => (position.buy_date ? new Date(`${position.buy_date}T00:00:00`) : undefined),
     [position.buy_date]
@@ -79,7 +78,6 @@ export function SellPositionDialog({ isOpen, onOpenChange, position }: SellPosit
   }, [soldPrice, soldDateIso, position, sellPositionMutation, onOpenChange, _])
 
   const dateLabel = f.formatDate(soldDate)
-
   const saving = sellPositionMutation.isPending
 
   return (

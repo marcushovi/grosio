@@ -1,14 +1,7 @@
 import { QueryClient } from '@tanstack/react-query'
 
-/**
- * Shared TanStack Query client.
- *
- * staleTime of 15 minutes matches the Yahoo Finance quote refresh window —
- * we don't want to hammer the Edge Function every time a screen re-mounts.
- * gcTime keeps the cached data around for an hour after the last observer
- * unmounts, so navigating back to a screen shows instant data before any
- * refetch kicks in.
- */
+// 15 min staleTime matches the Yahoo Finance refresh window. gcTime keeps
+// data warm for an hour after the last observer unmounts.
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

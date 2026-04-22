@@ -4,11 +4,9 @@ import { useT } from '@/lib/t'
 interface ErrorStateProps {
   message: string
   onRetry: () => void
-  /** Override the default `tryAgain` label. */
   retryLabel?: string
 }
 
-/** Centred error message with a retry action. Fills its parent. */
 export function ErrorState({ message, onRetry, retryLabel }: ErrorStateProps) {
   const { _ } = useT()
   return (

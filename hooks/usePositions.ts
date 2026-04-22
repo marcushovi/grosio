@@ -13,13 +13,8 @@ import {
 } from '@/lib/api/positions'
 import type { Position, MutationResult } from '@/types'
 
-/**
- * Positions query + add/delete mutations, scoped to a single broker.
- *
- * When `brokerId` is undefined, the hook stays disabled — the caller hasn't
- * resolved the URL param yet, and we don't want to fetch "all positions"
- * through this hook (dashboard + history use `fetchAllPositions` inline).
- */
+// Positions scoped to a broker. Disabled when brokerId is undefined so the
+// URL-param-not-yet-resolved render does not fetch "all positions".
 export function usePositions(brokerId?: string) {
   const queryClient = useQueryClient()
 
@@ -75,14 +70,8 @@ export function usePositions(brokerId?: string) {
   }
 }
 
-/**
- * Mark a position as fully sold. The mutation invalidates every query that
- * looks at "current portfolio" (the position disappears from all open lists)
- * AND the realized history (the row appears there for the sale year).
- *
- * `realized.all` is invalidated rather than the specific year so that — even
- * if the user has multiple year-tabs cached — every realized view refetches.
- */
+// Invalidates open lists + dashboard + tax + realized history (the row
+// appears in the realized view for the sale year).
 export function useSellPosition() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -106,9 +95,7 @@ export function useSellPosition() {
   })
 }
 
-/** Reopen a sold position (clears the three sale fields). Same invalidations
- *  as `useSellPosition` — the row reappears in open views and disappears from
- *  realized history. */
+// Mirror-image of useSellPosition.
 export function useUnsellPosition() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -124,12 +111,8 @@ export function useUnsellPosition() {
   })
 }
 
-/**
- * Edit an open position. Realized history is NOT invalidated — `updatePosition`
- * is rejected at the API layer for sold positions, so realized rows can never
- * change here. Tax summary IS invalidated because shares / buy_price /
- * buy_date all feed the tax-bucketing math.
- */
+// Realized history is not invalidated — edits are rejected at the API layer
+// for sold positions, so realized rows cannot change here.
 export function useUpdatePosition() {
   const queryClient = useQueryClient()
   return useMutation({

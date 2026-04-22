@@ -35,9 +35,8 @@ export default function DashboardScreen() {
   const { brokers, error: brokersError } = useBrokers()
   const { currency: displayCurrency } = useSettings()
 
-  // EUR-base dashboard aggregate. Currency-invariant so switching display
-  // currency doesn't trigger a refetch — the projection happens in the
-  // useMemo below.
+  // EUR base. Display projection runs in a memo — switching currency does
+  // not refetch.
   const {
     data: dashboardBase,
     isPending: dashboardLoading,
@@ -62,14 +61,12 @@ export default function DashboardScreen() {
     enabled: brokers.length > 0,
   })
 
-  // Display-currency projection — pure, runs every render (cheap math).
   const { brokerValues, movers, totalValue, totalGainLoss, totalGainLossPct } = useMemo(
     () => projectDashboardToDisplay(dashboardBase, displayCurrency),
     [dashboardBase, displayCurrency]
   )
 
-  // Tax summary — shown as a brief overview beneath the total. Shares the
-  // tax-screen cache (same queryKey) so switching tabs doesn't refetch.
+  // Tax summary — overview under the total. Same queryKey as the tax screen.
   const { data: taxSummaryBase } = useTaxSummary()
   const taxSummary = useMemo(
     () => projectTaxSummaryToDisplay(taxSummaryBase, displayCurrency),
@@ -106,9 +103,8 @@ export default function DashboardScreen() {
     )
   }
 
-  // Zero-broker onboarding path: the dashboard query is disabled when there
-  // are no brokers, so nothing else would ever load — show a focused CTA to
-  // the brokers tab instead of a screen full of empty cards.
+  // Zero-broker path: dashboard query is disabled so nothing loads on its
+  // own. Show a focused CTA instead of empty cards.
   if (brokers.length === 0) {
     return (
       <Screen>
@@ -165,7 +161,6 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* Total value */}
         <Card className="bg-surface mb-4">
           <Card.Body>
             <Text className="text-muted text-sm mb-1">{_('totalValue')}</Text>
@@ -184,7 +179,7 @@ export default function DashboardScreen() {
           </Card.Body>
         </Card>
 
-        {/* Movers — top 3 gainers / losers by pnlPercent (not daily change) */}
+        {/* Movers — top 3 gainers / losers by pnlPercent. */}
         {(movers.topGainers.length > 0 || movers.topLosers.length > 0) && (
           <View className="bg-surface rounded-2xl p-4 gap-3 mb-4">
             <Text className="text-foreground font-semibold">{_('moversTitle')}</Text>
@@ -230,7 +225,6 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* Tax summary — brief overview; tap to jump to the full tax breakdown */}
         {taxSummary && (
           <Pressable
             className="bg-surface rounded-2xl p-4 gap-3 mb-4"
@@ -258,7 +252,6 @@ export default function DashboardScreen() {
           </Pressable>
         )}
 
-        {/* Allocation */}
         {brokersWithValue.length > 0 && (
           <Card className="bg-surface mb-4">
             <Card.Body>
@@ -305,7 +298,6 @@ export default function DashboardScreen() {
           </Card>
         )}
 
-        {/* Empty state when there are no brokers yet */}
         {brokerValues.length === 0 && (
           <Card className="bg-surface">
             <Card.Body className="items-center py-4">

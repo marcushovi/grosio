@@ -2,14 +2,7 @@ import { supabase, getAuthUserId } from '@/lib/supabase'
 import { isSold } from '@/types'
 import type { Position, PositionCurrency } from '@/types'
 
-/**
- * Fetch every OPEN position the user owns, oldest first.
- *
- * Scope: current portfolio. Sold positions are excluded at the query layer so
- * every downstream consumer (dashboard, brokers list, tax summary, broker
- * detail) sees only live holdings without having to filter themselves.
- * Realized history goes through `lib/api/tax.ts::getRealizedPositions`.
- */
+// Open positions only — sold ones go through `getRealizedPositions` in tax.ts.
 export async function fetchAllPositions(): Promise<Position[]> {
   const { data, error } = await supabase
     .from('positions')
@@ -20,12 +13,6 @@ export async function fetchAllPositions(): Promise<Position[]> {
   return (data ?? []) as Position[]
 }
 
-/**
- * Fetch OPEN positions for a single broker, oldest first.
- *
- * Same scope as `fetchAllPositions` — broker-detail is a "current portfolio"
- * surface, so closed positions are hidden here too.
- */
 export async function fetchPositionsByBroker(brokerId: string): Promise<Position[]> {
   const { data, error } = await supabase
     .from('positions')
@@ -44,12 +31,11 @@ export interface InsertPositionInput {
   shares: number
   buy_price: number
   currency: PositionCurrency
-  buy_date: string // 'YYYY-MM-DD'
+  buy_date: string
 }
 
 const ALLOWED_CURRENCIES = ['EUR', 'USD', 'CZK'] as const
 
-/** Insert a new position owned by the current user. */
 export async function insertPosition(position: InsertPositionInput): Promise<void> {
   if (!ALLOWED_CURRENCIES.includes(position.currency)) {
     throw new Error(`Unsupported currency: ${position.currency}`)
@@ -60,7 +46,6 @@ export async function insertPosition(position: InsertPositionInput): Promise<voi
   if (error) throw new Error(error.message)
 }
 
-/** Delete a position by id. RLS enforces ownership. */
 export async function deletePosition(id: string): Promise<void> {
   const userId = await getAuthUserId()
   if (!userId) throw new Error('Not authenticated')
@@ -68,10 +53,8 @@ export async function deletePosition(id: string): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
-/** Fields a user can edit on an open position. `user_id`, `broker_id`,
- *  `created_at` and the three `sold_*` fields are intentionally not editable
- *  through this path — selling/unselling goes through `sellPosition` /
- *  `unsellPosition`. */
+// Editable fields. user_id, broker_id, created_at and the sold_* fields are
+// not editable here — selling/unselling goes through dedicated functions.
 export type UpdatePositionInput = Partial<{
   symbol: string
   name: string
@@ -81,14 +64,8 @@ export type UpdatePositionInput = Partial<{
   currency: PositionCurrency
 }>
 
-/**
- * Edit an open position. Throws if the position is already sold (sold
- * positions are immutable — realized P&L must not change after the fact).
- *
- * The `.is('sold_at', null)` on the update is a DB-level guard: if someone
- * marks the position as sold in parallel, the update matches zero rows and
- * we surface the same "already sold" error.
- */
+// Throws if the position is already sold (sold rows are immutable). The
+// `.is('sold_at', null)` on the update is the race-safety guard.
 export async function updatePosition(
   positionId: string,
   input: UpdatePositionInput
@@ -117,12 +94,8 @@ export async function updatePosition(
   return data as Position
 }
 
-/**
- * Mark an open position as fully sold. Enforces `sold_shares = shares` (full
- * sale only — partial sales are not modelled). Validates `sold_date >=
- * buy_date` client-side for a clearer error message; the DB's
- * `positions_sold_after_buy` CHECK is the real guard.
- */
+// Mark as fully sold. sold_shares = shares (no partials). Date check is
+// client-side for UX; DB constraint `positions_sold_after_buy` is the real guard.
 export async function sellPosition(
   positionId: string,
   input: { soldDate: string; soldPrice: number }
@@ -157,8 +130,7 @@ export async function sellPosition(
   return data as Position
 }
 
-/** Revert a sold position back to open by clearing the three sale fields.
- *  Used for undo / correcting a mistakenly recorded sale. */
+// Reopen a sold position by clearing the sale fields.
 export async function unsellPosition(positionId: string): Promise<Position> {
   const { data: existing, error: fetchErr } = await supabase
     .from('positions')

@@ -1,12 +1,5 @@
-/**
- * Centralised portfolio P&L math.
- *
- * The dashboard, broker-detail and tax screens all need to combine a list of
- * positions with a map of live quotes and a set of FX rates to produce values,
- * invested amounts, gain/loss and %. The formulas used to be duplicated —
- * that's how the "profit always shows 0" bug hid in plain sight. Everything
- * goes through these helpers now.
- */
+// Per-position P&L math shared by dashboard, broker-detail and tax screens.
+// Pure functions — callers fetch positions/prices/rates and pass them in.
 import type { Position, PositionCurrency } from '@/types'
 import type { ExchangeRates, DisplayCurrency } from '@/lib/currency'
 import { toEur, convertToDisplay } from '@/lib/currency'
@@ -14,33 +7,18 @@ import type { QuoteResult } from '@/lib/yahooFinance'
 
 export type PriceMap = Record<string, QuoteResult>
 
-/** Per-position value + cost in the EUR base currency. */
 export interface PositionValueEur {
   position: Position
-  /** Has a live quote been fetched for this position's symbol? */
   hasLivePrice: boolean
-  /** Current price per share in `currentCurrency`. */
   currentPrice: number
-  /** Currency in which `currentPrice` is expressed. */
   currentCurrency: PositionCurrency
-  /** shares × currentPrice, converted to EUR. */
   valueEur: number
-  /** shares × buy_price, converted to EUR. */
   costEur: number
 }
 
-/**
- * Compute a single position's EUR-denominated value and cost.
- *
- * When no live quote is available for the symbol (network failure, unknown
- * ticker, pre-fetch render) we fall back to the buy price so the row still
- * displays *something*. Gain/loss will be 0 in that case — use
- * `positionValue.hasLivePrice` if you want to flag "no live price" in the UI.
- *
- * Scope: current portfolio. Sold positions don't have a meaningful "current
- * value" (they're realized), so callers should only pass open positions —
- * which is what `fetchAllPositions` returns.
- */
+// Single position in EUR base. Without a live quote, falls back to buy_price
+// so the row renders something — gain/loss will be 0 in that case.
+// Expects open positions only; sold ones go through the realized math.
 export function computePositionValueEur(
   position: Position,
   priceMap: PriceMap,
@@ -61,7 +39,6 @@ export function computePositionValueEur(
   }
 }
 
-/** Display-currency P&L derived from EUR-base numbers. */
 export interface Pnl {
   currentValue: number
   invested: number
@@ -69,7 +46,6 @@ export interface Pnl {
   gainLossPct: number
 }
 
-/** Convert a single position's EUR-base numbers into display-currency P&L. */
 export function computePositionPnl(
   posValue: PositionValueEur,
   displayCurrency: DisplayCurrency,

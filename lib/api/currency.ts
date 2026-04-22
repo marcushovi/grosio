@@ -1,8 +1,5 @@
-/**
- * Barrel re-export so screens can import exchange-rate helpers from a single
- * consistent place (`lib/api/currency`) alongside the other data-fetching
- * functions. Display formatting lives in `lib/format` (via `useFormat`).
- */
+// Barrel reexport so screens can pull exchange rate helpers from one place
+// alongside the other API functions. Display formatting lives in `lib/format`.
 export {
   getExchangeRates,
   areFallbackRates,

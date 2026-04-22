@@ -8,12 +8,8 @@ import { getExchangeRates } from '@/lib/api/currency'
 import { computeTaxStatusBase, type TaxSummaryBase } from '@/lib/tax'
 import type { ExchangeRates } from '@/lib/currency'
 
-/**
- * Fetch positions + rates + live prices and fold them into a tax summary for
- * the current user's domicile. Returns the EUR-base computation — the caller
- * projects to display currency via `projectTaxSummaryToDisplay` in a memo, so
- * switching EUR/USD/CZK never refetches.
- */
+// Tax summary for the current domicile. Returns EUR base so display currency
+// switch does not refetch — caller projects via `projectTaxSummaryToDisplay`.
 export function useTaxSummary() {
   const { domicile } = useSettings()
   const { brokers } = useBrokers()

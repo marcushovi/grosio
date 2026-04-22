@@ -4,18 +4,8 @@ import type { PositionCurrency } from '@/types'
 const EDGE_FUNCTION_URL = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/yahoo-finance`
 const ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_KEY ?? ''
 
-/**
- * Build auth headers for Supabase Edge Function calls.
- *
- * Uses the logged-in user's session access_token as the Bearer so the Supabase
- * gateway (with verify_jwt enabled) accepts the request as an authenticated
- * user rather than an anonymous caller. `apikey` is still the anon key —
- * that header is for project routing/rate-limiting, not identity.
- *
- * Returns `null` if there is no active session. Callers should short-circuit
- * in that case — the app's auth guard redirects to /login when the session is
- * missing, so these fetches shouldn't run in that state anyway.
- */
+// Bearer = user session JWT (identity), apikey = anon key (project routing).
+// Returns null if not signed in — callers short-circuit.
 async function authHeaders(): Promise<Record<string, string> | null> {
   const {
     data: { session },
@@ -31,10 +21,6 @@ function logError(context: string, error: unknown): void {
   console.warn(`[yahooFinance:${context}]`, error instanceof Error ? error.message : String(error))
 }
 
-/** Log a non-2xx response from the Edge Function with the body so 401/500
- *  failures don't silently collapse into empty result arrays. Attempts to
- *  parse the body as JSON (the edge function responds with `{ error }`);
- *  falls back to the raw text otherwise. */
 async function logHttpFailure(context: string, res: Response): Promise<void> {
   let body: string
   try {
@@ -45,10 +31,8 @@ async function logHttpFailure(context: string, res: Response): Promise<void> {
   console.warn(`[yahooFinance:${context}] HTTP ${res.status} ${res.statusText}: ${body}`)
 }
 
-/** Narrow whatever currency string Yahoo returned to the app's supported set.
- *  EUR / USD / CZK pass through; everything else (GBP, JPY, CHF, ...) collapses
- *  to USD so downstream FX math stays exhaustive. A misclassified GBP position
- *  lands in a currency we can convert, not get quietly mis-valued. */
+// Narrow Yahoo's currency string to the supported set. Anything outside
+// EUR/USD/CZK collapses to USD so the FX math stays exhaustive.
 function narrowCurrency(raw: string | null | undefined): PositionCurrency {
   if (raw === 'EUR' || raw === 'USD' || raw === 'CZK') return raw
   return 'USD'
@@ -91,9 +75,7 @@ export async function getQuotes(symbols: string[]): Promise<QuoteResult[]> {
     const headers = await authHeaders()
     if (!headers) return []
     const q = symbols.map(encodeURIComponent).join(',')
-    const res = await fetch(`${EDGE_FUNCTION_URL}?action=quotes&q=${q}`, {
-      headers,
-    })
+    const res = await fetch(`${EDGE_FUNCTION_URL}?action=quotes&q=${q}`, { headers })
     if (!res.ok) {
       await logHttpFailure('getQuotes', res)
       return []
@@ -109,17 +91,13 @@ export async function getQuotes(symbols: string[]): Promise<QuoteResult[]> {
 
 export interface PriceOnDate {
   symbol: string
-  /** Actual trading day used (nearest ≤ requested date). */
-  date: string // 'YYYY-MM-DD'
+  date: string
   close: number
   currency: PositionCurrency
 }
 
-/**
- * Fetch a single symbol's close price on a specific historical date.
- * Used by AddPositionDialog so users don't have to key in the buy price
- * manually — selecting the symbol and the buy date is enough.
- */
+// Historical close on a specific day. Used to auto-fill buy_price in the add
+// position dialog.
 export async function getPriceOnDate(symbol: string, date: string): Promise<PriceOnDate | null> {
   try {
     const headers = await authHeaders()

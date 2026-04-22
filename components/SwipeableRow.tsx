@@ -17,26 +17,14 @@ export interface SwipeableRowAction {
 interface SwipeableRowProps {
   children: ReactNode
   actions: SwipeableRowAction[]
-  onSwipeableOpen?: () => void
-  enabled?: boolean
 }
 
-// iOS-native feel: one action comfortably fits a 28px icon + label stack.
 const ACTION_WIDTH = 76
 
-/**
- * Swipe-to-reveal row with 1–2 right-side actions (iOS Mail / Messages
- * pattern). Intentionally does NOT implement full-swipe-to-dismiss — a tap on
- * the revealed button is required, so destructive actions can't fire by
- * accident. Each button closes the swipe first, then runs the handler — this
- * keeps the row in a clean closed state by the time any dialog appears.
- */
-export function SwipeableRow({
-  children,
-  actions,
-  onSwipeableOpen,
-  enabled = true,
-}: SwipeableRowProps) {
+// Swipe-to-reveal row (iOS Mail / Messages pattern). No full-swipe-dismiss —
+// a tap on the revealed button is always required. Each button closes the
+// swipe before firing so any dialog opens against a clean state.
+export function SwipeableRow({ children, actions }: SwipeableRowProps) {
   const swipeRef = useRef<SwipeableMethods>(null)
 
   const renderRightActions = (_progress: SharedValue<number>, translation: SharedValue<number>) => {
@@ -53,7 +41,6 @@ export function SwipeableRow({
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
               swipeRef.current?.close()
-              // Close first so the dialog opens against a clean row state.
               action.onPress()
             }}
           />
@@ -62,8 +49,6 @@ export function SwipeableRow({
     )
   }
 
-  if (!enabled) return <>{children}</>
-
   return (
     <ReanimatedSwipeable
       ref={swipeRef}
@@ -71,7 +56,6 @@ export function SwipeableRow({
       rightThreshold={ACTION_WIDTH / 2}
       overshootRight={false}
       renderRightActions={renderRightActions}
-      onSwipeableOpen={onSwipeableOpen}
     >
       {children}
     </ReanimatedSwipeable>
@@ -86,12 +70,10 @@ interface SwipeActionProps {
   onPress: () => void
 }
 
-/** Per-button slide-in: buttons animate from the right edge as the row
- *  opens, giving the iOS Mail "staggered reveal" look. */
+// Staggered slide-in so buttons reveal from the right edge as the row opens.
 function SwipeAction({ action, index, actionCount, translation, onPress }: SwipeActionProps) {
   const Icon = action.icon
   const style = useAnimatedStyle(() => {
-    // translation is negative when swiping left; -totalWidth means fully open.
     const totalWidth = ACTION_WIDTH * actionCount
     const offset = ACTION_WIDTH * (actionCount - 1 - index)
     return {

@@ -94,9 +94,7 @@ export function CurrencyPicker() {
   )
 }
 
-// Explicit Android elevation on top of the iOS shadow-md. `shadow-md`'s
-// Android-elevation mapping is weak on older devices — an explicit value
-// guarantees the dropdown floats above list content and tab bars.
+// Explicit Android elevation — `shadow-md` alone is unreliable on older Android.
 const styles = StyleSheet.create({
   dropdown: {
     elevation: 8,

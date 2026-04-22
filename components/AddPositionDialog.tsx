@@ -33,10 +33,8 @@ interface AddPositionDialogProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   mode?: 'create' | 'edit'
-  /** Create mode: parent wires the mutation (kept as a callback for
-   *  compatibility with the existing broker-detail `usePositions().addPosition`
-   *  wrapper). Edit mode: not used — the dialog calls `useUpdatePosition`
-   *  internally. */
+  // Create mode only. Kept as callback for compatibility with the broker-
+  // detail `usePositions().addPosition` wrapper.
   onAdd?: (position: {
     symbol: string
     name: string
@@ -45,7 +43,6 @@ interface AddPositionDialogProps {
     currency: PositionCurrency
     buy_date: string
   }) => Promise<{ error: { message: string } | null }>
-  /** Required when `mode === 'edit'`. */
   position?: Position
 }
 
@@ -82,7 +79,7 @@ export function AddPositionDialog({
 
   const buyDateIso = useMemo(() => toYyyyMmDd(buyDate), [buyDate])
 
-  // Re-seed form when the dialog is (re)opened for a different position.
+  // Reseed when reopened for a different position.
   useEffect(() => {
     if (!isOpen) return
     if (isEdit && position) {
@@ -91,16 +88,15 @@ export function AddPositionDialog({
       setSelectedCurrency(position.currency)
       setShares(String(position.shares))
       setPrice(String(position.buy_price))
-      setIsPriceManuallyEdited(true) // don't auto-fetch in edit mode
+      setIsPriceManuallyEdited(true)
       setBuyDate(position.buy_date ? new Date(`${position.buy_date}T00:00:00`) : new Date())
       setSearchQuery(position.name)
       setSearchResults([])
     }
   }, [isOpen, isEdit, position])
 
-  // Debounce the ticker search + track the latest request id so an earlier
-  // (slower) response can't overwrite the result of a newer query. Without
-  // this, rapid typing produces out-of-order results.
+  // Debounced symbol search with a request-id guard so an earlier (slower)
+  // response cannot overwrite a newer one.
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const searchRequestIdRef = useRef(0)
 
@@ -119,9 +115,7 @@ export function AddPositionDialog({
 
   const handleSearch = useCallback(
     (query: string) => {
-      // Symbol search is disabled in edit mode — a position's symbol is
-      // immutable from the UI (see dialog-level flag). If the user wants a
-      // different ticker, they delete and create anew.
+      // Symbol is immutable in edit mode. To change it, delete and recreate.
       if (isEdit) return
       setSearchQuery(query)
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
@@ -155,22 +149,17 @@ export function AddPositionDialog({
   }, [])
 
   const handleSelectSymbol = useCallback((symbol: string, name: string) => {
-    // The effect below auto-fetches the historical close for buyDate, so we
-    // intentionally do NOT fetch the current quote here — keeps behaviour
-    // consistent whether the user picked today or a past date.
     setSelectedSymbol(symbol)
     setSelectedName(name)
-    // New symbol → fresh auto-fill. Clear any earlier manual-edit flag so the
-    // auto-fetch effect populates the price for the new ticker.
+    // Fresh symbol → clear the manual-edit flag so the auto-fetch effect
+    // populates the price for the new ticker.
     setIsPriceManuallyEdited(false)
     setSearchResults([])
     setSearchQuery(name)
   }, [])
 
-  // Auto-fetch the historical close price whenever the symbol or the buy date
-  // changes, so the user rarely needs to touch the price field. Debounced so
-  // rapid date changes don't spam the Edge Function. Disabled in edit mode —
-  // the stored buy price is what the user chose and must not be overwritten.
+  // Auto-fill historical close when symbol or buy date changes. Skip in edit
+  // mode — stored buy price must not be overwritten.
   useEffect(() => {
     if (isEdit) return
     if (!selectedSymbol) return
@@ -180,8 +169,6 @@ export function AddPositionDialog({
       try {
         const result = await getPriceOnDate(selectedSymbol, buyDateIso)
         if (cancelled || !result) return
-        // Respect the user's manual edit — don't overwrite a typed price when
-        // the buy date changes afterwards. The flag is reset on symbol switch.
         if (!isPriceManuallyEdited) setPrice(result.close.toFixed(2))
         setSelectedCurrency(result.currency)
       } finally {
@@ -194,8 +181,8 @@ export function AddPositionDialog({
     }
   }, [selectedSymbol, buyDateIso, isPriceManuallyEdited, isEdit])
 
-  // Android: imperative native date dialog (Material calendar). iOS uses the
-  // inline `<DateTimePicker display="compact">` below — doesn't need this.
+  // iOS uses the inline <DateTimePicker> below. Android needs this imperative
+  // native dialog because the inline picker doesn't match Material guidelines.
   const openAndroidPicker = useCallback(() => {
     DateTimePickerAndroid.open({
       value: buyDate,
@@ -283,10 +270,7 @@ export function AddPositionDialog({
     [isEdit, reset, onOpenChange]
   )
 
-  // App-language-aware display of the picked date. The underlying native
-  // DateTimePicker uses OS locale for its own wheel labels — that stays.
   const dateLabel = f.formatDate(buyDate)
-
   const title = isEdit ? _('editPosition') : _('addPosition')
   const description = isEdit ? _('editPositionDesc') : _('addPositionDesc')
 
@@ -312,7 +296,7 @@ export function AddPositionDialog({
                 </View>
               ) : (
                 <>
-                  {/* Relative anchor so the results list can float over fields below */}
+                  {/* Relative anchor so the results list floats over fields below. */}
                   <View className="relative z-10">
                     <SearchField value={searchQuery} onChange={handleSearch}>
                       <SearchField.Group>
@@ -383,13 +367,6 @@ export function AddPositionDialog({
                 <Text className="text-foreground flex-1">{dateLabel}</Text>
               </Pressable>
 
-              {/*
-                iOS: inline spinner rendered inside the dialog body. `<Modal>`
-                or `display="compact"` both break here because the native
-                popover fights with HeroUI's Dialog.Portal responder chain.
-                An inline spinner is just a regular RN view — it receives taps
-                normally inside the portal.
-              */}
               {Platform.OS === 'ios' && iosPickerVisible && (
                 <View className="mt-2 bg-surface rounded-xl border border-border">
                   <DateTimePicker
@@ -470,9 +447,7 @@ export function AddPositionDialog({
   )
 }
 
-// Explicit Android elevation — the floating search-results dropdown needs to
-// render above the form fields beneath it, which `shadow-lg`'s elevation
-// mapping doesn't reliably provide on older Android.
+// Android elevation for the floating search-results dropdown.
 const styles = StyleSheet.create({
   searchDropdown: {
     elevation: 8,

@@ -58,9 +58,8 @@ export default function BrokerDetailScreen() {
   const { positions, loading, addPosition, deletePosition } = usePositions(id)
   const unsellPositionMutation = useUnsellPosition()
 
-  // Targeted single-row fetch instead of pulling the entire brokers list and
-  // `.find()`-ing. The deletion cascade on the brokers list query already
-  // invalidates `queryKeys.brokers.all`, which covers this key too.
+  // Single-row fetch — broker deletes already invalidate brokers.all so this
+  // key gets busted too.
   const { data: broker, isLoading: brokerLoading } = useQuery({
     queryKey: queryKeys.brokers.byId(id ?? ''),
     queryFn: () => fetchBrokerById(id as string),
@@ -71,8 +70,7 @@ export default function BrokerDetailScreen() {
   const [editingPosition, setEditingPosition] = useState<Position | null>(null)
   const [sellingPosition, setSellingPosition] = useState<Position | null>(null)
 
-  // Unique symbols in a stable-sorted form so the query key doesn't change
-  // between renders for the same set of positions.
+  // Stable-sorted symbols so the query key stays stable across renders.
   const symbols = useMemo(() => [...new Set(positions.map(p => p.symbol))].sort(), [positions])
 
   const {
@@ -96,9 +94,8 @@ export default function BrokerDetailScreen() {
     enabled: symbols.length > 0,
   })
 
-  // Derive positionsWithPrices during render — no effect, no state.
-  // Per-position math delegated to lib/portfolio so broker detail and
-  // dashboard stay in lock-step.
+  // Derived during render — no effect, no state. Delegates to lib/portfolio
+  // so broker-detail and dashboard stay in lock-step.
   const positionsWithPrices = useMemo<PositionWithPrice[]>(() => {
     if (!pricing || positions.length === 0) return []
     return positions.map(pos => {
@@ -212,7 +209,6 @@ export default function BrokerDetailScreen() {
 
   return (
     <Screen>
-      {/* Header */}
       <View className="px-5 pt-5 pb-4">
         <View className="flex-row items-center gap-3">
           <Button
@@ -234,7 +230,6 @@ export default function BrokerDetailScreen() {
         <LastUpdated timestamp={dataUpdatedAt} className="mt-1" />
       </View>
 
-      {/* Summary */}
       <View className="px-5 mb-4">
         <Card className="bg-surface p-5">
           <Text className="text-muted text-sm mb-1">{_('totalValueLabel')}</Text>
@@ -259,7 +254,6 @@ export default function BrokerDetailScreen() {
         </Card>
       </View>
 
-      {/* Positions */}
       {(loading || pricesLoading) && positionsWithPrices.length === 0 ? (
         <View className="flex-1 justify-center items-center" />
       ) : positionsWithPrices.length === 0 && !loading ? (
