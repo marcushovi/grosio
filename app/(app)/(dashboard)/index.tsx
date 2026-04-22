@@ -11,7 +11,7 @@ import { useSettings } from '@/lib/settingsContext'
 import { queryKeys } from '@/lib/queryKeys'
 import { fetchAllPositions } from '@/lib/api/positions'
 import { fetchPrices } from '@/lib/api/prices'
-import { getExchangeRates, areFallbackRates } from '@/lib/api/currency'
+import { getExchangeRates, areFallbackRates } from '@/lib/currency'
 import { useFormat } from '@/hooks/useFormat'
 import {
   computeDashboardBase,

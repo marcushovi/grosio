@@ -9,7 +9,7 @@ import { useMutation } from '@tanstack/react-query'
 import { useSession } from '@/lib/sessionContext'
 import { useTranslation } from 'react-i18next'
 import { useSettings } from '@/lib/settingsContext'
-import { currencySymbol } from '@/lib/currency'
+import { currencySymbol } from '@/lib/format'
 import { Screen } from '@/components/Screen'
 
 const LANGUAGE_LABELS: Record<string, string> = {

@@ -4,7 +4,7 @@ import { useSettings } from '@/lib/settingsContext'
 import { queryKeys } from '@/lib/queryKeys'
 import { fetchAllPositions } from '@/lib/api/positions'
 import { fetchPrices } from '@/lib/api/prices'
-import { getExchangeRates } from '@/lib/api/currency'
+import { getExchangeRates } from '@/lib/currency'
 import { computeTaxStatusBase, type TaxSummaryBase } from '@/lib/tax'
 import type { ExchangeRates } from '@/lib/currency'
 

@@ -54,6 +54,3 @@ export function convertToDisplay(
       return amountEur * rates.eurCzk
   }
 }
-
-// Reexport so legacy importers (CurrencyPicker, settings) still resolve.
-export { currencySymbol } from '@/lib/format'
