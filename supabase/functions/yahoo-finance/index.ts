@@ -9,9 +9,8 @@ const PRICE_WINDOW_BEFORE_DAYS = 7
 const PRICE_WINDOW_AFTER_DAYS = 2
 const SECONDS_PER_DAY = 86400
 
-// Function-scoped client used only to verify incoming session tokens. Uses
-// the publishable key secret so `auth.getClaims()` can validate ES256 JWTs
-// against the project JWKS.
+// Client used only to verify incoming session tokens. Uses the publishable
+// key so `auth.getClaims()` can validate ES256 JWTs against the project JWKS.
 const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SB_PUBLISHABLE_KEY')!)
 
 function json(body: unknown, status = 200) {
@@ -32,8 +31,8 @@ interface RequestBody {
 Deno.serve(async req => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
-  // Deployed with --no-verify-jwt because the gateway verifier does not
-  // handle this project's new JWT Signing Keys. Validate the bearer here.
+  // Manual JWT validation — gateway verifier does not yet handle this
+  // project's JWT Signing Keys, so the function verifies the bearer itself.
   const authHeader = req.headers.get('Authorization')
   if (!authHeader) return json({ error: 'Missing Authorization header' }, 401)
   const token = authHeader.replace(/^Bearer\s+/i, '')
@@ -90,8 +89,8 @@ Deno.serve(async req => {
         const closes: (number | null)[] = result.indicators?.quote?.[0]?.close ?? []
         const currency = result.meta?.currency ?? 'USD'
 
-        // Prefer the trading day ≤ target. Falls back to the earliest
-        // available close if target is before the first data point.
+        // Prefer the trading day ≤ target; fall back to earliest close if
+        // target precedes the first data point.
         const targetSec = Math.floor(target / 1000) + SECONDS_PER_DAY
         let bestClose: number | null = null
         let bestTs: number | null = null
@@ -134,8 +133,8 @@ Deno.serve(async req => {
     if (action === 'quotes' && Array.isArray(symbols)) {
       if (symbols.length === 0) return json({ error: 'symbols required' }, 400)
 
-      // Raw chart endpoint is cookie-free and proven reliable in this runtime.
-      // yahoo-finance2's quoteCombine fails inside Deno's npm-compat layer.
+      // Raw chart endpoint is cookie-free and reliable here. yahoo-finance2's
+      // quoteCombine fails in Deno's npm-compat layer.
       const results = await Promise.all(
         symbols.map(async sym => {
           try {

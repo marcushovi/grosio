@@ -41,7 +41,7 @@ export default function BrokersScreen() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingBroker, setEditingBroker] = useState<Broker | null>(null)
 
-  // Same queryKey as the dashboard screen — warm cache is reused.
+  // Shares queryKey with the dashboard screen so the warm cache is reused.
   const {
     data: dashboardBase,
     refetch: refetchDashboard,
@@ -70,7 +70,7 @@ export default function BrokersScreen() {
     [dashboardBase, displayCurrency]
   )
 
-  // Refresh on tab focus, honouring staleTime (stale: true).
+  // Refresh on tab focus, honouring staleTime.
   useFocusEffect(
     useCallback(() => {
       queryClient.refetchQueries({ queryKey: queryKeys.brokers.all, stale: true })

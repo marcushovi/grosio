@@ -28,10 +28,6 @@ export interface Position {
   sold_shares: number | null
 }
 
-export function isSold(p: Position): boolean {
-  return p.sold_at !== null
-}
-
 export interface BrokerValue {
   brokerId: string
   name: string
@@ -66,4 +62,8 @@ export interface PositionWithPrice extends Position {
   invested: number
   gainLoss: number
   gainLossPct: number
+}
+
+export function isSold(p: Position): boolean {
+  return p.sold_at !== null
 }

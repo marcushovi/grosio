@@ -2,9 +2,8 @@ import { FunctionsHttpError, FunctionsRelayError, FunctionsFetchError } from '@s
 import { supabase } from '@/lib/supabase'
 import type { PositionCurrency } from '@/types'
 
-// supabase-js attaches the user's session JWT and the project apikey
-// automatically via `functions.invoke`. The Edge Function validates the
-// token on every call.
+// `functions.invoke` auto-attaches the user session JWT + project apikey.
+// The Edge Function validates the token on every call.
 
 async function logInvokeError(context: string, error: unknown): Promise<void> {
   if (error instanceof FunctionsHttpError) {
@@ -23,8 +22,7 @@ async function logInvokeError(context: string, error: unknown): Promise<void> {
   }
 }
 
-// Narrow Yahoo's currency string to the supported set. Anything outside
-// EUR/USD/CZK collapses to USD so the FX math stays exhaustive.
+// Collapse anything outside EUR/USD/CZK to USD so FX math stays exhaustive.
 function narrowCurrency(raw: string | null | undefined): PositionCurrency {
   if (raw === 'EUR' || raw === 'USD' || raw === 'CZK') return raw
   return 'USD'

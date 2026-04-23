@@ -1,5 +1,5 @@
 // Per-position P&L math shared by dashboard, broker-detail and tax screens.
-// Pure functions — callers fetch positions/prices/rates and pass them in.
+// Pure — callers fetch positions/prices/rates and pass them in.
 import type { Position, PositionCurrency } from '@/types'
 import type { ExchangeRates, DisplayCurrency } from '@/lib/currency'
 import { toEur, convertToDisplay } from '@/lib/currency'
@@ -14,9 +14,8 @@ export interface PositionValueEur {
   costEur: number
 }
 
-// Single position in EUR base. Without a live quote, falls back to buy_price
-// so the row renders something — gain/loss will be 0 in that case.
-// Expects open positions only; sold ones go through the realized math.
+// Single position in EUR base. Falls back to buy_price if no live quote so
+// the row still renders (gain/loss = 0). Open positions only.
 export function computePositionValueEur(
   position: Position,
   priceMap: PriceMap,

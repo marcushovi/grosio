@@ -13,8 +13,8 @@ import {
 } from '@/lib/api/positions'
 import type { Position, MutationResult } from '@/types'
 
-// Positions scoped to a broker. Disabled when brokerId is undefined so the
-// URL-param-not-yet-resolved render does not fetch "all positions".
+// Positions scoped to a broker. Disabled while brokerId is undefined so the
+// initial render doesn't accidentally fetch "all positions".
 export function usePositions(brokerId?: string) {
   const queryClient = useQueryClient()
 
@@ -70,8 +70,8 @@ export function usePositions(brokerId?: string) {
   }
 }
 
-// Invalidates open lists + dashboard + tax + realized history (the row
-// appears in the realized view for the sale year).
+// Invalidates open lists + dashboard + tax + realized (the row now shows
+// up in the realized view for the sale year).
 export function useSellPosition() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -95,7 +95,7 @@ export function useSellPosition() {
   })
 }
 
-// Mirror-image of useSellPosition.
+// Inverse of useSellPosition.
 export function useUnsellPosition() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -111,8 +111,7 @@ export function useUnsellPosition() {
   })
 }
 
-// Realized history is not invalidated — edits are rejected at the API layer
-// for sold positions, so realized rows cannot change here.
+// Realized history stays valid — the API rejects edits on sold positions.
 export function useUpdatePosition() {
   const queryClient = useQueryClient()
   return useMutation({

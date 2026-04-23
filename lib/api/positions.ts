@@ -53,8 +53,8 @@ export async function deletePosition(id: string): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
-// Editable fields. user_id, broker_id, created_at and the sold_* fields are
-// not editable here — selling/unselling goes through dedicated functions.
+// Editable fields only. user_id, broker_id, created_at and sold_* are
+// excluded — selling/unselling goes through dedicated functions.
 export type UpdatePositionInput = Partial<{
   symbol: string
   name: string
@@ -64,8 +64,8 @@ export type UpdatePositionInput = Partial<{
   currency: PositionCurrency
 }>
 
-// Throws if the position is already sold (sold rows are immutable). The
-// `.is('sold_at', null)` on the update is the race-safety guard.
+// Throws if already sold (sold rows are immutable). The `.is('sold_at', null)`
+// on update is the race-safety guard.
 export async function updatePosition(
   positionId: string,
   input: UpdatePositionInput
@@ -91,8 +91,8 @@ export async function updatePosition(
   if (error) throw new Error(error.message)
 }
 
-// Mark as fully sold. sold_shares = shares (no partials). Date check is
-// client-side for UX; DB constraint `positions_sold_after_buy` is the real guard.
+// Full sale only (sold_shares = shares). Date check is client-side for UX;
+// DB constraint `positions_sold_after_buy` is the real guard.
 export async function sellPosition(
   positionId: string,
   input: { soldDate: string; soldPrice: number }

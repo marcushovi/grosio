@@ -69,8 +69,7 @@ export default function DashboardScreen() {
   const { brokers, error: brokersError } = useBrokers()
   const { currency: displayCurrency } = useSettings()
 
-  // EUR base. Display projection runs in a memo — switching currency does
-  // not refetch.
+  // EUR base — display projection is memoized so currency swap doesn't refetch.
   const {
     data: dashboardBase,
     isPending: dashboardLoading,
@@ -100,7 +99,7 @@ export default function DashboardScreen() {
     [dashboardBase, displayCurrency]
   )
 
-  // Tax summary — overview under the total. Same queryKey as the tax screen.
+  // Tax summary overview — shares queryKey with the tax screen.
   const { data: taxSummaryBase } = useTaxSummary()
   const taxSummary = useMemo(
     () => projectTaxSummaryToDisplay(taxSummaryBase, displayCurrency),
@@ -137,8 +136,7 @@ export default function DashboardScreen() {
     )
   }
 
-  // Zero-broker path: dashboard query is disabled so nothing loads on its
-  // own. Show a focused CTA instead of empty cards.
+  // Zero-broker path — dashboard query is disabled, so show a CTA directly.
   if (brokers.length === 0) {
     return (
       <Screen>

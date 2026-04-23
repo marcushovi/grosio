@@ -6,8 +6,8 @@ import type { PriceMap } from '@/lib/api/yahoo'
 
 const MOVERS_LIMIT = 3
 
-// Currency-invariant intermediate. `valueEur` becomes `Mover.currentValue`
-// after the display projection.
+// Currency-invariant intermediate — `valueEur` becomes `Mover.currentValue`
+// after display projection.
 interface MoverBase {
   symbol: string
   name: string
@@ -36,9 +36,17 @@ export interface DashboardBase {
   rates: ExchangeRates
 }
 
-// Top 3 gainers and losers by % P&L. Positions without a live quote are
-// skipped — we cannot classify them. `buy_price <= 0` keeps the row with
-// `pnlPercent = 0` so a gifted share still appears.
+export interface DashboardTotals {
+  brokerValues: BrokerValue[]
+  movers: MoversData
+  totalValue: number
+  totalInvested: number
+  totalGainLoss: number
+  totalGainLossPct: number
+}
+
+// Top / bottom movers by % P&L. Rows without a live quote are skipped. A
+// zero buy_price yields pnlPercent = 0 so gifted shares still appear.
 function computeMoversBase(
   positions: Position[],
   priceMap: PriceMap,
@@ -66,8 +74,8 @@ function computeMoversBase(
   }
 }
 
-// Per-broker totals + movers in EUR base. Pure — caller passes positions /
-// prices / rates and projects into display currency separately.
+// Per-broker totals + movers in EUR base. Caller projects into display
+// currency separately.
 export function computeDashboardBase(
   brokers: Broker[],
   positions: Position[],
@@ -108,15 +116,6 @@ export function computeDashboardBase(
     movers: computeMoversBase(positions, priceMap, rates),
     rates,
   }
-}
-
-export interface DashboardTotals {
-  brokerValues: BrokerValue[]
-  movers: MoversData
-  totalValue: number
-  totalInvested: number
-  totalGainLoss: number
-  totalGainLossPct: number
 }
 
 export function projectDashboardToDisplay(

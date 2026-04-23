@@ -21,9 +21,8 @@ interface SwipeableRowProps {
 
 const ACTION_WIDTH = 76
 
-// Swipe-to-reveal row (iOS Mail / Messages pattern). No full-swipe-dismiss —
-// a tap on the revealed button is always required. Each button closes the
-// swipe before firing so any dialog opens against a clean state.
+// Swipe-to-reveal row (iOS Mail pattern). No full-swipe-dismiss — button tap
+// is always required. Each button closes the swipe before firing.
 export function SwipeableRow({ children, actions }: SwipeableRowProps) {
   const swipeRef = useRef<SwipeableMethods>(null)
 

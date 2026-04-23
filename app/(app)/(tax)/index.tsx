@@ -82,7 +82,7 @@ export default function TaxScreen() {
   const { brokers } = useBrokers()
   const [success, warning, foreground] = useThemeColor(['success', 'warning', 'foreground'])
 
-  // Broker sections collapse by default to keep the scroll short.
+  // Broker sections start collapsed.
   const [expandedBrokers, setExpandedBrokers] = useState<Set<string>>(new Set())
   const [selectedYear, setSelectedYear] = useState<number>(() => new Date().getFullYear())
   const toggleBroker = useCallback((brokerId: string) => {
@@ -117,8 +117,8 @@ export default function TaxScreen() {
     }, [queryClient, domicile])
   )
 
-  // No brokers → useTaxSummary stays disabled and isPending never resolves.
-  // Show the onboarding CTA instead of a permanent spinner.
+  // Zero-broker path — useTaxSummary is disabled, isPending never resolves.
+  // Show onboarding CTA instead of a permanent spinner.
   if (brokers.length === 0) {
     return (
       <Screen>

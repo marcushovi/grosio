@@ -9,9 +9,8 @@ export interface ExchangeRates {
 
 const FRANKFURTER_URL = process.env.EXPO_PUBLIC_FRANKFURTER_URL
 
-// Pure fetch — no internal caching. Caller wraps with TanStack Query.
-// Throws on network / parse failure so the enclosing query surfaces an error
-// state rather than silently rendering stale numbers.
+// Pure fetch — caller wraps with TanStack Query. Throws on failure so the
+// query surfaces an error rather than silently rendering stale numbers.
 export async function getExchangeRates(): Promise<ExchangeRates> {
   if (!FRANKFURTER_URL) throw new Error('EXPO_PUBLIC_FRANKFURTER_URL not set')
 

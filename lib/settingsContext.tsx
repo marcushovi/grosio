@@ -44,8 +44,8 @@ const SettingsContext = createContext<SettingsContextValue | null>(null)
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<Settings>(defaults)
   const [isLoaded, setIsLoaded] = useState(false)
-  // Uniwind owns the currently applied theme. With `setTheme('system')` it
-  // tracks the OS scheme automatically and resolves to 'light' | 'dark'.
+  // Uniwind owns the applied theme; `setTheme('system')` tracks the OS scheme
+  // and resolves to 'light' | 'dark'.
   const { theme } = useUniwind()
   const resolvedTheme: 'light' | 'dark' = theme === 'light' ? 'light' : 'dark'
 

@@ -9,8 +9,8 @@ import { STALE_TIME } from '@/lib/queryClient'
 import { computeTaxStatusBase, type TaxSummaryBase } from '@/lib/tax'
 import type { ExchangeRates } from '@/lib/currency'
 
-// Tax summary for the current domicile. Returns EUR base so display currency
-// switch does not refetch — caller projects via `projectTaxSummaryToDisplay`.
+// Tax summary for the current domicile in EUR base. Caller projects via
+// `projectTaxSummaryToDisplay` so changing display currency doesn't refetch.
 export function useTaxSummary() {
   const { domicile } = useSettings()
   const { brokers } = useBrokers()

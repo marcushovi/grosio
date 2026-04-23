@@ -12,9 +12,8 @@ import {
   type PercentFormatOptions,
 } from '@/lib/format'
 
-// Reactive bundle bound to the current language. Rerenders when the user
-// switches language. Use bare `formatX(value, lang)` from `lib/format` in
-// non-reactive contexts (event handlers, callbacks).
+// Reactive bundle bound to current language. Use `formatX(value, lang)` from
+// `lib/format` directly in non-reactive contexts.
 export function useFormat() {
   const { i18n } = useTranslation()
   const lang = i18n.language

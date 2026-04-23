@@ -9,8 +9,8 @@ import {
 } from '@/lib/api/brokers'
 import type { Broker, MutationResult } from '@/types'
 
-// Brokers list + add/delete. Each mutation awaits invalidation so by the time
-// mutateAsync resolves, the dashboard / positions caches have refreshed.
+// Brokers list + add/delete. Mutations await invalidation so mutateAsync
+// resolves only after dependent caches have refreshed.
 export function useBrokers() {
   const queryClient = useQueryClient()
 
@@ -71,8 +71,8 @@ export function useBrokers() {
   }
 }
 
-// Edit name/color. Positions queries are not invalidated — position rows
-// don't render broker fields directly, they come from the brokers query.
+// Edit name/color. Positions aren't invalidated — they don't embed broker
+// fields, those come from the brokers query.
 export function useUpdateBroker() {
   const queryClient = useQueryClient()
   return useMutation({

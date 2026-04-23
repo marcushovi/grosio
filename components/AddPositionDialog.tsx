@@ -38,8 +38,7 @@ interface AddPositionDialogProps {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   mode?: 'create' | 'edit'
-  // Create mode only. Kept as callback for compatibility with the broker-
-  // detail `usePositions().addPosition` wrapper.
+  // Create mode only — wraps `usePositions().addPosition` from broker detail.
   onAdd?: (position: {
     symbol: string
     name: string
@@ -51,8 +50,8 @@ interface AddPositionDialogProps {
   position?: Position
 }
 
-// One bag for the whole form. Patched via `setForm(prev => …)` so multi-field
-// updates (e.g. picking a symbol) stay atomic.
+// Single form bag — patched via `setForm(prev => …)` so multi-field updates
+// (e.g. picking a symbol) stay atomic.
 interface FormState {
   searchQuery: string
   symbol: string
@@ -60,8 +59,8 @@ interface FormState {
   currency: PositionCurrency
   shares: string
   price: string
-  // Once the user has typed in the price box, auto-fetched quotes must not
-  // overwrite it. Pre-seeded true in edit mode to protect the stored value.
+  // Blocks auto-fetched quotes from overwriting a user-typed price. Pre-seeded
+  // true in edit mode to protect the stored value.
   priceEdited: boolean
   buyDate: Date
 }
@@ -93,8 +92,8 @@ export function AddPositionDialog({
   const isEdit = mode === 'edit'
 
   const [form, setForm] = useState<FormState>(() => initialFormState(position, isEdit))
-  // Everything below is non-form UI/async state, kept separate from the form
-  // bag so a keystroke in a text field does not re-render the search dropdown.
+  // Non-form UI/async state — kept separate from form bag so typing in an
+  // input doesn't rerender the search dropdown.
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [searching, setSearching] = useState(false)
   const [iosPickerVisible, setIosPickerVisible] = useState(false)
@@ -102,13 +101,13 @@ export function AddPositionDialog({
 
   const buyDateIso = toYyyyMmDd(form.buyDate)
 
-  // Debounced symbol search with a request-id guard so an earlier (slower)
-  // response cannot overwrite a newer one.
+  // Debounced search with request-id guard — older responses can't overwrite
+  // newer ones.
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const searchRequestIdRef = useRef(0)
 
   const handleSearch = (query: string) => {
-    // Symbol is immutable in edit mode. To change it, delete and recreate.
+    // Symbol is immutable in edit mode — delete and recreate to change it.
     if (isEdit) return
     setForm(prev => ({ ...prev, searchQuery: query }))
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
@@ -140,15 +139,13 @@ export function AddPositionDialog({
   }, [])
 
   const handleSelectSymbol = (symbol: string, name: string) => {
-    // Fresh symbol → clear priceEdited so the auto-fetched close populates
-    // the price box for the new ticker.
+    // Fresh symbol → clear priceEdited so the auto-fetched close repopulates.
     setForm(prev => ({ ...prev, symbol, name, searchQuery: name, priceEdited: false }))
     setSearchResults([])
   }
 
-  // Auto-fill historical close when symbol or buy date changes. Skip in edit
-  // mode — stored buy price must not be overwritten. TanStack caches by
-  // (symbol, date) so flipping between already-seen combos is instant.
+  // Auto-fill historical close when symbol or buy date changes. Skipped in
+  // edit mode so stored price is preserved. Cached by (symbol, date).
   const { data: pricing, isFetching: pricingLoading } = useQuery({
     queryKey: ['priceOnDate', form.symbol, buyDateIso],
     queryFn: () => getPriceOnDate(form.symbol, buyDateIso),
@@ -156,7 +153,7 @@ export function AddPositionDialog({
     staleTime: STALE_TIME.RATES,
   })
 
-  // Propagate query result to form fields. Honours manual edits to the price.
+  // Propagate query result to form. Respects manual price edits.
   useEffect(() => {
     if (!pricing) return
     setForm(prev => ({
@@ -166,8 +163,7 @@ export function AddPositionDialog({
     }))
   }, [pricing])
 
-  // iOS uses the inline <DateTimePicker> below. Android needs this imperative
-  // native dialog because the inline picker doesn't match Material guidelines.
+  // Android uses an imperative Material dialog; iOS uses the inline spinner below.
   const openAndroidPicker = () => {
     DateTimePickerAndroid.open({
       value: form.buyDate,
@@ -288,9 +284,7 @@ export function AddPositionDialog({
                     )}
 
                     {searchResults.length > 0 && (
-                      <View
-                        className="absolute top-full left-0 right-0 mt-1 z-20 bg-surface rounded-xl border border-border shadow-lg"
-                      >
+                      <View className="absolute top-full left-0 right-0 mt-1 z-20 bg-surface rounded-xl border border-border shadow-lg">
                         {searchResults.slice(0, SEARCH_RESULT_LIMIT).map((r, i) => (
                           <View key={r.symbol}>
                             {i > 0 && <Separator />}

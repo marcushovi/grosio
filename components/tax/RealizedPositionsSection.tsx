@@ -34,14 +34,14 @@ export function RealizedPositionsSection({ year, onYearChange }: RealizedPositio
 
   const { data: positions, isPending, error, refetch } = useRealizedPositions(year)
 
-  // Shares the latest-rates query with open-section. 1h staleTime.
+  // Shares the latest-rates query with open-section.
   const { data: rates } = useQuery<ExchangeRates, Error>({
     queryKey: queryKeys.exchangeRates.latest(),
     queryFn: getExchangeRates,
     staleTime: STALE_TIME.RATES,
   })
 
-  // Recompute on domicile (SK/CZ threshold) and displayCurrency changes.
+  // Recompute when domicile or displayCurrency changes.
   const totals = useMemo(() => {
     if (!positions || !rates) return { taxFreeTotal: 0, taxableTotal: 0 }
     return aggregateRealizedTax(positions, domicile, rates, displayCurrency)
@@ -49,8 +49,7 @@ export function RealizedPositionsSection({ year, onYearChange }: RealizedPositio
 
   return (
     <View className="mt-2">
-      {/* Select.Value has `flex-1` in HeroUI's base style — without an
-          explicit width the trigger collapses and wraps "2026" onto two lines. */}
+      {/* HeroUI's Select.Value uses flex-1 — need fixed width or "2026" wraps. */}
       <View className="flex-row items-center justify-between mb-3">
         <Text className="text-foreground text-lg font-semibold flex-1">{_('realizedInYear')}</Text>
         <View className="w-[110px]">

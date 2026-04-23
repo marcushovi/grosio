@@ -1,7 +1,5 @@
-// Tax-status math for SK / CZ holding-period exemption.
-//   SK = 365 days, CZ = 1095 days.
-// Open positions evaluate the test against today; realized positions freeze
-// it at the moment of sale. All math is pure.
+// Holding-period tax exemption math (SK = 365 days, CZ = 1095 days). Open
+// positions test against today; realized ones freeze at sale time. Pure.
 import type { Position, PositionCurrency } from '@/types'
 import type { ExchangeRates, DisplayCurrency } from '@/lib/currency'
 import { toEur, convertToDisplay } from '@/lib/currency'
@@ -12,13 +10,12 @@ export type { DisplayCurrency }
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24
 
-export const TAX_THRESHOLD_DAYS: Record<Domicile, number> = {
+const TAX_THRESHOLD_DAYS: Record<Domicile, number> = {
   SK: 365,
   CZ: 1095,
 }
 
-// EUR-base shapes — UI projects to display currency in a useMemo so switching
-// EUR/USD/CZK does not refetch.
+// EUR-base shapes — UI projects to display currency without refetching.
 export interface PositionTaxStatusBase {
   position: Position
   buyDate: Date
@@ -75,7 +72,7 @@ export interface TaxSummary {
   displayCurrency: DisplayCurrency
 }
 
-// Bucket open positions into tax free / taxable per broker. Positions without
+// Bucket open positions into tax-free / taxable per broker. Rows without
 // a buy_date land in `unknownDatePositions` so the UI can flag them.
 export function computeTaxStatusBase(
   positions: Position[],
@@ -171,8 +168,8 @@ export function computeTaxStatusBase(
   }
 }
 
-// Tax status frozen at sale time: sold_at − buy_date vs threshold. Returns
-// null fields when either date is missing (legacy / partial rows).
+// Frozen-at-sale tax status: sold_at − buy_date vs threshold. Returns null
+// fields if either date is missing (legacy / partial rows).
 export function computeRealizedTaxStatus(
   position: Position,
   domicile: Domicile
@@ -190,8 +187,8 @@ export function realizedPnlNative(position: Position): number | null {
   return (position.sold_price - position.buy_price) * position.sold_shares
 }
 
-// Sum realized P&L across positions, split by tax classification, in display
-// currency. Per-position P&L is converted via EUR base. Incomplete rows skip.
+// Sum realized P&L split by tax classification, in display currency. Each
+// position's P&L is converted via EUR base. Incomplete rows skipped.
 export function aggregateRealizedTax(
   positions: Position[],
   domicile: Domicile,

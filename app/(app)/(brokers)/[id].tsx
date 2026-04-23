@@ -60,8 +60,7 @@ export default function BrokerDetailScreen() {
   const { positions, loading, addPosition, deletePosition } = usePositions(id)
   const unsellPositionMutation = useUnsellPosition()
 
-  // Single-row fetch — broker deletes already invalidate brokers.all so this
-  // key gets busted too.
+  // Single-row fetch — broker deletes invalidate brokers.all, busting this too.
   const { data: broker, isLoading: brokerLoading } = useQuery({
     queryKey: queryKeys.brokers.byId(id ?? ''),
     queryFn: () => fetchBrokerById(id as string),
@@ -72,7 +71,7 @@ export default function BrokerDetailScreen() {
   const [editingPosition, setEditingPosition] = useState<Position | null>(null)
   const [sellingPosition, setSellingPosition] = useState<Position | null>(null)
 
-  // Stable-sorted symbols so the query key stays stable across renders.
+  // Sorted so the queryKey stays stable across renders.
   const symbols = useMemo(() => [...new Set(positions.map(p => p.symbol))].sort(), [positions])
 
   const {
@@ -96,8 +95,8 @@ export default function BrokerDetailScreen() {
     enabled: symbols.length > 0,
   })
 
-  // Derived during render — no effect, no state. Delegates to lib/portfolio
-  // so broker-detail and dashboard stay in lock-step.
+  // Derived during render via lib/portfolio so broker-detail and dashboard
+  // stay in lock-step.
   const positionsWithPrices = useMemo<PositionWithPrice[]>(() => {
     if (!pricing || positions.length === 0) return []
     return positions.map(pos => {

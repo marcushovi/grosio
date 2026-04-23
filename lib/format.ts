@@ -16,7 +16,7 @@ const INTL_LOCALE: Record<string, string> = {
 // Single source of truth for currency display.
 //   `symbol` — picker labels ("$ US Dollar"), visually rich.
 //   `code`   — money amounts ("1,234.56 USD"), aligned across currencies.
-export const CURRENCY_DISPLAY: Record<AppCurrency, { symbol: string; code: string }> = {
+const CURRENCY_DISPLAY: Record<AppCurrency, { symbol: string; code: string }> = {
   EUR: { symbol: '€', code: 'EUR' },
   USD: { symbol: '$', code: 'USD' },
   CZK: { symbol: 'Kč', code: 'CZK' },
@@ -26,7 +26,7 @@ export function currencySymbol(currency: AppCurrency): string {
   return CURRENCY_DISPLAY[currency].symbol
 }
 
-export function currencyCode(currency: AppCurrency): string {
+function currencyCode(currency: AppCurrency): string {
   return CURRENCY_DISPLAY[currency].code
 }
 
