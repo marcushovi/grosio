@@ -8,12 +8,12 @@ interface ScreenProps {
 }
 
 // SafeAreaView from `react-native-safe-area-context` is not patched by
-// Uniwind's Metro resolver, so `bg-background` on it is ignored. Route the
-// resolved background through inline style instead.
+// Uniwind's Metro resolver, so className (including `flex-1` and
+// `bg-background`) is ignored. Route both through inline style.
 export function Screen({ children, className }: ScreenProps) {
   const bg = useThemeColor('background') as string
   return (
-    <SafeAreaView className={`flex-1 ${className ?? ''}`} style={{ backgroundColor: bg }}>
+    <SafeAreaView className={className} style={{ flex: 1, backgroundColor: bg }}>
       {children}
     </SafeAreaView>
   )
