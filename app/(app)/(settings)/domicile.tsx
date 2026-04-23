@@ -34,15 +34,22 @@ export default function DomicileScreen() {
               setDomicile(v as Domicile)
             }}
           >
-            {DOMICILES.map((d, i) => (
-              <Fragment key={d.value}>
-                {i > 0 && <Separator className="my-1" />}
-                <RadioGroup.Item value={d.value}>
-                  <Label>{`${d.flag}  ${_(d.labelKey)}`}</Label>
-                  <Radio />
-                </RadioGroup.Item>
-              </Fragment>
-            ))}
+            {DOMICILES.map((d, i) => {
+              const label = d.value === 'SK' ? _('domicileSK') : _('domicileCZ')
+              const helper = d.value === 'SK' ? _('domicileHelperSK') : _('domicileHelperCZ')
+              return (
+                <Fragment key={d.value}>
+                  {i > 0 && <Separator className="my-1" />}
+                  <RadioGroup.Item value={d.value}>
+                    <View className="flex-1">
+                      <Label>{`${d.flag}  ${label}`}</Label>
+                      <Text className="text-muted text-xs mt-0.5">{helper}</Text>
+                    </View>
+                    <Radio />
+                  </RadioGroup.Item>
+                </Fragment>
+              )
+            })}
           </RadioGroup>
         </Surface>
       </View>

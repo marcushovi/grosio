@@ -18,8 +18,9 @@ export const LANGUAGES: { value: Language; label: string }[] = [
   { value: 'de', label: 'Deutsch' },
 ]
 
-// `labelKey` resolves through i18n at render time so picker matches app lang.
-export const DOMICILES: { value: Domicile; flag: string; labelKey: string }[] = [
-  { value: 'SK', flag: '🇸🇰', labelKey: 'domicileSK' },
-  { value: 'CZ', flag: '🇨🇿', labelKey: 'domicileCZ' },
+// Value + flag only. Labels and helper strings are called with literal i18n
+// keys at render time so extractor tools can discover them via static scan.
+export const DOMICILES: { value: Domicile; flag: string }[] = [
+  { value: 'SK', flag: '🇸🇰' },
+  { value: 'CZ', flag: '🇨🇿' },
 ]

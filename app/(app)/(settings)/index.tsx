@@ -9,7 +9,7 @@ import { useSession } from '@/lib/sessionContext'
 import { useTranslation } from 'react-i18next'
 import { useSettings } from '@/lib/settingsContext'
 import { currencySymbol } from '@/lib/format'
-import { LANGUAGES, DOMICILES } from '@/lib/constants'
+import { LANGUAGES } from '@/lib/constants'
 import { Screen } from '@/components/Screen'
 
 export default function SettingsScreen() {
@@ -94,7 +94,7 @@ export default function SettingsScreen() {
             <ListGroup.ItemContent>
               <ListGroup.ItemTitle>{_('domicile')}</ListGroup.ItemTitle>
               <ListGroup.ItemDescription>
-                {_(DOMICILES.find(d => d.value === domicile)?.labelKey ?? 'domicileSK')}
+                {domicile === 'SK' ? _('domicileSK') : _('domicileCZ')}
               </ListGroup.ItemDescription>
             </ListGroup.ItemContent>
             <ListGroup.ItemSuffix />
