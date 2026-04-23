@@ -33,9 +33,6 @@ create table if not exists public.positions (
   constraint positions_sold_full check (
     sold_shares is null or sold_shares = shares
   ),
-  -- buy_date is nullable on legacy rows. NULL on either side leaves the
-  -- comparison UNKNOWN, which CHECK treats as satisfied — so legacy rows
-  -- without a buy_date can still be marked sold.
   constraint positions_sold_after_buy check (
     sold_at is null or buy_date is null or sold_at >= buy_date
   )
