@@ -12,6 +12,7 @@ import { queryKeys } from '@/lib/queryKeys'
 import { fetchAllPositions } from '@/lib/api/positions'
 import { fetchPrices } from '@/lib/api/yahoo'
 import { getExchangeRates } from '@/lib/currency'
+import { STALE_TIME } from '@/lib/queryClient'
 import { useFormat } from '@/hooks/useFormat'
 import {
   computeDashboardBase,
@@ -25,6 +26,39 @@ import { ErrorState } from '@/components/ErrorState'
 import { EmptyState } from '@/components/EmptyState'
 import { useTaxSummary } from '@/hooks/useTaxSummary'
 import { projectTaxSummaryToDisplay } from '@/lib/tax'
+import type { Mover } from '@/types'
+
+interface MoverColumnProps {
+  title: string
+  items: Mover[]
+  tone: 'success' | 'danger'
+  className?: string
+}
+
+function MoverColumn({ title, items, tone, className }: MoverColumnProps) {
+  const f = useFormat()
+  const toneClass = tone === 'success' ? 'text-success' : 'text-danger'
+  return (
+    <View className={className}>
+      <Text className="text-muted text-xs mb-2">{title}</Text>
+      {items.map((m, i) => (
+        <View
+          key={`${tone}-${m.symbol}-${i}`}
+          className="flex-row justify-between items-center py-1"
+        >
+          <Text className="text-foreground text-sm font-semibold">{m.symbol}</Text>
+          <Text className={`${toneClass} text-sm font-semibold`}>
+            {f.formatPercent(m.pnlPercent, {
+              asPercent: true,
+              minimumFractionDigits: 1,
+              maximumFractionDigits: 1,
+            })}
+          </Text>
+        </View>
+      ))}
+    </View>
+  )
+}
 
 export default function DashboardScreen() {
   const { t: _ } = useTranslation()
@@ -51,7 +85,7 @@ export default function DashboardScreen() {
         queryClient.fetchQuery({
           queryKey: queryKeys.exchangeRates.latest(),
           queryFn: getExchangeRates,
-          staleTime: 1000 * 60 * 60,
+          staleTime: STALE_TIME.RATES,
         }),
       ])
       const symbols = [...new Set(positions.map(p => p.symbol))]
@@ -139,21 +173,16 @@ export default function DashboardScreen() {
           <LastUpdated timestamp={dataUpdatedAt} />
         </View>
 
-        {error
-          ? (() => {
-              console.warn('[dashboard] query error:', error.message)
-              return (
-                <Card className="bg-surface mb-4">
-                  <Card.Body className="items-center">
-                    <Text className="text-danger text-center mb-2">{_('error')}</Text>
-                    <Text className="text-accent" onPress={() => refetchDashboard()}>
-                      {_('tryAgain')}
-                    </Text>
-                  </Card.Body>
-                </Card>
-              )
-            })()
-          : null}
+        {error && (
+          <Card className="bg-surface mb-4">
+            <Card.Body className="items-center">
+              <Text className="text-danger text-center mb-2">{error.message || _('error')}</Text>
+              <Text className="text-accent" onPress={() => refetchDashboard()}>
+                {_('tryAgain')}
+              </Text>
+            </Card.Body>
+          </Card>
+        )}
 
         <Card className="bg-surface mb-4">
           <Card.Body>
@@ -173,48 +202,23 @@ export default function DashboardScreen() {
           </Card.Body>
         </Card>
 
-        {/* Movers — top 3 gainers / losers by pnlPercent. */}
         {(movers.topGainers.length > 0 || movers.topLosers.length > 0) && (
           <View className="bg-surface rounded-2xl p-4 gap-3 mb-4">
             <Text className="text-foreground font-semibold">{_('moversTitle')}</Text>
             <View className="flex-row">
-              <View className="flex-1 pr-3">
-                <Text className="text-muted text-xs mb-2">{_('topGainers')}</Text>
-                {movers.topGainers.map((m, i) => (
-                  <View
-                    key={`gainer-${m.symbol}-${i}`}
-                    className="flex-row justify-between items-center py-1"
-                  >
-                    <Text className="text-foreground text-sm font-semibold">{m.symbol}</Text>
-                    <Text className="text-success text-sm font-semibold">
-                      {f.formatPercent(m.pnlPercent, {
-                        asPercent: true,
-                        minimumFractionDigits: 1,
-                        maximumFractionDigits: 1,
-                      })}
-                    </Text>
-                  </View>
-                ))}
-              </View>
+              <MoverColumn
+                title={_('topGainers')}
+                items={movers.topGainers}
+                tone="success"
+                className="flex-1 pr-3"
+              />
               <View className="w-px my-1 bg-border" />
-              <View className="flex-1 pl-3">
-                <Text className="text-muted text-xs mb-2">{_('topLosers')}</Text>
-                {movers.topLosers.map((m, i) => (
-                  <View
-                    key={`loser-${m.symbol}-${i}`}
-                    className="flex-row justify-between items-center py-1"
-                  >
-                    <Text className="text-foreground text-sm font-semibold">{m.symbol}</Text>
-                    <Text className="text-danger text-sm font-semibold">
-                      {f.formatPercent(m.pnlPercent, {
-                        asPercent: true,
-                        minimumFractionDigits: 1,
-                        maximumFractionDigits: 1,
-                      })}
-                    </Text>
-                  </View>
-                ))}
-              </View>
+              <MoverColumn
+                title={_('topLosers')}
+                items={movers.topLosers}
+                tone="danger"
+                className="flex-1 pl-3"
+              />
             </View>
           </View>
         )}

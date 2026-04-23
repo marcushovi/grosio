@@ -17,6 +17,7 @@ import { Dialog } from 'heroui-native/dialog'
 import { SearchField, Separator, useThemeColor } from 'heroui-native'
 import { Calendar } from 'lucide-react-native'
 import { getPriceOnDate, searchSymbols } from '@/lib/api/yahoo'
+import { STALE_TIME } from '@/lib/queryClient'
 import { useTranslation } from 'react-i18next'
 import { toYyyyMmDd } from '@/lib/format'
 import { useFormat } from '@/hooks/useFormat'
@@ -152,7 +153,7 @@ export function AddPositionDialog({
     queryKey: ['priceOnDate', form.symbol, buyDateIso],
     queryFn: () => getPriceOnDate(form.symbol, buyDateIso),
     enabled: !isEdit && !!form.symbol,
-    staleTime: 1000 * 60 * 60,
+    staleTime: STALE_TIME.RATES,
   })
 
   // Propagate query result to form fields. Honours manual edits to the price.

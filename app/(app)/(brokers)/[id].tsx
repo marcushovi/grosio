@@ -21,6 +21,7 @@ import { fetchBrokerById } from '@/lib/api/brokers'
 import { fetchPrices } from '@/lib/api/yahoo'
 import type { PriceMap } from '@/lib/api/yahoo'
 import { getExchangeRates } from '@/lib/currency'
+import { STALE_TIME } from '@/lib/queryClient'
 import { useFormat } from '@/hooks/useFormat'
 import type { ExchangeRates } from '@/lib/currency'
 import { computePositionValueEur, computePositionPnl } from '@/lib/portfolio'
@@ -86,7 +87,7 @@ export default function BrokerDetailScreen() {
         queryClient.fetchQuery({
           queryKey: queryKeys.exchangeRates.latest(),
           queryFn: getExchangeRates,
-          staleTime: 1000 * 60 * 60,
+          staleTime: STALE_TIME.RATES,
         }),
         fetchPrices(symbols),
       ])

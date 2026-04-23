@@ -5,6 +5,7 @@ import { queryKeys } from '@/lib/queryKeys'
 import { fetchAllPositions } from '@/lib/api/positions'
 import { fetchPrices } from '@/lib/api/yahoo'
 import { getExchangeRates } from '@/lib/currency'
+import { STALE_TIME } from '@/lib/queryClient'
 import { computeTaxStatusBase, type TaxSummaryBase } from '@/lib/tax'
 import type { ExchangeRates } from '@/lib/currency'
 
@@ -23,7 +24,7 @@ export function useTaxSummary() {
         queryClient.fetchQuery<ExchangeRates>({
           queryKey: queryKeys.exchangeRates.latest(),
           queryFn: getExchangeRates,
-          staleTime: 1000 * 60 * 60,
+          staleTime: STALE_TIME.RATES,
         }),
       ])
       const symbols = [...new Set(positions.map(p => p.symbol))]
@@ -31,6 +32,6 @@ export function useTaxSummary() {
       return computeTaxStatusBase(positions, brokers, domicile, rates, priceMap)
     },
     enabled: brokers.length > 0,
-    staleTime: 1000 * 60 * 15,
+    staleTime: STALE_TIME.DEFAULT,
   })
 }

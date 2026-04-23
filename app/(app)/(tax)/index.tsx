@@ -15,6 +15,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import { useSettings } from '@/lib/settingsContext'
 import { queryKeys } from '@/lib/queryKeys'
+import { STALE_TIME } from '@/lib/queryClient'
 import { useFormat } from '@/hooks/useFormat'
 import { projectTaxSummaryToDisplay, type PositionTaxStatus } from '@/lib/tax'
 import type { DisplayCurrency } from '@/lib/currency'
@@ -109,9 +110,8 @@ export default function TaxScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      const STALE_MS = 1000 * 60 * 15
       const state = queryClient.getQueryState(queryKeys.tax.data(domicile))
-      if (!state?.dataUpdatedAt || Date.now() - state.dataUpdatedAt > STALE_MS) {
+      if (!state?.dataUpdatedAt || Date.now() - state.dataUpdatedAt > STALE_TIME.DEFAULT) {
         queryClient.invalidateQueries({ queryKey: queryKeys.tax.all })
       }
     }, [queryClient, domicile])

@@ -8,14 +8,8 @@ import { ArrowLeft } from 'lucide-react-native'
 import * as Haptics from 'expo-haptics'
 import { useTranslation } from 'react-i18next'
 import { useSettings } from '@/lib/settingsContext'
+import { LANGUAGES } from '@/lib/constants'
 import type { Language } from '@/lib/settingsContext'
-
-const LANGUAGES: { value: Language; label: string }[] = [
-  { value: 'en', label: 'English' },
-  { value: 'sk', label: 'Slovenčina' },
-  { value: 'cs', label: 'Čeština' },
-  { value: 'de', label: 'Deutsch' },
-]
 
 export default function LanguageScreen() {
   const { t: _ } = useTranslation()

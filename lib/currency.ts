@@ -7,11 +7,15 @@ export interface ExchangeRates {
   eurCzk: number
 }
 
+const FRANKFURTER_URL = process.env.EXPO_PUBLIC_FRANKFURTER_URL
+
 // Pure fetch — no internal caching. Caller wraps with TanStack Query.
 // Throws on network / parse failure so the enclosing query surfaces an error
 // state rather than silently rendering stale numbers.
 export async function getExchangeRates(): Promise<ExchangeRates> {
-  const res = await fetch('https://api.frankfurter.app/latest?from=EUR&to=USD,CZK')
+  if (!FRANKFURTER_URL) throw new Error('EXPO_PUBLIC_FRANKFURTER_URL not set')
+
+  const res = await fetch(FRANKFURTER_URL)
   if (!res.ok) throw new Error(`Frankfurter fetch failed: ${res.status}`)
   const data = await res.json()
   const eurUsd = data?.rates?.USD

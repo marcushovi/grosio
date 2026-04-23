@@ -8,12 +8,8 @@ import { ArrowLeft } from 'lucide-react-native'
 import * as Haptics from 'expo-haptics'
 import { useTranslation } from 'react-i18next'
 import { useSettings } from '@/lib/settingsContext'
+import { DOMICILES } from '@/lib/constants'
 import type { Domicile } from '@/lib/settingsContext'
-
-const DOMICILES: { value: Domicile; label: string }[] = [
-  { value: 'SK', label: '🇸🇰  Slovenská republika' },
-  { value: 'CZ', label: '🇨🇿  Česká republika' },
-]
 
 export default function DomicileScreen() {
   const { t: _ } = useTranslation()
@@ -42,7 +38,7 @@ export default function DomicileScreen() {
               <Fragment key={d.value}>
                 {i > 0 && <Separator className="my-1" />}
                 <RadioGroup.Item value={d.value}>
-                  <Label>{d.label}</Label>
+                  <Label>{`${d.flag}  ${_(d.labelKey)}`}</Label>
                   <Radio />
                 </RadioGroup.Item>
               </Fragment>

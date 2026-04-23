@@ -10,6 +10,7 @@ import { queryKeys } from '@/lib/queryKeys'
 import { fetchAllPositions } from '@/lib/api/positions'
 import { fetchPrices } from '@/lib/api/yahoo'
 import { getExchangeRates } from '@/lib/currency'
+import { STALE_TIME } from '@/lib/queryClient'
 import {
   computeDashboardBase,
   projectDashboardToDisplay,
@@ -54,7 +55,7 @@ export default function BrokersScreen() {
         queryClient.fetchQuery({
           queryKey: queryKeys.exchangeRates.latest(),
           queryFn: getExchangeRates,
-          staleTime: 1000 * 60 * 60,
+          staleTime: STALE_TIME.RATES,
         }),
       ])
       const symbols = [...new Set(positions.map(p => p.symbol))]

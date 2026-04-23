@@ -10,6 +10,7 @@ import { useSettings } from '@/lib/settingsContext'
 import { useRealizedPositions } from '@/hooks/useRealizedPositions'
 import { queryKeys } from '@/lib/queryKeys'
 import { getExchangeRates } from '@/lib/currency'
+import { STALE_TIME } from '@/lib/queryClient'
 import { aggregateRealizedTax } from '@/lib/tax'
 import type { ExchangeRates } from '@/lib/currency'
 import { EmptyState } from '@/components/EmptyState'
@@ -40,7 +41,7 @@ export function RealizedPositionsSection({ year, onYearChange }: RealizedPositio
   const { data: rates } = useQuery<ExchangeRates, Error>({
     queryKey: queryKeys.exchangeRates.latest(),
     queryFn: getExchangeRates,
-    staleTime: 1000 * 60 * 60,
+    staleTime: STALE_TIME.RATES,
   })
 
   // Recompute on domicile (SK/CZ threshold) and displayCurrency changes.
