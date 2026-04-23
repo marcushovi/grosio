@@ -13,7 +13,7 @@ interface ScreenProps {
 export function Screen({ children, className }: ScreenProps) {
   const bg = useThemeColor('background') as string
   return (
-    <SafeAreaView className={className} style={{ flex: 1, backgroundColor: bg }}>
+    <SafeAreaView className={`flex-1 ${className ?? ''}`} style={{ backgroundColor: bg }}>
       {children}
     </SafeAreaView>
   )

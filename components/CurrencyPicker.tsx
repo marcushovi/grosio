@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
-import { View, Text, Pressable, Modal, StyleSheet } from 'react-native'
+import { View, Text, Pressable, Modal } from 'react-native'
 import { useThemeColor } from 'heroui-native'
 import * as Haptics from 'expo-haptics'
 import { currencySymbol } from '@/lib/format'
@@ -7,6 +7,9 @@ import { useSettings } from '@/lib/settingsContext'
 import { CURRENCIES } from '@/lib/constants'
 import type { DisplayCurrency } from '@/lib/currency'
 import { useTranslation } from 'react-i18next'
+
+const MENU_OFFSET_Y = 4
+const MENU_RIGHT_INSET = 20
 
 export function CurrencyPicker() {
   const { t: _ } = useTranslation()
@@ -19,7 +22,7 @@ export function CurrencyPicker() {
   const openMenu = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
     btnRef.current?.measureInWindow((x, y, width, height) => {
-      setMenuPos({ top: y + height + 4, right: 20 })
+      setMenuPos({ top: y + height + MENU_OFFSET_Y, right: MENU_RIGHT_INSET })
       setMenuOpen(true)
     })
   }, [])
@@ -56,14 +59,11 @@ export function CurrencyPicker() {
         <Pressable className="flex-1" onPress={() => setMenuOpen(false)}>
           <View
             className="absolute min-w-40 rounded-xl py-1 shadow-md"
-            style={[
-              styles.dropdown,
-              {
-                top: menuPos.top,
-                right: menuPos.right,
-                backgroundColor: surface,
-              },
-            ]}
+            style={{
+              top: menuPos.top,
+              right: menuPos.right,
+              backgroundColor: surface,
+            }}
           >
             {CURRENCIES.map(c => (
               <Pressable
@@ -72,10 +72,9 @@ export function CurrencyPicker() {
                 className="flex-row items-center justify-between px-4 py-3"
               >
                 <Text
-                  className="text-base"
+                  className={`text-base ${c.value === currency ? 'font-semibold' : 'font-normal'}`}
                   style={{
                     color: c.value === currency ? accent : foreground,
-                    fontWeight: c.value === currency ? '600' : '400',
                   }}
                 >
                   {c.label}
@@ -93,10 +92,3 @@ export function CurrencyPicker() {
     </>
   )
 }
-
-// Explicit Android elevation — `shadow-md` alone is unreliable on older Android.
-const styles = StyleSheet.create({
-  dropdown: {
-    elevation: 8,
-  },
-})

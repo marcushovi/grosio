@@ -56,7 +56,7 @@ export function RealizedPositionsSection({ year, onYearChange }: RealizedPositio
           explicit width the trigger collapses and wraps "2026" onto two lines. */}
       <View className="flex-row items-center justify-between mb-3">
         <Text className="text-foreground text-lg font-semibold flex-1">{_('realizedInYear')}</Text>
-        <View style={{ width: 110 }}>
+        <View className="w-[110px]">
           <Select
             value={{ value: String(year), label: String(year) }}
             onValueChange={opt => {

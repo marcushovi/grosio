@@ -4,6 +4,11 @@ import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
 
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
 
+const YAHOO_SEARCH_COUNT = 8
+const PRICE_WINDOW_BEFORE_DAYS = 7
+const PRICE_WINDOW_AFTER_DAYS = 2
+const SECONDS_PER_DAY = 86400
+
 // Function-scoped client used only to verify incoming session tokens. Uses
 // the publishable key secret so `auth.getClaims()` can validate ES256 JWTs
 // against the project JWKS.
@@ -46,7 +51,7 @@ Deno.serve(async req => {
 
   try {
     if (action === 'search' && query) {
-      const yahooUrl = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=8&newsCount=0`
+      const yahooUrl = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=${YAHOO_SEARCH_COUNT}&newsCount=0`
       const res = await fetch(yahooUrl, { headers: { 'User-Agent': UA } })
       const data = await res.json()
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -72,8 +77,8 @@ Deno.serve(async req => {
         if (Number.isNaN(target)) return json({ error: 'invalid date' }, 400)
 
         // ±7-day window so weekends/holidays around the target are covered.
-        const period1 = Math.floor((target - 7 * 86400 * 1000) / 1000)
-        const period2 = Math.floor((target + 2 * 86400 * 1000) / 1000)
+        const period1 = Math.floor((target - PRICE_WINDOW_BEFORE_DAYS * SECONDS_PER_DAY * 1000) / 1000)
+        const period2 = Math.floor((target + PRICE_WINDOW_AFTER_DAYS * SECONDS_PER_DAY * 1000) / 1000)
         const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&period1=${period1}&period2=${period2}`
         const res = await fetch(yahooUrl, { headers: { 'User-Agent': UA } })
         if (!res.ok) throw new Error(`yahoo ${res.status}`)
@@ -87,7 +92,7 @@ Deno.serve(async req => {
 
         // Prefer the trading day ≤ target. Falls back to the earliest
         // available close if target is before the first data point.
-        const targetSec = Math.floor(target / 1000) + 86400
+        const targetSec = Math.floor(target / 1000) + SECONDS_PER_DAY
         let bestClose: number | null = null
         let bestTs: number | null = null
         for (let i = 0; i < timestamps.length; i++) {

@@ -40,13 +40,7 @@ export type UpdateBrokerInput = Partial<{
   color: string
 }>
 
-export async function updateBroker(brokerId: string, input: UpdateBrokerInput): Promise<Broker> {
-  const { data, error } = await supabase
-    .from('brokers')
-    .update(input)
-    .eq('id', brokerId)
-    .select()
-    .single()
+export async function updateBroker(brokerId: string, input: UpdateBrokerInput): Promise<void> {
+  const { error } = await supabase.from('brokers').update(input).eq('id', brokerId)
   if (error) throw new Error(error.message)
-  return data as Broker
 }

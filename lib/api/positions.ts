@@ -69,7 +69,7 @@ export type UpdatePositionInput = Partial<{
 export async function updatePosition(
   positionId: string,
   input: UpdatePositionInput
-): Promise<Position> {
+): Promise<void> {
   if (input.currency && !ALLOWED_CURRENCIES.includes(input.currency)) {
     throw new Error(`Unsupported currency: ${input.currency}`)
   }
@@ -83,15 +83,12 @@ export async function updatePosition(
   if (!existing) throw new Error('Position not found')
   if (isSold(existing as Position)) throw new Error('Cannot edit a sold position')
 
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('positions')
     .update(input)
     .eq('id', positionId)
     .is('sold_at', null)
-    .select()
-    .single()
   if (error) throw new Error(error.message)
-  return data as Position
 }
 
 // Mark as fully sold. sold_shares = shares (no partials). Date check is
@@ -99,7 +96,7 @@ export async function updatePosition(
 export async function sellPosition(
   positionId: string,
   input: { soldDate: string; soldPrice: number }
-): Promise<Position> {
+): Promise<void> {
   if (input.soldPrice <= 0) throw new Error('Sold price must be positive')
 
   const { data: existing, error: fetchErr } = await supabase
@@ -115,7 +112,7 @@ export async function sellPosition(
     throw new Error('Sold date cannot be before buy date')
   }
 
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('positions')
     .update({
       sold_at: input.soldDate,
@@ -124,14 +121,11 @@ export async function sellPosition(
     })
     .eq('id', positionId)
     .is('sold_at', null)
-    .select()
-    .single()
   if (error) throw new Error(error.message)
-  return data as Position
 }
 
 // Reopen a sold position by clearing the sale fields.
-export async function unsellPosition(positionId: string): Promise<Position> {
+export async function unsellPosition(positionId: string): Promise<void> {
   const { data: existing, error: fetchErr } = await supabase
     .from('positions')
     .select('*')
@@ -141,12 +135,9 @@ export async function unsellPosition(positionId: string): Promise<Position> {
   if (!existing) throw new Error('Position not found')
   if (!isSold(existing as Position)) throw new Error('Position is not sold')
 
-  const { data, error } = await supabase
+  const { error } = await supabase
     .from('positions')
     .update({ sold_at: null, sold_price: null, sold_shares: null })
     .eq('id', positionId)
-    .select()
-    .single()
   if (error) throw new Error(error.message)
-  return data as Position
 }

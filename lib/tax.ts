@@ -10,6 +10,8 @@ import type { PriceMap } from '@/lib/api/yahoo'
 export type Domicile = 'SK' | 'CZ'
 export type { DisplayCurrency }
 
+const MS_PER_DAY = 1000 * 60 * 60 * 24
+
 export const TAX_THRESHOLD_DAYS: Record<Domicile, number> = {
   SK: 365,
   CZ: 1095,
@@ -114,7 +116,7 @@ export function computeTaxStatusBase(
 
       const buyDate = new Date(pos.buy_date)
       buyDate.setHours(0, 0, 0, 0)
-      const daysHeld = Math.floor((today.getTime() - buyDate.getTime()) / (1000 * 60 * 60 * 24))
+      const daysHeld = Math.floor((today.getTime() - buyDate.getTime()) / MS_PER_DAY)
       const isTaxFree = daysHeld >= threshold
       const daysUntilTaxFree = isTaxFree ? 0 : threshold - daysHeld
 
@@ -178,7 +180,7 @@ export function computeRealizedTaxStatus(
   if (!position.buy_date || !position.sold_at) return { isTaxFree: null, daysHeld: null }
   const buy = new Date(`${position.buy_date}T00:00:00`)
   const sold = new Date(`${position.sold_at}T00:00:00`)
-  const daysHeld = Math.floor((sold.getTime() - buy.getTime()) / (1000 * 60 * 60 * 24))
+  const daysHeld = Math.floor((sold.getTime() - buy.getTime()) / MS_PER_DAY)
   return { isTaxFree: daysHeld >= TAX_THRESHOLD_DAYS[domicile], daysHeld }
 }
 

@@ -4,6 +4,8 @@ import { convertToDisplay, toEur } from '@/lib/currency'
 import { computePositionValueEur } from '@/lib/portfolio'
 import type { PriceMap } from '@/lib/api/yahoo'
 
+const MOVERS_LIMIT = 3
+
 // Currency-invariant intermediate. `valueEur` becomes `Mover.currentValue`
 // after the display projection.
 interface MoverBase {
@@ -56,10 +58,10 @@ function computeMoversBase(
   }
   const sorted = [...movers].sort((a, b) => b.pnlPercent - a.pnlPercent)
   return {
-    topGainers: sorted.filter(m => m.pnlPercent > 0).slice(0, 3),
+    topGainers: sorted.filter(m => m.pnlPercent > 0).slice(0, MOVERS_LIMIT),
     topLosers: sorted
       .filter(m => m.pnlPercent < 0)
-      .slice(-3)
+      .slice(-MOVERS_LIMIT)
       .reverse(),
   }
 }

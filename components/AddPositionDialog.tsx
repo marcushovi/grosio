@@ -8,7 +8,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  StyleSheet,
 } from 'react-native'
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker'
 import { Button } from 'heroui-native/button'
@@ -23,6 +22,10 @@ import { toYyyyMmDd } from '@/lib/format'
 import { useFormat } from '@/hooks/useFormat'
 import { useUpdatePosition } from '@/hooks/usePositions'
 import type { Position, PositionCurrency } from '@/types'
+
+const SEARCH_DEBOUNCE_MS = 300
+const SEARCH_MIN_CHARS = 2
+const SEARCH_RESULT_LIMIT = 5
 
 interface SearchResult {
   symbol: string
@@ -110,7 +113,7 @@ export function AddPositionDialog({
       if (isEdit) return
       setForm(prev => ({ ...prev, searchQuery: query }))
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
-      if (query.length < 2) {
+      if (query.length < SEARCH_MIN_CHARS) {
         setSearchResults([])
         setSearching(false)
         return
@@ -128,7 +131,7 @@ export function AddPositionDialog({
         } finally {
           if (reqId === searchRequestIdRef.current) setSearching(false)
         }
-      }, 300)
+      }, SEARCH_DEBOUNCE_MS)
     },
     [isEdit]
   )
@@ -293,9 +296,8 @@ export function AddPositionDialog({
                     {searchResults.length > 0 && (
                       <View
                         className="absolute top-full left-0 right-0 mt-1 z-20 bg-surface rounded-xl border border-border shadow-lg"
-                        style={styles.searchDropdown}
                       >
-                        {searchResults.slice(0, 5).map((r, i) => (
+                        {searchResults.slice(0, SEARCH_RESULT_LIMIT).map((r, i) => (
                           <View key={r.symbol}>
                             {i > 0 && <Separator />}
                             <Pressable
@@ -415,10 +417,3 @@ export function AddPositionDialog({
     </Dialog>
   )
 }
-
-// Android elevation for the floating search-results dropdown.
-const styles = StyleSheet.create({
-  searchDropdown: {
-    elevation: 8,
-  },
-})
