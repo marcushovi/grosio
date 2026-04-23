@@ -1,6 +1,4 @@
 -- Baseline migration for Grosio.
--- Squashed from: 001_init, 002_add_buy_date, 20260421_rename_avg_buy_price, 20260422_add_sold_columns.
--- Generated on 2026-04-23.
 
 -- Brokers
 create table if not exists public.brokers (
