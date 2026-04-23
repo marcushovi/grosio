@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState } from 'react'
 import { View, Text, Alert, KeyboardAvoidingView, Platform, Pressable } from 'react-native'
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker'
 import { Button } from 'heroui-native/button'
@@ -28,15 +28,11 @@ export function SellPositionDialog({ isOpen, onOpenChange, position }: SellPosit
   const [soldPrice, setSoldPrice] = useState('')
   const [iosPickerVisible, setIosPickerVisible] = useState(false)
 
-  const soldDateIso = useMemo(() => toYyyyMmDd(soldDate), [soldDate])
-
+  const soldDateIso = toYyyyMmDd(soldDate)
   // Min sale date = buy date (DB constraint `positions_sold_after_buy`).
-  const minDate = useMemo(
-    () => (position.buy_date ? new Date(`${position.buy_date}T00:00:00`) : undefined),
-    [position.buy_date]
-  )
+  const minDate = position.buy_date ? new Date(`${position.buy_date}T00:00:00`) : undefined
 
-  const openAndroidPicker = useCallback(() => {
+  const openAndroidPicker = () => {
     DateTimePickerAndroid.open({
       value: soldDate,
       mode: 'date',
@@ -46,9 +42,9 @@ export function SellPositionDialog({ isOpen, onOpenChange, position }: SellPosit
         if (selected) setSoldDate(selected)
       },
     })
-  }, [soldDate, minDate])
+  }
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = () => {
     const parsedPrice = parseFloat(soldPrice)
     if (!soldPrice || Number.isNaN(parsedPrice) || parsedPrice <= 0) {
       return Alert.alert(_('error'), _('enterSoldPrice'))
@@ -66,7 +62,7 @@ export function SellPositionDialog({ isOpen, onOpenChange, position }: SellPosit
         onError: e => Alert.alert(_('error'), e instanceof Error ? e.message : String(e)),
       }
     )
-  }, [soldPrice, soldDateIso, position, sellPositionMutation, onOpenChange, _])
+  }
 
   const dateLabel = f.formatDate(soldDate)
   const saving = sellPositionMutation.isPending

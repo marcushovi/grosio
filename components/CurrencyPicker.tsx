@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef } from 'react'
 import { View, Text, Pressable, Modal } from 'react-native'
 import { useThemeColor } from 'heroui-native'
 import * as Haptics from 'expo-haptics'
@@ -19,22 +19,19 @@ export function CurrencyPicker() {
   const [menuPos, setMenuPos] = useState({ top: 0, right: 0 })
   const btnRef = useRef<View>(null)
 
-  const openMenu = useCallback(() => {
+  const openMenu = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
     btnRef.current?.measureInWindow((x, y, width, height) => {
       setMenuPos({ top: y + height + MENU_OFFSET_Y, right: MENU_RIGHT_INSET })
       setMenuOpen(true)
     })
-  }, [])
+  }
 
-  const select = useCallback(
-    (c: DisplayCurrency) => {
-      Haptics.selectionAsync()
-      setCurrency(c)
-      setMenuOpen(false)
-    },
-    [setCurrency]
-  )
+  const select = (c: DisplayCurrency) => {
+    Haptics.selectionAsync()
+    setCurrency(c)
+    setMenuOpen(false)
+  }
 
   return (
     <>

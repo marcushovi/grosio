@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import { View, Text, Pressable, LayoutAnimation, Platform, UIManager } from 'react-native'
 import { Card } from 'heroui-native/card'
 import { Chip } from 'heroui-native/chip'
@@ -30,10 +30,10 @@ export function RealizedPositionCard({
   const f = useFormat()
   const [expanded, setExpanded] = useState(false)
 
-  const toggle = useCallback(() => {
+  const toggle = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
     setExpanded(v => !v)
-  }, [])
+  }
 
   const { isTaxFree, daysHeld } = computeRealizedTaxStatus(position, domicile)
   const pnlNative = realizedPnlNative(position)

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import { Text, Alert, KeyboardAvoidingView, Platform } from 'react-native'
 import { Link } from 'expo-router'
 import { useMutation } from '@tanstack/react-query'
@@ -20,10 +20,10 @@ export default function LoginScreen() {
     onError: (err: Error) => Alert.alert(_('error'), err.message || _('unexpectedError')),
   })
 
-  const handleLogin = useCallback(() => {
+  const handleLogin = () => {
     if (!email || !password) return Alert.alert(_('error'), _('fillEmailPassword'))
     login.mutate({ email, password })
-  }, [email, password, login, _])
+  }
 
   return (
     <KeyboardAvoidingView

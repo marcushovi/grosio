@@ -2,7 +2,6 @@ import { Text, ScrollView, Alert } from 'react-native'
 import { ListGroup, Separator, useThemeColor } from 'heroui-native'
 import { Button } from 'heroui-native/button'
 import { useRouter } from 'expo-router'
-import { useCallback } from 'react'
 import { User, Globe, Palette, Coins, ShieldCheck } from 'lucide-react-native'
 import * as Haptics from 'expo-haptics'
 import { useMutation } from '@tanstack/react-query'
@@ -10,14 +9,8 @@ import { useSession } from '@/lib/sessionContext'
 import { useTranslation } from 'react-i18next'
 import { useSettings } from '@/lib/settingsContext'
 import { currencySymbol } from '@/lib/format'
+import { LANGUAGES, DOMICILES } from '@/lib/constants'
 import { Screen } from '@/components/Screen'
-
-const LANGUAGE_LABELS: Record<string, string> = {
-  en: 'English',
-  sk: 'Slovenčina',
-  cs: 'Čeština',
-  de: 'Deutsch',
-}
 
 export default function SettingsScreen() {
   const { t: _ } = useTranslation()
@@ -30,7 +23,7 @@ export default function SettingsScreen() {
     mutationFn: signOut,
     onError: () => Alert.alert(_('error'), _('logOutError')),
   })
-  const handleLogout = useCallback(() => logout.mutate(), [logout])
+  const handleLogout = () => logout.mutate()
 
   const navigate = (path: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
@@ -57,7 +50,9 @@ export default function SettingsScreen() {
             </ListGroup.ItemPrefix>
             <ListGroup.ItemContent>
               <ListGroup.ItemTitle>{_('language')}</ListGroup.ItemTitle>
-              <ListGroup.ItemDescription>{LANGUAGE_LABELS[language]}</ListGroup.ItemDescription>
+              <ListGroup.ItemDescription>
+                {LANGUAGES.find(l => l.value === language)?.label ?? language}
+              </ListGroup.ItemDescription>
             </ListGroup.ItemContent>
             <ListGroup.ItemSuffix />
           </ListGroup.Item>
@@ -99,7 +94,7 @@ export default function SettingsScreen() {
             <ListGroup.ItemContent>
               <ListGroup.ItemTitle>{_('domicile')}</ListGroup.ItemTitle>
               <ListGroup.ItemDescription>
-                {domicile === 'SK' ? _('domicileSK') : _('domicileCZ')}
+                {_(DOMICILES.find(d => d.value === domicile)?.labelKey ?? 'domicileSK')}
               </ListGroup.ItemDescription>
             </ListGroup.ItemContent>
             <ListGroup.ItemSuffix />

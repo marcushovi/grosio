@@ -30,10 +30,7 @@ export function RealizedPositionsSection({ year, onYearChange }: RealizedPositio
   const { domicile, currency: displayCurrency } = useSettings()
 
   const currentYear = new Date().getFullYear()
-  const years = useMemo(
-    () => Array.from({ length: YEARS_BACK + 1 }, (_, i) => currentYear - i),
-    [currentYear]
-  )
+  const years = Array.from({ length: YEARS_BACK + 1 }, (_, i) => currentYear - i)
 
   const { data: positions, isPending, error, refetch } = useRealizedPositions(year)
 

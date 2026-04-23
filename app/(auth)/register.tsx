@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import { Text, Alert, KeyboardAvoidingView, Platform } from 'react-native'
 import { Link, useRouter } from 'expo-router'
 import { useMutation } from '@tanstack/react-query'
@@ -26,10 +26,10 @@ export default function RegisterScreen() {
     onError: (err: Error) => Alert.alert(_('error'), err.message || _('unexpectedError')),
   })
 
-  const handleRegister = useCallback(() => {
+  const handleRegister = () => {
     if (!email || !password) return Alert.alert(_('error'), _('fillEmailPassword'))
     register.mutate({ email, password })
-  }, [email, password, register, _])
+  }
 
   return (
     <KeyboardAvoidingView

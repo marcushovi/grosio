@@ -122,7 +122,7 @@ export default function DashboardScreen() {
   }, [queryClient, refetchDashboard])
 
   const isPositive = totalGainLoss >= 0
-  const fmt = useCallback((n: number) => f.formatCurrency(n, displayCurrency), [f, displayCurrency])
+  const fmt = (n: number) => f.formatCurrency(n, displayCurrency)
   const brokersWithValue = brokerValues.filter(b => b.value > 0)
 
   if (brokersError) {

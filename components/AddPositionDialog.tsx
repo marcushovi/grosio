@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   View,
@@ -100,41 +100,38 @@ export function AddPositionDialog({
   const [iosPickerVisible, setIosPickerVisible] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  const buyDateIso = useMemo(() => toYyyyMmDd(form.buyDate), [form.buyDate])
+  const buyDateIso = toYyyyMmDd(form.buyDate)
 
   // Debounced symbol search with a request-id guard so an earlier (slower)
   // response cannot overwrite a newer one.
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const searchRequestIdRef = useRef(0)
 
-  const handleSearch = useCallback(
-    (query: string) => {
-      // Symbol is immutable in edit mode. To change it, delete and recreate.
-      if (isEdit) return
-      setForm(prev => ({ ...prev, searchQuery: query }))
-      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
-      if (query.length < SEARCH_MIN_CHARS) {
+  const handleSearch = (query: string) => {
+    // Symbol is immutable in edit mode. To change it, delete and recreate.
+    if (isEdit) return
+    setForm(prev => ({ ...prev, searchQuery: query }))
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+    if (query.length < SEARCH_MIN_CHARS) {
+      setSearchResults([])
+      setSearching(false)
+      return
+    }
+    setSearching(true)
+    searchTimeoutRef.current = setTimeout(async () => {
+      const reqId = ++searchRequestIdRef.current
+      try {
+        const results = await searchSymbols(query)
+        if (reqId !== searchRequestIdRef.current) return
+        setSearchResults(results)
+      } catch {
+        if (reqId !== searchRequestIdRef.current) return
         setSearchResults([])
-        setSearching(false)
-        return
+      } finally {
+        if (reqId === searchRequestIdRef.current) setSearching(false)
       }
-      setSearching(true)
-      searchTimeoutRef.current = setTimeout(async () => {
-        const reqId = ++searchRequestIdRef.current
-        try {
-          const results = await searchSymbols(query)
-          if (reqId !== searchRequestIdRef.current) return
-          setSearchResults(results)
-        } catch {
-          if (reqId !== searchRequestIdRef.current) return
-          setSearchResults([])
-        } finally {
-          if (reqId === searchRequestIdRef.current) setSearching(false)
-        }
-      }, SEARCH_DEBOUNCE_MS)
-    },
-    [isEdit]
-  )
+    }, SEARCH_DEBOUNCE_MS)
+  }
 
   useEffect(() => {
     return () => {
@@ -142,12 +139,12 @@ export function AddPositionDialog({
     }
   }, [])
 
-  const handleSelectSymbol = useCallback((symbol: string, name: string) => {
+  const handleSelectSymbol = (symbol: string, name: string) => {
     // Fresh symbol → clear priceEdited so the auto-fetched close populates
     // the price box for the new ticker.
     setForm(prev => ({ ...prev, symbol, name, searchQuery: name, priceEdited: false }))
     setSearchResults([])
-  }, [])
+  }
 
   // Auto-fill historical close when symbol or buy date changes. Skip in edit
   // mode — stored buy price must not be overwritten. TanStack caches by
@@ -171,7 +168,7 @@ export function AddPositionDialog({
 
   // iOS uses the inline <DateTimePicker> below. Android needs this imperative
   // native dialog because the inline picker doesn't match Material guidelines.
-  const openAndroidPicker = useCallback(() => {
+  const openAndroidPicker = () => {
     DateTimePickerAndroid.open({
       value: form.buyDate,
       mode: 'date',
@@ -180,9 +177,9 @@ export function AddPositionDialog({
         if (selected) setForm(prev => ({ ...prev, buyDate: selected }))
       },
     })
-  }, [form.buyDate])
+  }
 
-  const handleSubmit = useCallback(async () => {
+  const handleSubmit = async () => {
     const { symbol, name, shares, price, currency } = form
     if (!symbol) return Alert.alert(_('error'), _('selectSymbol'))
     if (!shares || parseFloat(shares) <= 0) return Alert.alert(_('error'), _('enterShares'))
@@ -235,15 +232,12 @@ export function AddPositionDialog({
     if (error) return Alert.alert(_('error'), error.message)
     setForm(initialFormState(undefined, false))
     onOpenChange(false)
-  }, [form, buyDateIso, onAdd, onOpenChange, isEdit, position, updatePositionMutation, _])
+  }
 
-  const handleOpenChange = useCallback(
-    (open: boolean) => {
-      if (!open && !isEdit) setForm(initialFormState(undefined, false))
-      onOpenChange(open)
-    },
-    [isEdit, onOpenChange]
-  )
+  const handleOpenChange = (open: boolean) => {
+    if (!open && !isEdit) setForm(initialFormState(undefined, false))
+    onOpenChange(open)
+  }
 
   const dateLabel = f.formatDate(form.buyDate)
   const title = isEdit ? _('editPosition') : _('addPosition')

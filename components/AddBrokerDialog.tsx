@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState } from 'react'
 import { View, Text, Alert, KeyboardAvoidingView, Platform } from 'react-native'
 import { Button } from 'heroui-native/button'
 import { Input } from 'heroui-native/input'
@@ -29,12 +29,12 @@ export function AddBrokerDialog({
   const [name, setName] = useState(broker?.name ?? '')
   const [color, setColor] = useState(broker?.color ?? COLORS[0])
 
-  const reset = useCallback(() => {
+  const reset = () => {
     setName('')
     setColor(COLORS[0])
-  }, [])
+  }
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = () => {
     const trimmed = name.trim()
     if (!trimmed) {
       Alert.alert(_('error'), _('enterBrokerName'))
@@ -60,15 +60,12 @@ export function AddBrokerDialog({
         onError: e => Alert.alert(_('error'), e instanceof Error ? e.message : String(e)),
       }
     )
-  }, [name, color, isEdit, broker, addBrokerMutation, updateBrokerMutation, reset, onOpenChange, _])
+  }
 
-  const handleOpenChange = useCallback(
-    (open: boolean) => {
-      if (!open && !isEdit) reset()
-      onOpenChange(open)
-    },
-    [isEdit, reset, onOpenChange]
-  )
+  const handleOpenChange = (open: boolean) => {
+    if (!open && !isEdit) reset()
+    onOpenChange(open)
+  }
 
   const saving = isEdit ? updateBrokerMutation.isPending : addBrokerMutation.isPending
   const title = isEdit ? _('editBroker') : _('newBroker')
