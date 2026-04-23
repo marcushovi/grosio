@@ -186,7 +186,9 @@ export default function TaxScreen() {
 
         <Card className="bg-surface p-4 mb-3 flex-row items-start gap-3">
           <ShieldCheck size={18} color={success} />
-          <Text className="text-muted text-sm flex-1">{_(`taxFreeExplain_${domicile}`)}</Text>
+          <Text className="text-muted text-sm flex-1">
+            {domicile === 'SK' ? _('taxFreeExplain_SK') : _('taxFreeExplain_CZ')}
+          </Text>
         </Card>
 
         <View className="flex-row gap-3 mb-3">
