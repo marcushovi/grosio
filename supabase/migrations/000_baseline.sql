@@ -1,4 +1,8 @@
--- Create brokers table
+-- Baseline migration for Grosio.
+-- Squashed from: 001_init, 002_add_buy_date, 20260421_rename_avg_buy_price, 20260422_add_sold_columns.
+-- Generated on 2026-04-23.
+
+-- Brokers
 create table if not exists public.brokers (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users(id) on delete cascade not null,
@@ -7,7 +11,8 @@ create table if not exists public.brokers (
   created_at timestamptz default now() not null
 );
 
--- Create positions table
+-- Positions. One row = one buy tranche, optionally closed by one full sale.
+-- The three sold_* columns are all NULL together (open) or all NOT NULL (sold).
 create table if not exists public.positions (
   id uuid default gen_random_uuid() primary key,
   broker_id uuid references public.brokers(id) on delete cascade not null,
@@ -15,9 +20,27 @@ create table if not exists public.positions (
   symbol text not null,
   name text not null,
   shares numeric(12,6) not null check (shares > 0),
-  avg_buy_price numeric(12,4) not null check (avg_buy_price > 0),
+  buy_price numeric(12,4) not null check (buy_price > 0),
   currency text not null default 'USD',
-  created_at timestamptz default now() not null
+  buy_date date,
+  sold_at date,
+  sold_price numeric(12,4),
+  sold_shares numeric(12,6),
+  created_at timestamptz default now() not null,
+  constraint positions_sold_consistency check (
+    (sold_at is null and sold_price is null and sold_shares is null)
+    or
+    (sold_at is not null and sold_price is not null and sold_shares is not null)
+  ),
+  constraint positions_sold_full check (
+    sold_shares is null or sold_shares = shares
+  ),
+  -- buy_date is nullable on legacy rows. NULL on either side leaves the
+  -- comparison UNKNOWN, which CHECK treats as satisfied — so legacy rows
+  -- without a buy_date can still be marked sold.
+  constraint positions_sold_after_buy check (
+    sold_at is null or buy_date is null or sold_at >= buy_date
+  )
 );
 
 -- Indexes
@@ -25,11 +48,11 @@ create index if not exists brokers_user_id_idx on public.brokers(user_id);
 create index if not exists positions_user_id_idx on public.positions(user_id);
 create index if not exists positions_broker_id_idx on public.positions(broker_id);
 
--- Enable RLS
+-- RLS
 alter table public.brokers enable row level security;
 alter table public.positions enable row level security;
 
--- RLS policies: brokers
+-- Brokers policies
 create policy "Users can view own brokers"
   on public.brokers for select
   using (auth.uid() = user_id);
@@ -47,7 +70,7 @@ create policy "Users can delete own brokers"
   on public.brokers for delete
   using (auth.uid() = user_id);
 
--- RLS policies: positions
+-- Positions policies
 create policy "Users can view own positions"
   on public.positions for select
   using (auth.uid() = user_id);
