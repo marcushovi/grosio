@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { SplashScreen } from 'expo-router'
 import { useSession } from '@/lib/sessionContext'
 import { useSettings } from '@/lib/settingsContext'
@@ -10,8 +11,10 @@ SplashScreen.preventAutoHideAsync()
 export function SplashScreenController() {
   const { isLoading: sessionLoading } = useSession()
   const { isLoaded: settingsLoaded } = useSettings()
-  if (!sessionLoading && settingsLoaded) {
-    SplashScreen.hide()
-  }
+  const ready = !sessionLoading && settingsLoaded
+  useEffect(() => {
+    if (!ready) return
+    SplashScreen.hideAsync().catch(() => {})
+  }, [ready])
   return null
 }
