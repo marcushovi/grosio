@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { View, Text, Alert, KeyboardAvoidingView, Platform } from 'react-native'
 import { Button } from 'heroui-native/button'
 import { Input } from 'heroui-native/input'
@@ -28,14 +28,6 @@ export function AddBrokerDialog({
 
   const [name, setName] = useState(broker?.name ?? '')
   const [color, setColor] = useState(broker?.color ?? COLORS[0])
-
-  // Reseed form when reopened for a different broker.
-  useEffect(() => {
-    if (isOpen && isEdit && broker) {
-      setName(broker.name)
-      setColor(broker.color)
-    }
-  }, [isOpen, isEdit, broker])
 
   const reset = useCallback(() => {
     setName('')

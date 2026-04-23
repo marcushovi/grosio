@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import {
   View,
   Text,
@@ -46,6 +47,34 @@ interface AddPositionDialogProps {
   position?: Position
 }
 
+// One bag for the whole form. Patched via `setForm(prev => …)` so multi-field
+// updates (e.g. picking a symbol) stay atomic.
+interface FormState {
+  searchQuery: string
+  symbol: string
+  name: string
+  currency: PositionCurrency
+  shares: string
+  price: string
+  // Once the user has typed in the price box, auto-fetched quotes must not
+  // overwrite it. Pre-seeded true in edit mode to protect the stored value.
+  priceEdited: boolean
+  buyDate: Date
+}
+
+function initialFormState(position: Position | undefined, isEdit: boolean): FormState {
+  return {
+    searchQuery: '',
+    symbol: position?.symbol ?? '',
+    name: position?.name ?? '',
+    currency: position?.currency ?? 'USD',
+    shares: position ? String(position.shares) : '',
+    price: position ? String(position.buy_price) : '',
+    priceEdited: isEdit,
+    buyDate: position?.buy_date ? new Date(`${position.buy_date}T00:00:00`) : new Date(),
+  }
+}
+
 export function AddPositionDialog({
   isOpen,
   onOpenChange,
@@ -59,65 +88,26 @@ export function AddPositionDialog({
   const updatePositionMutation = useUpdatePosition()
   const isEdit = mode === 'edit'
 
-  const [searchQuery, setSearchQuery] = useState('')
+  const [form, setForm] = useState<FormState>(() => initialFormState(position, isEdit))
+  // Everything below is non-form UI/async state, kept separate from the form
+  // bag so a keystroke in a text field does not re-render the search dropdown.
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [searching, setSearching] = useState(false)
-  const [selectedSymbol, setSelectedSymbol] = useState(position?.symbol ?? '')
-  const [selectedName, setSelectedName] = useState(position?.name ?? '')
-  const [selectedCurrency, setSelectedCurrency] = useState<PositionCurrency>(
-    position?.currency ?? 'USD'
-  )
-  const [shares, setShares] = useState(position ? String(position.shares) : '')
-  const [price, setPrice] = useState(position ? String(position.buy_price) : '')
-  const [isPriceManuallyEdited, setIsPriceManuallyEdited] = useState(isEdit)
-  const [buyDate, setBuyDate] = useState<Date>(() =>
-    position?.buy_date ? new Date(`${position.buy_date}T00:00:00`) : new Date()
-  )
   const [iosPickerVisible, setIosPickerVisible] = useState(false)
-  const [pricingLoading, setPricingLoading] = useState(false)
   const [saving, setSaving] = useState(false)
 
-  const buyDateIso = useMemo(() => toYyyyMmDd(buyDate), [buyDate])
-
-  // Reseed when reopened for a different position.
-  useEffect(() => {
-    if (!isOpen) return
-    if (isEdit && position) {
-      setSelectedSymbol(position.symbol)
-      setSelectedName(position.name)
-      setSelectedCurrency(position.currency)
-      setShares(String(position.shares))
-      setPrice(String(position.buy_price))
-      setIsPriceManuallyEdited(true)
-      setBuyDate(position.buy_date ? new Date(`${position.buy_date}T00:00:00`) : new Date())
-      setSearchQuery(position.name)
-      setSearchResults([])
-    }
-  }, [isOpen, isEdit, position])
+  const buyDateIso = useMemo(() => toYyyyMmDd(form.buyDate), [form.buyDate])
 
   // Debounced symbol search with a request-id guard so an earlier (slower)
   // response cannot overwrite a newer one.
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const searchRequestIdRef = useRef(0)
 
-  const reset = useCallback(() => {
-    setSearchQuery('')
-    setSearchResults([])
-    setSelectedSymbol('')
-    setSelectedName('')
-    setShares('')
-    setPrice('')
-    setIsPriceManuallyEdited(false)
-    setSelectedCurrency('USD')
-    setBuyDate(new Date())
-    setIosPickerVisible(false)
-  }, [])
-
   const handleSearch = useCallback(
     (query: string) => {
       // Symbol is immutable in edit mode. To change it, delete and recreate.
       if (isEdit) return
-      setSearchQuery(query)
+      setForm(prev => ({ ...prev, searchQuery: query }))
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
       if (query.length < 2) {
         setSearchResults([])
@@ -149,53 +139,48 @@ export function AddPositionDialog({
   }, [])
 
   const handleSelectSymbol = useCallback((symbol: string, name: string) => {
-    setSelectedSymbol(symbol)
-    setSelectedName(name)
-    // Fresh symbol → clear the manual-edit flag so the auto-fetch effect
-    // populates the price for the new ticker.
-    setIsPriceManuallyEdited(false)
+    // Fresh symbol → clear priceEdited so the auto-fetched close populates
+    // the price box for the new ticker.
+    setForm(prev => ({ ...prev, symbol, name, searchQuery: name, priceEdited: false }))
     setSearchResults([])
-    setSearchQuery(name)
   }, [])
 
   // Auto-fill historical close when symbol or buy date changes. Skip in edit
-  // mode — stored buy price must not be overwritten.
+  // mode — stored buy price must not be overwritten. TanStack caches by
+  // (symbol, date) so flipping between already-seen combos is instant.
+  const { data: pricing, isFetching: pricingLoading } = useQuery({
+    queryKey: ['priceOnDate', form.symbol, buyDateIso],
+    queryFn: () => getPriceOnDate(form.symbol, buyDateIso),
+    enabled: !isEdit && !!form.symbol,
+    staleTime: 1000 * 60 * 60,
+  })
+
+  // Propagate query result to form fields. Honours manual edits to the price.
   useEffect(() => {
-    if (isEdit) return
-    if (!selectedSymbol) return
-    let cancelled = false
-    const timer = setTimeout(async () => {
-      setPricingLoading(true)
-      try {
-        const result = await getPriceOnDate(selectedSymbol, buyDateIso)
-        if (cancelled || !result) return
-        if (!isPriceManuallyEdited) setPrice(result.close.toFixed(2))
-        setSelectedCurrency(result.currency)
-      } finally {
-        if (!cancelled) setPricingLoading(false)
-      }
-    }, 300)
-    return () => {
-      cancelled = true
-      clearTimeout(timer)
-    }
-  }, [selectedSymbol, buyDateIso, isPriceManuallyEdited, isEdit])
+    if (!pricing) return
+    setForm(prev => ({
+      ...prev,
+      price: prev.priceEdited ? prev.price : pricing.close.toFixed(2),
+      currency: pricing.currency,
+    }))
+  }, [pricing])
 
   // iOS uses the inline <DateTimePicker> below. Android needs this imperative
   // native dialog because the inline picker doesn't match Material guidelines.
   const openAndroidPicker = useCallback(() => {
     DateTimePickerAndroid.open({
-      value: buyDate,
+      value: form.buyDate,
       mode: 'date',
       maximumDate: new Date(),
       onChange: (_event, selected) => {
-        if (selected) setBuyDate(selected)
+        if (selected) setForm(prev => ({ ...prev, buyDate: selected }))
       },
     })
-  }, [buyDate])
+  }, [form.buyDate])
 
   const handleSubmit = useCallback(async () => {
-    if (!selectedSymbol) return Alert.alert(_('error'), _('selectSymbol'))
+    const { symbol, name, shares, price, currency } = form
+    if (!symbol) return Alert.alert(_('error'), _('selectSymbol'))
     if (!shares || parseFloat(shares) <= 0) return Alert.alert(_('error'), _('enterShares'))
     if (!price || parseFloat(price) <= 0) return Alert.alert(_('error'), _('enterPrice'))
     if (!/^\d{4}-\d{2}-\d{2}$/.test(buyDateIso)) return Alert.alert(_('error'), _('invalidBuyDate'))
@@ -210,11 +195,11 @@ export function AddPositionDialog({
         {
           positionId: position.id,
           input: {
-            symbol: selectedSymbol,
-            name: selectedName,
+            symbol,
+            name,
             shares: parseFloat(shares),
             buy_price: parseFloat(price),
-            currency: selectedCurrency,
+            currency,
             buy_date: buyDateIso,
           },
         },
@@ -235,42 +220,28 @@ export function AddPositionDialog({
     if (!onAdd) return
     setSaving(true)
     const { error } = await onAdd({
-      symbol: selectedSymbol,
-      name: selectedName,
+      symbol,
+      name,
       shares: parseFloat(shares),
       buy_price: parseFloat(price),
-      currency: selectedCurrency,
+      currency,
       buy_date: buyDateIso,
     })
     setSaving(false)
     if (error) return Alert.alert(_('error'), error.message)
-    reset()
+    setForm(initialFormState(undefined, false))
     onOpenChange(false)
-  }, [
-    selectedSymbol,
-    selectedName,
-    shares,
-    price,
-    selectedCurrency,
-    buyDateIso,
-    onAdd,
-    reset,
-    onOpenChange,
-    isEdit,
-    position,
-    updatePositionMutation,
-    _,
-  ])
+  }, [form, buyDateIso, onAdd, onOpenChange, isEdit, position, updatePositionMutation, _])
 
   const handleOpenChange = useCallback(
     (open: boolean) => {
-      if (!open && !isEdit) reset()
+      if (!open && !isEdit) setForm(initialFormState(undefined, false))
       onOpenChange(open)
     },
-    [isEdit, reset, onOpenChange]
+    [isEdit, onOpenChange]
   )
 
-  const dateLabel = f.formatDate(buyDate)
+  const dateLabel = f.formatDate(form.buyDate)
   const title = isEdit ? _('editPosition') : _('addPosition')
   const description = isEdit ? _('editPositionDesc') : _('addPositionDesc')
 
@@ -291,14 +262,14 @@ export function AddPositionDialog({
               <Text className="text-muted text-sm mb-2">{_('symbol')}</Text>
               {isEdit ? (
                 <View className="bg-background rounded-xl p-3">
-                  <Text className="text-accent font-semibold">{selectedSymbol}</Text>
-                  <Text className="text-muted text-xs">{selectedName}</Text>
+                  <Text className="text-accent font-semibold">{form.symbol}</Text>
+                  <Text className="text-muted text-xs">{form.name}</Text>
                 </View>
               ) : (
                 <>
                   {/* Relative anchor so the results list floats over fields below. */}
                   <View className="relative z-10">
-                    <SearchField value={searchQuery} onChange={handleSearch}>
+                    <SearchField value={form.searchQuery} onChange={handleSearch}>
                       <SearchField.Group>
                         <SearchField.SearchIcon />
                         <SearchField.Input
@@ -341,10 +312,10 @@ export function AddPositionDialog({
                     )}
                   </View>
 
-                  {selectedSymbol ? (
+                  {form.symbol ? (
                     <View className="mt-3 bg-background rounded-xl p-3">
-                      <Text className="text-accent font-semibold">{selectedSymbol}</Text>
-                      <Text className="text-muted text-xs">{selectedName}</Text>
+                      <Text className="text-accent font-semibold">{form.symbol}</Text>
+                      <Text className="text-muted text-xs">{form.name}</Text>
                     </View>
                   ) : null}
                 </>
@@ -370,12 +341,12 @@ export function AddPositionDialog({
               {Platform.OS === 'ios' && iosPickerVisible && (
                 <View className="mt-2 bg-surface rounded-xl border border-border">
                   <DateTimePicker
-                    value={buyDate}
+                    value={form.buyDate}
                     mode="date"
                     display="spinner"
                     maximumDate={new Date()}
                     onChange={(_event, selected) => {
-                      if (selected) setBuyDate(selected)
+                      if (selected) setForm(prev => ({ ...prev, buyDate: selected }))
                     }}
                   />
                   <View className="items-end px-2 pb-2">
@@ -392,8 +363,8 @@ export function AddPositionDialog({
                 <Text className="text-muted text-sm mb-2">{_('shares')}</Text>
                 <Input
                   placeholder="10"
-                  value={shares}
-                  onChangeText={setShares}
+                  value={form.shares}
+                  onChangeText={shares => setForm(prev => ({ ...prev, shares }))}
                   keyboardType="decimal-pad"
                 />
               </View>
@@ -404,11 +375,8 @@ export function AddPositionDialog({
                 </View>
                 <Input
                   placeholder="0.00"
-                  value={price}
-                  onChangeText={text => {
-                    setIsPriceManuallyEdited(true)
-                    setPrice(text)
-                  }}
+                  value={form.price}
+                  onChangeText={price => setForm(prev => ({ ...prev, price, priceEdited: true }))}
                   keyboardType="decimal-pad"
                 />
               </View>
@@ -420,7 +388,7 @@ export function AddPositionDialog({
                   variant="outline"
                   size="lg"
                   onPress={() => {
-                    if (!isEdit) reset()
+                    if (!isEdit) setForm(initialFormState(undefined, false))
                     onOpenChange(false)
                   }}
                 >
@@ -432,7 +400,7 @@ export function AddPositionDialog({
                   variant="primary"
                   size="lg"
                   onPress={handleSubmit}
-                  isDisabled={saving || !selectedSymbol}
+                  isDisabled={saving || !form.symbol}
                 >
                   <Button.Label>
                     {saving ? (isEdit ? _('saving') : _('adding')) : isEdit ? _('save') : _('add')}

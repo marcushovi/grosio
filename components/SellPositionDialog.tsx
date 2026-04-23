@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { View, Text, Alert, KeyboardAvoidingView, Platform, Pressable } from 'react-native'
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker'
 import { Button } from 'heroui-native/button'
@@ -29,15 +29,6 @@ export function SellPositionDialog({ isOpen, onOpenChange, position }: SellPosit
   const [iosPickerVisible, setIosPickerVisible] = useState(false)
 
   const soldDateIso = useMemo(() => toYyyyMmDd(soldDate), [soldDate])
-
-  // Reset on open so a previous failed attempt does not pre-fill stale values.
-  useEffect(() => {
-    if (isOpen) {
-      setSoldDate(new Date())
-      setSoldPrice('')
-      setIosPickerVisible(false)
-    }
-  }, [isOpen])
 
   // Min sale date = buy date (DB constraint `positions_sold_after_buy`).
   const minDate = useMemo(
