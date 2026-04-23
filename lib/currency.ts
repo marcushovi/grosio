@@ -5,28 +5,21 @@ export type DisplayCurrency = 'EUR' | 'USD' | 'CZK'
 export interface ExchangeRates {
   eurUsd: number
   eurCzk: number
-  timestamp: number
 }
 
 // Pure fetch — no internal caching. Caller wraps with TanStack Query.
+// Throws on network / parse failure so the enclosing query surfaces an error
+// state rather than silently rendering stale numbers.
 export async function getExchangeRates(): Promise<ExchangeRates> {
-  try {
-    const res = await fetch('https://api.frankfurter.app/latest?from=EUR&to=USD,CZK')
-    if (!res.ok) throw new Error('Frankfurter fetch failed')
-    const data = await res.json()
-    return {
-      eurUsd: data.rates?.USD ?? 1.08,
-      eurCzk: data.rates?.CZK ?? 25.3,
-      timestamp: Date.now(),
-    }
-  } catch {
-    // Hardcoded fallback. UI renders a banner via `areFallbackRates`.
-    return { eurUsd: 1.08, eurCzk: 25.3, timestamp: 0 }
+  const res = await fetch('https://api.frankfurter.app/latest?from=EUR&to=USD,CZK')
+  if (!res.ok) throw new Error(`Frankfurter fetch failed: ${res.status}`)
+  const data = await res.json()
+  const eurUsd = data?.rates?.USD
+  const eurCzk = data?.rates?.CZK
+  if (typeof eurUsd !== 'number' || typeof eurCzk !== 'number') {
+    throw new Error('Frankfurter response missing USD/CZK rates')
   }
-}
-
-export function areFallbackRates(rates: ExchangeRates): boolean {
-  return rates.timestamp === 0
+  return { eurUsd, eurCzk }
 }
 
 export function toEur(amount: number, currency: PositionCurrency, rates: ExchangeRates): number {

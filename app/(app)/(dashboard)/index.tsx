@@ -11,7 +11,7 @@ import { useSettings } from '@/lib/settingsContext'
 import { queryKeys } from '@/lib/queryKeys'
 import { fetchAllPositions } from '@/lib/api/positions'
 import { fetchPrices } from '@/lib/api/yahoo'
-import { getExchangeRates, areFallbackRates } from '@/lib/currency'
+import { getExchangeRates } from '@/lib/currency'
 import { useFormat } from '@/hooks/useFormat'
 import {
   computeDashboardBase,
@@ -154,12 +154,6 @@ export default function DashboardScreen() {
               )
             })()
           : null}
-
-        {dashboardBase && areFallbackRates(dashboardBase.rates) && (
-          <View className="bg-surface rounded-xl px-3 py-2 mb-3 flex-row items-center gap-2">
-            <Text className="text-warning text-xs">{_('ratesFallback')}</Text>
-          </View>
-        )}
 
         <Card className="bg-surface mb-4">
           <Card.Body>
