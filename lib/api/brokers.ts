@@ -21,9 +21,11 @@ export async function fetchBrokerById(id: string): Promise<Broker | null> {
 }
 
 export async function insertBroker(name: string, color: string): Promise<void> {
+  const trimmed = name.trim()
+  if (!trimmed) throw new Error('Name is required')
   const userId = await getAuthUserId()
   if (!userId) throw new Error('Not authenticated')
-  const { error } = await supabase.from('brokers').insert({ name, color, user_id: userId })
+  const { error } = await supabase.from('brokers').insert({ name: trimmed, color, user_id: userId })
   if (error) throw new Error(error.message)
 }
 
@@ -41,6 +43,12 @@ export type UpdateBrokerInput = Partial<{
 }>
 
 export async function updateBroker(brokerId: string, input: UpdateBrokerInput): Promise<void> {
-  const { error } = await supabase.from('brokers').update(input).eq('id', brokerId)
+  const patch: UpdateBrokerInput = { ...input }
+  if (input.name !== undefined) {
+    const name = input.name.trim()
+    if (!name) throw new Error('Name is required')
+    patch.name = name
+  }
+  const { error } = await supabase.from('brokers').update(patch).eq('id', brokerId)
   if (error) throw new Error(error.message)
 }

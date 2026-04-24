@@ -40,9 +40,15 @@ export async function insertPosition(position: InsertPositionInput): Promise<voi
   if (!ALLOWED_CURRENCIES.includes(position.currency)) {
     throw new Error(`Unsupported currency: ${position.currency}`)
   }
+  const symbol = position.symbol.trim()
+  const name = position.name.trim()
+  if (!symbol) throw new Error('Symbol is required')
+  if (!name) throw new Error('Name is required')
   const userId = await getAuthUserId()
   if (!userId) throw new Error('Not authenticated')
-  const { error } = await supabase.from('positions').insert({ ...position, user_id: userId })
+  const { error } = await supabase
+    .from('positions')
+    .insert({ ...position, symbol, name, user_id: userId })
   if (error) throw new Error(error.message)
 }
 
@@ -74,6 +80,18 @@ export async function updatePosition(
     throw new Error(`Unsupported currency: ${input.currency}`)
   }
 
+  const patch: UpdatePositionInput = { ...input }
+  if (input.symbol !== undefined) {
+    const symbol = input.symbol.trim()
+    if (!symbol) throw new Error('Symbol is required')
+    patch.symbol = symbol
+  }
+  if (input.name !== undefined) {
+    const name = input.name.trim()
+    if (!name) throw new Error('Name is required')
+    patch.name = name
+  }
+
   const { data: existing, error: fetchErr } = await supabase
     .from('positions')
     .select('*')
@@ -85,7 +103,7 @@ export async function updatePosition(
 
   const { error } = await supabase
     .from('positions')
-    .update(input)
+    .update(patch)
     .eq('id', positionId)
     .is('sold_at', null)
   if (error) throw new Error(error.message)

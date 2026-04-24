@@ -121,5 +121,6 @@
   "unexpectedError": "An unexpected error occurred",
   "unsell": "Mark as open",
   "unsellPosition": "Reopen Position",
-  "unsellPositionMsg": "Clear the sale details for {{symbol}} and move it back to open positions?"
+  "unsellPositionMsg": "Clear the sale details for {{symbol}} and move it back to open positions?",
+  "unsellSuccess": "{{symbol}} moved back to open positions"
 }

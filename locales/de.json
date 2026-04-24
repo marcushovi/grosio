@@ -121,5 +121,6 @@
   "unexpectedError": "Ein unerwarteter Fehler ist aufgetreten",
   "unsell": "Als offen markieren",
   "unsellPosition": "Position wieder öffnen",
-  "unsellPositionMsg": "Verkaufsdaten für {{symbol}} löschen und die Position wieder öffnen?"
+  "unsellPositionMsg": "Verkaufsdaten für {{symbol}} löschen und die Position wieder öffnen?",
+  "unsellSuccess": "{{symbol}} wurde wieder zu den offenen Positionen hinzugefügt"
 }

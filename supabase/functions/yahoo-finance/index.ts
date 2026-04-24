@@ -76,8 +76,12 @@ Deno.serve(async req => {
         if (Number.isNaN(target)) return json({ error: 'invalid date' }, 400)
 
         // ±7-day window so weekends/holidays around the target are covered.
-        const period1 = Math.floor((target - PRICE_WINDOW_BEFORE_DAYS * SECONDS_PER_DAY * 1000) / 1000)
-        const period2 = Math.floor((target + PRICE_WINDOW_AFTER_DAYS * SECONDS_PER_DAY * 1000) / 1000)
+        const period1 = Math.floor(
+          (target - PRICE_WINDOW_BEFORE_DAYS * SECONDS_PER_DAY * 1000) / 1000
+        )
+        const period2 = Math.floor(
+          (target + PRICE_WINDOW_AFTER_DAYS * SECONDS_PER_DAY * 1000) / 1000
+        )
         const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&period1=${period1}&period2=${period2}`
         const res = await fetch(yahooUrl, { headers: { 'User-Agent': UA } })
         if (!res.ok) throw new Error(`yahoo ${res.status}`)

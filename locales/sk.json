@@ -95,11 +95,11 @@
   "tax": "Dane",
   "taxDisclaimer": "Tieto údaje sú orientačné. Za presnosť a správnosť nezodpovedáme.",
   "taxFree": "Bez dane",
-  "taxFreeChip": "Oslobodené",
+  "taxFreeChip": "Osloboditeľné",
   "taxFreeExplain_CZ": "Držané viac ako 3 roky — bez dane z príjmu (ČR)",
   "taxFreeExplain_SK": "Držané viac ako 1 rok — bez dane z príjmu (Slovensko)",
-  "taxFreeLabel": "Oslobodené od dane",
-  "taxFreeProfit": "Oslobodený zisk",
+  "taxFreeLabel": "Osloboditeľné od dane",
+  "taxFreeProfit": "Osloboditeľný zisk",
   "taxNoPositions": "Žiadne pozície s dátumom nákupu",
   "taxNoPositionsHint": "Pri pridávaní pozície zadajte dátum nákupu",
   "taxOverview": "Daňový prehľad",
@@ -121,5 +121,6 @@
   "unexpectedError": "Nastala neočakávaná chyba",
   "unsell": "Vrátiť do otvorených",
   "unsellPosition": "Vrátiť pozíciu",
-  "unsellPositionMsg": "Zrušiť údaje o predaji pozície {{symbol}} a vrátiť ju medzi otvorené?"
+  "unsellPositionMsg": "Zrušiť údaje o predaji pozície {{symbol}} a vrátiť ju medzi otvorené?",
+  "unsellSuccess": "Pozícia {{symbol}} bola vrátená do otvorených"
 }

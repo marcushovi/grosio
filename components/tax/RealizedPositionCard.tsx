@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { View, Text, Pressable, LayoutAnimation, Platform, UIManager } from 'react-native'
+import { View, Text, Pressable, Alert, LayoutAnimation, Platform, UIManager } from 'react-native'
 import { Card } from 'heroui-native/card'
 import { Chip } from 'heroui-native/chip'
 import { useTranslation } from 'react-i18next'
 import { useFormat } from '@/hooks/useFormat'
+import { useUnsellPosition } from '@/hooks/usePositions'
 import { computeRealizedTaxStatus, realizedPnlNative, type Domicile } from '@/lib/tax'
 import { toEur, convertToDisplay, type ExchangeRates, type DisplayCurrency } from '@/lib/currency'
 import type { Position } from '@/types'
@@ -29,10 +30,28 @@ export function RealizedPositionCard({
   const { t: _ } = useTranslation()
   const f = useFormat()
   const [expanded, setExpanded] = useState(false)
+  const unsellPositionMutation = useUnsellPosition()
 
   const toggle = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
     setExpanded(v => !v)
+  }
+
+  const handleLongPress = () => {
+    Alert.alert(_('unsellPosition'), _('unsellPositionMsg', { symbol: position.symbol }), [
+      { text: _('cancel'), style: 'cancel' },
+      {
+        text: _('unsell'),
+        onPress: async () => {
+          try {
+            await unsellPositionMutation.mutateAsync(position.id)
+            Alert.alert(_('unsellSuccess', { symbol: position.symbol }))
+          } catch (e) {
+            Alert.alert(_('error'), e instanceof Error ? e.message : String(e))
+          }
+        },
+      },
+    ])
   }
 
   const { isTaxFree, daysHeld } = computeRealizedTaxStatus(position, domicile)
@@ -43,7 +62,7 @@ export function RealizedPositionCard({
       : convertToDisplay(toEur(pnlNative, position.currency, rates), displayCurrency, rates)
 
   return (
-    <Pressable onPress={toggle}>
+    <Pressable onPress={toggle} onLongPress={handleLongPress} delayLongPress={400}>
       <Card className="bg-surface p-4 mb-2">
         <View className="flex-row items-center gap-2">
           <Text className="text-foreground font-semibold">{position.symbol}</Text>
