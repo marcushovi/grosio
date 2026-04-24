@@ -1,8 +1,18 @@
 import '@supabase/functions-js/edge-runtime.d.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
+import YahooFinance from 'yahoo-finance2'
 
-const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
+const yahooFinance = new YahooFinance()
+const QUOTE_FIELDS = [
+  'symbol',
+  'regularMarketPrice',
+  'regularMarketChange',
+  'regularMarketChangePercent',
+  'currency',
+  'shortName',
+  'longName',
+] as const
 
 const YAHOO_SEARCH_COUNT = 8
 const PRICE_WINDOW_BEFORE_DAYS = 7
@@ -50,21 +60,27 @@ Deno.serve(async req => {
 
   try {
     if (action === 'search' && query) {
-      const yahooUrl = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=${YAHOO_SEARCH_COUNT}&newsCount=0`
-      const res = await fetch(yahooUrl, { headers: { 'User-Agent': UA } })
-      const data = await res.json()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rawQuotes = (data?.quotes ?? []) as any[]
-      const allowed = ['EQUITY', 'ETF']
-      const quotes = rawQuotes
-        .filter(q => allowed.includes(q.quoteType))
-        .map(q => ({
-          symbol: q.symbol ?? '',
-          name: q.shortname ?? q.longname ?? q.symbol ?? '',
-          exchange: q.exchange ?? '',
-          type: q.quoteType ?? '',
-        }))
-      return json({ quotes })
+      try {
+        const data = await yahooFinance.search(query, {
+          quotesCount: YAHOO_SEARCH_COUNT,
+          newsCount: 0,
+        })
+        const allowed = ['EQUITY', 'ETF']
+        const quotes = (data.quotes ?? [])
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .filter((q: any) => allowed.includes(q.quoteType))
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map((q: any) => ({
+            symbol: q.symbol ?? '',
+            name: q.shortname ?? q.longname ?? q.symbol ?? '',
+            exchange: q.exchange ?? '',
+            type: q.quoteType ?? '',
+          }))
+        return json({ quotes })
+      } catch (err) {
+        console.error('[search] failed:', err)
+        return json({ error: 'Search failed' }, 500)
+      }
     }
 
     if (action === 'priceOnDate' && symbol && date) {
@@ -72,60 +88,52 @@ Deno.serve(async req => {
         return json({ error: 'date (YYYY-MM-DD) required' }, 400)
       }
       try {
-        const target = new Date(`${date}T00:00:00Z`).getTime()
-        if (Number.isNaN(target)) return json({ error: 'invalid date' }, 400)
+        const targetMs = new Date(`${date}T00:00:00Z`).getTime()
+        if (Number.isNaN(targetMs)) return json({ error: 'invalid date' }, 400)
 
         // ±7-day window so weekends/holidays around the target are covered.
-        const period1 = Math.floor(
-          (target - PRICE_WINDOW_BEFORE_DAYS * SECONDS_PER_DAY * 1000) / 1000
-        )
-        const period2 = Math.floor(
-          (target + PRICE_WINDOW_AFTER_DAYS * SECONDS_PER_DAY * 1000) / 1000
-        )
-        const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&period1=${period1}&period2=${period2}`
-        const res = await fetch(yahooUrl, { headers: { 'User-Agent': UA } })
-        if (!res.ok) throw new Error(`yahoo ${res.status}`)
-        const data = await res.json()
-        const result = data?.chart?.result?.[0]
-        if (!result) throw new Error('no result')
+        const period1 = new Date(targetMs - PRICE_WINDOW_BEFORE_DAYS * SECONDS_PER_DAY * 1000)
+        const period2 = new Date(targetMs + PRICE_WINDOW_AFTER_DAYS * SECONDS_PER_DAY * 1000)
 
-        const timestamps: number[] = result.timestamp ?? []
-        const closes: (number | null)[] = result.indicators?.quote?.[0]?.close ?? []
+        const result = await yahooFinance.chart(symbol, {
+          period1,
+          period2,
+          interval: '1d',
+        })
+
+        const quotes = result.quotes ?? []
         const currency = result.meta?.currency ?? 'USD'
 
         // Prefer the trading day ≤ target; fall back to earliest close if
         // target precedes the first data point.
-        const targetSec = Math.floor(target / 1000) + SECONDS_PER_DAY
-        let bestClose: number | null = null
-        let bestTs: number | null = null
-        for (let i = 0; i < timestamps.length; i++) {
-          const c = closes[i]
-          if (c == null) continue
-          if (timestamps[i] > targetSec) continue
-          if (bestTs === null || timestamps[i] > bestTs) {
-            bestTs = timestamps[i]
-            bestClose = c
+        const cutoffMs = targetMs + SECONDS_PER_DAY * 1000
+        let best: { close: number; date: Date } | null = null
+        for (const q of quotes) {
+          const close = q.close
+          const ts = q.date instanceof Date ? q.date : new Date(q.date as unknown as string)
+          if (close == null || Number.isNaN(ts.getTime())) continue
+          if (ts.getTime() > cutoffMs) continue
+          if (!best || ts.getTime() > best.date.getTime()) {
+            best = { close, date: ts }
           }
         }
-        if (bestClose === null) {
-          for (let i = 0; i < timestamps.length; i++) {
-            const c = closes[i]
-            if (c != null) {
-              bestTs = timestamps[i]
-              bestClose = c
+        if (!best) {
+          for (const q of quotes) {
+            const close = q.close
+            const ts = q.date instanceof Date ? q.date : new Date(q.date as unknown as string)
+            if (close != null && !Number.isNaN(ts.getTime())) {
+              best = { close, date: ts }
               break
             }
           }
         }
 
-        if (bestClose === null || bestTs === null) {
-          return json({ error: 'No price data for that date' }, 404)
-        }
+        if (!best) return json({ error: 'No price data for that date' }, 404)
 
         return json({
           symbol,
-          date: new Date(bestTs * 1000).toISOString().split('T')[0],
-          close: bestClose,
+          date: best.date.toISOString().split('T')[0],
+          close: best.close,
           currency,
         })
       } catch (err) {
@@ -137,38 +145,33 @@ Deno.serve(async req => {
     if (action === 'quotes' && Array.isArray(symbols)) {
       if (symbols.length === 0) return json({ error: 'symbols required' }, 400)
 
-      // Raw chart endpoint is cookie-free and reliable here. yahoo-finance2's
-      // quoteCombine fails in Deno's npm-compat layer.
-      const results = await Promise.all(
-        symbols.map(async sym => {
-          try {
-            const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?interval=1d&range=1d`
-            const res = await fetch(yahooUrl, { headers: { 'User-Agent': UA } })
-            if (!res.ok) return null
-            const data = await res.json()
-            const meta = data?.chart?.result?.[0]?.meta
-            if (!meta) return null
-
-            const prevClose =
-              meta.chartPreviousClose ?? meta.previousClose ?? meta.regularMarketPrice ?? 0
-            const price = meta.regularMarketPrice ?? 0
-
+      // Single Yahoo /v7/finance/quote call for all symbols (yahoo-finance2
+      // handles crumb/cookie internally). `return: 'object'` for O(1) lookup.
+      try {
+        const quotes = await yahooFinance.quote(symbols, {
+          return: 'object',
+          fields: [...QUOTE_FIELDS],
+        })
+        const results = symbols
+          .map(sym => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const q = (quotes as Record<string, any>)[sym]
+            if (!q || typeof q.regularMarketPrice !== 'number') return null
             return {
               symbol: sym,
-              price,
-              currency: meta.currency ?? 'USD',
-              change: price - prevClose,
-              changePercent: prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0,
-              name: meta.shortName ?? meta.longName ?? sym,
+              price: q.regularMarketPrice,
+              currency: q.currency ?? 'USD',
+              change: q.regularMarketChange ?? 0,
+              changePercent: q.regularMarketChangePercent ?? 0,
+              name: q.shortName ?? q.longName ?? sym,
             }
-          } catch (err) {
-            console.error(`[quotes] failed for ${sym}:`, err)
-            return null
-          }
-        })
-      )
-
-      return json(results.filter(Boolean))
+          })
+          .filter(Boolean)
+        return json(results)
+      } catch (err) {
+        console.error('[quotes] failed:', err)
+        return json({ error: 'Quote fetch failed' }, 500)
+      }
     }
 
     return json({ error: 'Invalid action. Use action=search|quotes|priceOnDate' }, 400)
