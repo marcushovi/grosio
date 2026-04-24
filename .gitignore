@@ -40,5 +40,6 @@ yarn-error.*
 /ios
 /android
 
-# Claude Code ephemera
+# IDE / editor local config
 .claude/
+CLAUDE.md

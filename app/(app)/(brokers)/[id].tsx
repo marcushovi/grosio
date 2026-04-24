@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { View, Text, FlatList, Alert, RefreshControl } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { Card } from 'heroui-native/card'
 import { Button } from 'heroui-native/button'
 import { useThemeColor } from 'heroui-native'
@@ -36,11 +36,6 @@ import { Screen } from '@/components/Screen'
 import { SwipeableRow, type SwipeableRowAction } from '@/components/SwipeableRow'
 import type { Position, PositionWithPrice, PositionCurrency } from '@/types'
 
-interface PricesAndRates {
-  prices: PriceMap
-  rates: ExchangeRates
-}
-
 export default function BrokerDetailScreen() {
   const { t: _ } = useTranslation()
   const f = useFormat()
@@ -54,7 +49,6 @@ export default function BrokerDetailScreen() {
   ])
   const { id } = useLocalSearchParams<{ id: string }>()
   const router = useRouter()
-  const queryClient = useQueryClient()
   const { positions, loading, addPosition, deletePosition } = usePositions(id)
 
   // Single-row fetch — broker deletes invalidate brokers.all, busting this too.
@@ -71,34 +65,42 @@ export default function BrokerDetailScreen() {
   // Sorted so the queryKey stays stable across renders.
   const symbols = useMemo(() => [...new Set(positions.map(p => p.symbol))].sort(), [positions])
 
+  // Two separate queries so both keys are canonical and dedupe across screens
+  // (dashboard warms `prices.quotes(...)` and `exchangeRates.latest()` under
+  // the same keys). Combined into `pricing` via useMemo for render.
   const {
-    data: pricing,
-    isPending: pricesPending,
+    data: prices,
+    isPending: pricesFetching,
     refetch: refetchPrices,
-    dataUpdatedAt,
-  } = useQuery<PricesAndRates, Error>({
+    dataUpdatedAt: pricesUpdatedAt,
+  } = useQuery<PriceMap, Error>({
     queryKey: queryKeys.prices.quotes(symbols),
-    queryFn: async () => {
-      const [rates, prices] = await Promise.all([
-        queryClient.fetchQuery({
-          queryKey: queryKeys.exchangeRates.latest(),
-          queryFn: getExchangeRates,
-          staleTime: STALE_TIME.RATES,
-        }),
-        fetchPrices(symbols),
-      ])
-      return { rates, prices }
-    },
+    queryFn: () => fetchPrices(symbols),
     enabled: symbols.length > 0,
+    staleTime: STALE_TIME.DEFAULT,
   })
+
+  const {
+    data: rates,
+    isPending: ratesFetching,
+    refetch: refetchRates,
+    dataUpdatedAt: ratesUpdatedAt,
+  } = useQuery<ExchangeRates, Error>({
+    queryKey: queryKeys.exchangeRates.latest(),
+    queryFn: getExchangeRates,
+    staleTime: STALE_TIME.RATES,
+  })
+
+  const pricesPending = pricesFetching || ratesFetching
+  const dataUpdatedAt = Math.max(pricesUpdatedAt, ratesUpdatedAt)
 
   // Derived during render via lib/portfolio so broker-detail and dashboard
   // stay in lock-step.
   const positionsWithPrices = useMemo<PositionWithPrice[]>(() => {
-    if (!pricing || positions.length === 0) return []
+    if (!prices || !rates || positions.length === 0) return []
     return positions.map(pos => {
-      const pv = computePositionValueEur(pos, pricing.prices, pricing.rates)
-      const pnl = computePositionPnl(pv, displayCurrency, pricing.rates)
+      const pv = computePositionValueEur(pos, prices, rates)
+      const pnl = computePositionPnl(pv, displayCurrency, rates)
       return {
         ...pos,
         currency: pv.currentCurrency,
@@ -109,7 +111,7 @@ export default function BrokerDetailScreen() {
         gainLossPct: pnl.gainLossPct,
       }
     })
-  }, [positions, pricing, displayCurrency])
+  }, [positions, prices, rates, displayCurrency])
 
   const handleDeletePosition = useCallback(
     (posId: string, symbol: string) => {
@@ -160,8 +162,8 @@ export default function BrokerDetailScreen() {
   )
 
   const onRefresh = useCallback(async () => {
-    await refetchPrices()
-  }, [refetchPrices])
+    await Promise.all([refetchPrices(), refetchRates()])
+  }, [refetchPrices, refetchRates])
 
   const totalValue = positionsWithPrices.reduce((s, p) => s + p.currentValue, 0)
   const totalInvested = positionsWithPrices.reduce((s, p) => s + p.invested, 0)

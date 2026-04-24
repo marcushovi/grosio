@@ -20,15 +20,23 @@ export function useTaxSummary() {
     queryKey: queryKeys.tax.data(domicile),
     queryFn: async () => {
       const [positions, rates] = await Promise.all([
-        fetchAllPositions(),
+        queryClient.fetchQuery({
+          queryKey: queryKeys.positions.list(),
+          queryFn: fetchAllPositions,
+          staleTime: STALE_TIME.DEFAULT,
+        }),
         queryClient.fetchQuery<ExchangeRates>({
           queryKey: queryKeys.exchangeRates.latest(),
           queryFn: getExchangeRates,
           staleTime: STALE_TIME.RATES,
         }),
       ])
-      const symbols = [...new Set(positions.map(p => p.symbol))]
-      const priceMap = await fetchPrices(symbols)
+      const symbols = [...new Set(positions.map(p => p.symbol))].sort()
+      const priceMap = await queryClient.fetchQuery({
+        queryKey: queryKeys.prices.quotes(symbols),
+        queryFn: () => fetchPrices(symbols),
+        staleTime: STALE_TIME.DEFAULT,
+      })
       return computeTaxStatusBase(positions, brokers, domicile, rates, priceMap)
     },
     enabled: brokers.length > 0,
