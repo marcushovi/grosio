@@ -58,8 +58,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
             const merged = { ...defaults, ...parsed }
             setSettings(merged)
             if (merged.language) i18n.changeLanguage(merged.language)
-          } catch {
-            // corrupt storage — use defaults
+          } catch (err) {
+            console.warn('[settings] failed to parse stored settings, using defaults:', err)
           }
         }
         setIsLoaded(true)
@@ -74,7 +74,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const save = (next: Settings) => {
     setSettings(next)
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(() => {})
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(err => {
+      console.warn('[settings] failed to persist settings:', err)
+    })
   }
 
   return (
