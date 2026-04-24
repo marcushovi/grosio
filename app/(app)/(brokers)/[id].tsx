@@ -10,12 +10,11 @@ import {
   DollarSign,
   Pencil,
   Plus,
-  RotateCcw,
   Trash2,
   TrendingUp,
   TrendingDown,
 } from 'lucide-react-native'
-import { usePositions, useUnsellPosition } from '@/hooks/usePositions'
+import { usePositions } from '@/hooks/usePositions'
 import { queryKeys } from '@/lib/queryKeys'
 import { fetchBrokerById } from '@/lib/api/brokers'
 import { fetchPrices } from '@/lib/api/yahoo'
@@ -35,7 +34,6 @@ import { LastUpdated } from '@/components/LastUpdated'
 import { LoadingState } from '@/components/LoadingState'
 import { Screen } from '@/components/Screen'
 import { SwipeableRow, type SwipeableRowAction } from '@/components/SwipeableRow'
-import { isSold } from '@/types'
 import type { Position, PositionWithPrice, PositionCurrency } from '@/types'
 
 interface PricesAndRates {
@@ -58,7 +56,6 @@ export default function BrokerDetailScreen() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { positions, loading, addPosition, deletePosition } = usePositions(id)
-  const unsellPositionMutation = useUnsellPosition()
 
   // Single-row fetch — broker deletes invalidate brokers.all, busting this too.
   const { data: broker, isLoading: brokerLoading } = useQuery({
@@ -145,25 +142,6 @@ export default function BrokerDetailScreen() {
       if (pos) setSellingPosition(pos)
     },
     [positions]
-  )
-
-  const handleUnsellPosition = useCallback(
-    (posId: string, symbol: string) => {
-      Alert.alert(_('unsellPosition'), _('unsellPositionMsg', { symbol }), [
-        { text: _('cancel'), style: 'cancel' },
-        {
-          text: _('unsell'),
-          onPress: async () => {
-            try {
-              await unsellPositionMutation.mutateAsync(posId)
-            } catch (e) {
-              Alert.alert(_('error'), e instanceof Error ? e.message : String(e))
-            }
-          },
-        },
-      ])
-    },
-    [_, unsellPositionMutation]
   )
 
   const handleAddPosition = useCallback(
@@ -267,41 +245,26 @@ export default function BrokerDetailScreen() {
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={pricesLoading} onRefresh={onRefresh} />}
           renderItem={({ item }) => {
-            const actions: SwipeableRowAction[] = isSold(item)
-              ? [
-                  {
-                    label: _('unsell'),
-                    icon: RotateCcw,
-                    backgroundColor: accent,
-                    onPress: () => handleUnsellPosition(item.id, item.symbol),
-                  },
-                  {
-                    label: _('delete'),
-                    icon: Trash2,
-                    backgroundColor: danger,
-                    onPress: () => handleDeletePosition(item.id, item.symbol),
-                  },
-                ]
-              : [
-                  {
-                    label: _('edit'),
-                    icon: Pencil,
-                    backgroundColor: accent,
-                    onPress: () => handleEditPosition(item.id),
-                  },
-                  {
-                    label: _('sell'),
-                    icon: DollarSign,
-                    backgroundColor: success,
-                    onPress: () => handleSellPosition(item.id),
-                  },
-                  {
-                    label: _('delete'),
-                    icon: Trash2,
-                    backgroundColor: danger,
-                    onPress: () => handleDeletePosition(item.id, item.symbol),
-                  },
-                ]
+            const actions: SwipeableRowAction[] = [
+              {
+                label: _('edit'),
+                icon: Pencil,
+                backgroundColor: accent,
+                onPress: () => handleEditPosition(item.id),
+              },
+              {
+                label: _('sell'),
+                icon: DollarSign,
+                backgroundColor: success,
+                onPress: () => handleSellPosition(item.id),
+              },
+              {
+                label: _('delete'),
+                icon: Trash2,
+                backgroundColor: danger,
+                onPress: () => handleDeletePosition(item.id, item.symbol),
+              },
+            ]
             return (
               <SwipeableRow actions={actions}>
                 <PositionRow item={item} displayCurrency={displayCurrency} />
