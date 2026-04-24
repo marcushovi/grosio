@@ -42,19 +42,21 @@ yarn start
 
 ## Premenné prostredia
 
-Vytvor súbor `.env.local` s týmito hodnotami:
+Skopíruj `.env.example` do `.env.local` a doplň hodnoty:
 
-```env
-EXPO_PUBLIC_SUPABASE_URL=https://gevumknsuldyjrjiizay.supabase.co
-EXPO_PUBLIC_SUPABASE_KEY=sb_publishable_0ELW8JRn_0twcOWEpSszKA_-MphwaWU
+```bash
+cp .env.example .env.local
 ```
+
+Potrebné premenné:
+
+- `EXPO_PUBLIC_SUPABASE_URL` — URL Supabase projektu
+- `EXPO_PUBLIC_SUPABASE_KEY` — Supabase publishable (anon) key
+- `EXPO_PUBLIC_FRANKFURTER_URL` — endpoint Frankfurter API pre výmenné kurzy (default v `.env.example`)
 
 ## Databáza
 
-Schéma databázy je v `supabase/migrations/`:
-
-- `001_init.sql` — tabuľky brokers, positions + RLS politiky
-- `002_add_buy_date.sql` — dátum nákupu pozície
+Schéma databázy je v `supabase/migrations/000_baseline.sql` — obsahuje tabuľky `brokers`, `positions`, Row Level Security politiky a CHECK obmedzenia pre integritu záznamov o predaji.
 
 ## Štruktúra projektu
 
